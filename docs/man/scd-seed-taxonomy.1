@@ -1,0 +1,133 @@
+.\" Man page for the seed_taxonomy Django management command
+.\" scd-seed-taxonomy(1)
+.TH SCD\-SEED\-TAXONOMY 1 "2026-05-05" "SCD Effort Reporting" "SCD Effort Reporting Commands"
+.
+.SH NAME
+scd\-seed\-taxonomy \- seed the default projects and categories
+.
+.SH SYNOPSIS
+.B python manage.py seed_taxonomy
+.
+.SH DESCRIPTION
+.B seed_taxonomy
+is an idempotent Django management command that populates the
+.I Project
+and
+.I Category
+tables with the default Fermilab SCD taxonomy.
+.PP
+The command uses
+.B get_or_create
+for each record so it is safe to run multiple times: existing records
+are left unchanged and no duplicates are created.
+Records created by this command can be supplemented or modified through
+the web interface at
+.I /taxonomy/projects/
+and
+.I /taxonomy/categories/
+(Administrator role required).
+.PP
+This command has no required arguments and reads no environment
+variables.
+It should be run once after the initial database migration when setting
+up a new instance.
+.
+.SH PROJECTS
+The following projects are created if they do not already exist:
+.PP
+.TS
+tab(;) allbox;
+lb lb lb
+l l r.
+Name;Short Code;Sort Order
+DUNE;DUNE;10
+NOvA;NOvA;20
+MicroBooNE;uBooNE;30
+CMS;CMS;40
+LSST;LSST;50
+.TE
+.
+.SH CATEGORIES
+The following categories are created if they do not already exist:
+.PP
+.TS
+tab(;) allbox;
+lb lb lb
+l l r.
+Name;Short Code;Sort Order
+Scientific;SCI;10
+Operations;OPS;20
+Outreach;OUT;30
+Training;TRN;40
+.TE
+.
+.SH ENVIRONMENT
+This command reads no environment variables.
+.
+.SH EXIT STATUS
+.TP
+.B 0
+All records were created or already existed.
+.TP
+.B non-zero
+An unexpected database or configuration error occurred.
+.
+.SH EXAMPLES
+.PP
+Run taxonomy seeding after applying migrations:
+.PP
+.nf
+    python manage.py migrate
+    python manage.py seed_taxonomy
+.fi
+.PP
+Run inside an already-running Docker container:
+.PP
+.nf
+    docker compose exec web python manage.py seed_taxonomy
+.fi
+.PP
+Run as part of a one-time setup sequence:
+.PP
+.nf
+    python manage.py migrate
+    python manage.py seed_taxonomy
+    SCD_INITIAL_ADMIN_PASSWORD=s3cr3t python manage.py seed_admin
+.fi
+.
+.SH NOTES
+.IP \(bu 2
+The sort order controls the display order in dropdown menus throughout
+the application.
+Lower numbers appear first.
+.IP \(bu 2
+New projects and categories can be added at any time through the web
+interface without re-running this command.
+.IP \(bu 2
+To deactivate a project or category (hide it from entry forms without
+deleting historical data) use the
+.I Active
+toggle in the web interface.
+Deactivated items remain attached to existing entries but are excluded
+from new-entry dropdown menus.
+.IP \(bu 2
+Projects and categories cannot be deleted through the web interface
+once entries reference them.
+The foreign keys use
+.I PROTECT
+to prevent accidental data loss.
+.
+.SH FILES
+.TP
+.I apps/taxonomy/management/commands/seed_taxonomy.py
+Source file for this command.
+.
+.SH SEE ALSO
+.BR scd\-seed\-admin (1),
+.BR python\-manage (1)
+.PP
+Django management commands documentation:
+.I https://docs.djangoproject.com/en/5.0/ref/django-admin/
+.
+.SH AUTHOR
+Fermilab Scientific Computing Division

@@ -1,0 +1,85 @@
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views import View
+from django.views.generic import UpdateView
+
+from apps.accounts.permissions import AdminRequiredMixin
+
+from .forms import CategoryForm, ProjectForm
+from .models import Category, Project, Tag
+
+
+class ProjectManageView(AdminRequiredMixin, View):
+    template_name = 'taxonomy/projects.html'
+
+    def _ctx(self, form=None):
+        return {
+            'projects': Project.objects.order_by('sort_order', 'name'),
+            'form': form or ProjectForm(),
+        }
+
+    def get(self, request):
+        return render(request, self.template_name, self._ctx())
+
+    def post(self, request):
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            messages.success(request, f'Project "{obj.name}" added.')
+            return redirect('taxonomy:projects')
+        return render(request, self.template_name, self._ctx(form))
+
+
+class ProjectEditView(AdminRequiredMixin, UpdateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'taxonomy/project_form.html'
+    success_url = reverse_lazy('taxonomy:projects')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Project "{form.instance.name}" saved.')
+        return super().form_valid(form)
+
+
+class CategoryManageView(AdminRequiredMixin, View):
+    template_name = 'taxonomy/categories.html'
+
+    def _ctx(self, form=None):
+        return {
+            'categories': Category.objects.order_by('sort_order', 'name'),
+            'form': form or CategoryForm(),
+        }
+
+    def get(self, request):
+        return render(request, self.template_name, self._ctx())
+
+    def post(self, request):
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            messages.success(request, f'Category "{obj.name}" added.')
+            return redirect('taxonomy:categories')
+        return render(request, self.template_name, self._ctx(form))
+
+
+class CategoryEditView(AdminRequiredMixin, UpdateView):
+    model = Category
+    form_class = CategoryForm
+    template_name = 'taxonomy/category_form.html'
+    success_url = reverse_lazy('taxonomy:categories')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Category "{form.instance.name}" saved.')
+        return super().form_valid(form)
+
+
+class TagAutocompleteView(LoginRequiredMixin, View):
+    def get(self, request):
+        q = request.GET.get('q', '').strip()
+        if not q:
+            return HttpResponse('')
+        tags = Tag.objects.filter(name__icontains=q.lower()).order_by('-use_count', 'name')[:10]
+        return render(request, 'taxonomy/partials/_tag_results.html', {'tags': tags, 'q': q})

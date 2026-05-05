@@ -1,0 +1,15 @@
+<ul class="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-48 overflow-y-auto text-sm"
+    id="tag-autocomplete-results">
+  {% for tag in tags %}
+  <li class="px-3 py-2 hover:bg-scd-accent-soft cursor-pointer text-slate-700"
+      data-tag="{{ tag.name }}"
+      role="option">
+    {{ tag.name }}
+    {% if tag.use_count %}
+    <span class="text-xs text-slate-400 ml-1">({{ tag.use_count }})</span>
+    {% endif %}
+  </li>
+  {% empty %}
+  <li class="px-3 py-2 text-slate-400 italic">No tags matching "{{ q }}"</li>
+  {% endfor %}
+</ul>

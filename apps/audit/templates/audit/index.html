@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl space-y-4">
+
+  <h1 class="text-2xl font-bold text-slate-900">Audit Log</h1>
+
+  {# ── Filters ──────────────────────────────────────────────────────────────── #}
+  <form method="get" class="bg-white rounded-lg border border-slate-200 shadow-sm px-6 py-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Actor email</label>
+        <input type="text" name="actor" value="{{ q.actor|default:'' }}"
+               placeholder="partial match…"
+               class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Action</label>
+        <select name="action"
+                class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+          <option value="">All actions</option>
+          {% for val, label in action_choices %}
+          <option value="{{ val }}" {% if q.action == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Object type</label>
+        <select name="object_type"
+                class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+          <option value="">All types</option>
+          {% for ot in object_types %}
+          <option value="{{ ot }}" {% if q.object_type == ot %}selected{% endif %}>{{ ot }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Date on/after</label>
+        <input type="date" name="date_after" value="{{ q.date_after|default:'' }}"
+               class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Date on/before</label>
+        <input type="date" name="date_before" value="{{ q.date_before|default:'' }}"
+               class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+      </div>
+
+    </div>
+    <div class="flex gap-2 mt-3">
+      <button type="submit"
+              class="px-3 py-1.5 bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium rounded-md transition-colors">
+        Filter
+      </button>
+      <a href="{% url 'audit:index' %}"
+         class="px-3 py-1.5 text-sm text-slate-500 hover:underline">Clear</a>
+    </div>
+  </form>
+
+  {# ── Log table ────────────────────────────────────────────────────────────── #}
+  {% if entries %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 text-xs text-slate-500">
+      {{ paginator.count }} event{{ paginator.count|pluralize }}
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-xs">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-4 py-2 text-left font-semibold text-slate-500 whitespace-nowrap">Timestamp</th>
+            <th class="px-4 py-2 text-left font-semibold text-slate-500">Actor</th>
+            <th class="px-4 py-2 text-left font-semibold text-slate-500">Action</th>
+            <th class="px-4 py-2 text-left font-semibold text-slate-500">Object</th>
+            <th class="px-4 py-2 text-left font-semibold text-slate-500 hidden md:table-cell">Changes</th>
+            <th class="px-4 py-2 text-left font-semibold text-slate-500 hidden lg:table-cell">IP</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for entry in entries %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-2 whitespace-nowrap tabular-nums text-slate-500">
+              {{ entry.timestamp|date:"Y-m-d H:i:s" }}
+            </td>
+            <td class="px-4 py-2 text-slate-700">
+              {{ entry.actor.email|default:"—" }}
+            </td>
+            <td class="px-4 py-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                {% if entry.action == 'create' %}bg-green-100 text-green-700
+                {% elif entry.action == 'update' %}bg-blue-100 text-blue-700
+                {% elif entry.action == 'delete' %}bg-red-100 text-red-700
+                {% elif entry.action == 'login' %}bg-slate-100 text-slate-600
+                {% elif entry.action == 'logout' %}bg-slate-100 text-slate-600
+                {% elif entry.action == 'export' %}bg-purple-100 text-purple-700
+                {% endif %}">
+                {{ entry.get_action_display }}
+              </span>
+            </td>
+            <td class="px-4 py-2 text-slate-700">
+              {% if entry.object_type %}
+              <span class="text-slate-400 text-xs">{{ entry.object_type }}</span>
+              {% if entry.object_id %}<span class="mx-0.5 text-slate-300">#{{ entry.object_id }}</span>{% endif %}
+              <br>
+              {% endif %}
+              <span class="font-medium">{{ entry.object_repr|default:"—"|truncatechars:60 }}</span>
+            </td>
+            <td class="px-4 py-2 hidden md:table-cell text-slate-500 max-w-xs">
+              {% if entry.changes %}
+              <ul class="space-y-0.5">
+                {% for field, diff in entry.changes.items %}
+                <li>
+                  <span class="font-medium text-slate-600">{{ field }}</span>:
+                  {% if diff.old is not None and diff.new is not None %}
+                  <span class="line-through text-red-400">{{ diff.old|truncatechars:30 }}</span>
+                  → <span class="text-green-600">{{ diff.new|truncatechars:30 }}</span>
+                  {% else %}
+                  {{ diff|default:"—" }}
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              —
+              {% endif %}
+            </td>
+            <td class="px-4 py-2 hidden lg:table-cell text-slate-400 tabular-nums">
+              {{ entry.ip_address|default:"—" }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# Pagination #}
+  {% if is_paginated %}
+  <div class="flex justify-center gap-2 text-sm">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% for k,v in q.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}"
+       class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">← Previous</a>
+    {% endif %}
+    <span class="px-3 py-1 text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% for k,v in q.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}"
+       class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm px-6 py-12 text-center">
+    <p class="text-slate-400 text-sm">No audit events matched these filters.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

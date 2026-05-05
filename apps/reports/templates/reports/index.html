@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Reports — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl space-y-6">
+
+  <h1 class="text-2xl font-bold text-slate-900">Reports</h1>
+
+  <form id="report-form" method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm px-6 py-5 space-y-4">
+      <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Filters</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        {# Author email #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Author email</label>
+          <input type="text" name="author_email"
+                 value="{{ filter.form.author_email.value|default:'' }}"
+                 placeholder="partial match…"
+                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                        focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+        </div>
+
+        {# Project #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Project</label>
+          <select name="project"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All projects</option>
+            {% for pk, label in filter.filters.project.field.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if filter.form.project.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Category #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
+          <select name="category"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All categories</option>
+            {% for pk, label in filter.filters.category.field.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if filter.form.category.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Period after #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Period start on/after</label>
+          <input type="date" name="period_after"
+                 value="{{ filter.form.period_after.value|default:'' }}"
+                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                        focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+        </div>
+
+        {# Period before #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Period end on/before</label>
+          <input type="date" name="period_before"
+                 value="{{ filter.form.period_before.value|default:'' }}"
+                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                        focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+        </div>
+
+        {# Private #}
+        <div class="flex items-end pb-1">
+          <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-slate-700">
+            <input type="checkbox" name="is_private" value="true"
+                   {% if filter.form.is_private.value %}checked{% endif %}
+                   class="h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary">
+            Private entries only
+          </label>
+        </div>
+
+      </div>{# /grid #}
+
+      {# Actions row #}
+      <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
+        <button type="button"
+                hx-post="{% url 'reports:preview' %}"
+                hx-include="#report-form"
+                hx-target="#report-preview"
+                hx-swap="innerHTML"
+                hx-indicator="#preview-spinner"
+                class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+          Preview
+        </button>
+
+        <span id="preview-spinner" class="htmx-indicator text-xs text-slate-400">Loading…</span>
+
+        {# Download buttons #}
+        <div class="flex flex-wrap gap-2 ml-auto">
+          {% for fmt in formats %}
+          <button type="submit"
+                  formaction="{% url 'reports:download' fmt %}"
+                  class="text-xs font-medium px-3 py-1.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors uppercase tracking-wide">
+            ↓ {{ fmt }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>{# /card #}
+  </form>
+
+  {# Preview pane – populated by HTMX #}
+  <div id="report-preview"></div>
+
+</div>
+{% endblock %}

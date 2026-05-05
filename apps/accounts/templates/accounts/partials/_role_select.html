@@ -1,0 +1,11 @@
+<div id="role-control-{{ u.pk }}">
+  <select name="role"
+          hx-post="{% url 'user-role-update' u.pk %}"
+          hx-target="#role-control-{{ u.pk }}"
+          hx-swap="outerHTML"
+          class="rounded border border-slate-300 px-2 py-1 text-xs focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+    {% for value, label in role_choices %}
+    <option value="{{ value }}" {% if value == u.role %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+</div>

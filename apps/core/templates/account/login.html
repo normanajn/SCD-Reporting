@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Sign In — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center">
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+      <h1 class="text-2xl font-bold text-slate-900 mb-1">Sign in</h1>
+      <p class="text-sm text-slate-500 mb-6">SCD Effort Reporting</p>
+
+      <form method="post" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+        {% endif %}
+
+        {% for field in form %}
+          {% include "components/_form_field.html" %}
+        {% endfor %}
+
+        <button type="submit"
+                class="w-full bg-scd-primary hover:bg-scd-primary-hover text-white font-medium py-2 px-4 rounded-md text-sm transition-colors mt-2">
+          Sign in
+        </button>
+      </form>
+
+      <div class="mt-5 space-y-2 text-center text-sm text-slate-500">
+        <p>
+          <a href="{% url 'account_reset_password' %}"
+             class="text-scd-primary hover:underline">Forgot your password?</a>
+        </p>
+        {% if ACCOUNT_ALLOW_SIGNUPS %}
+        <p>No account?
+          <a href="{% url 'account_signup' %}"
+             class="text-scd-primary hover:underline">Sign up</a>
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

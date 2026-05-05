@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Projects — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Projects</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Manage the projects used to tag effort entries.</p>
+    </div>
+    <a href="{% url 'taxonomy:categories' %}"
+       class="text-sm text-scd-primary hover:underline">Categories →</a>
+  </div>
+
+  <!-- Existing projects -->
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600 w-8">#</th>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600">Name</th>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600">Short Code</th>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600">Status</th>
+          <th class="px-6 py-3 text-right font-semibold text-slate-600">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for p in projects %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-3 text-slate-400 tabular-nums">{{ p.sort_order }}</td>
+          <td class="px-6 py-3 font-medium text-slate-800">{{ p.name }}</td>
+          <td class="px-6 py-3 text-slate-500 font-mono text-xs">{{ p.short_code|default:"—" }}</td>
+          <td class="px-6 py-3">
+            {% if p.is_active %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-3 text-right">
+            <a href="{% url 'taxonomy:project-edit' p.pk %}"
+               class="text-sm text-scd-primary hover:underline">Edit</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="px-6 py-8 text-center text-slate-400">
+            No projects yet. Add one below.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Add project form -->
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <h2 class="font-semibold text-slate-800">Add project</h2>
+    </div>
+    <form method="post" class="px-6 py-5">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {% for field in form %}
+          {% include "components/_form_field.html" %}
+        {% endfor %}
+      </div>
+      <button type="submit"
+              class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+        Add project
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

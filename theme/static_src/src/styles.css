@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --scd-primary:       #1e40af;
+  --scd-primary-hover: #1d3a9e;
+  --scd-accent:        #3b82f6;
+  --scd-accent-soft:   #dbeafe;
+  --scd-ink:           #0f172a;
+  --scd-ink-soft:      #475569;
+  --scd-paper:         #ffffff;
+  --scd-paper-soft:    #f8fafc;
+  --scd-border:        #e2e8f0;
+  --scd-private:       #7c3aed;
+}

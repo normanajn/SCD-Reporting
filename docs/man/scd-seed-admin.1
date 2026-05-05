@@ -1,0 +1,131 @@
+.\" Man page for the seed_admin Django management command
+.\" scd-seed-admin(1)
+.TH SCD\-SEED\-ADMIN 1 "2026-05-05" "SCD Effort Reporting" "SCD Effort Reporting Commands"
+.
+.SH NAME
+scd\-seed\-admin \- create the initial SCD administrator account
+.
+.SH SYNOPSIS
+.B python manage.py seed_admin
+.
+.SH DESCRIPTION
+.B seed_admin
+is an idempotent Django management command that bootstraps the first
+administrator account for the SCD Effort Reporting application.
+.PP
+The command reads credentials from environment variables and creates a
+superuser with the
+.I Administrator
+role.
+If the target username already exists in the database the command exits
+silently without making any changes.
+If
+.I SCD_INITIAL_ADMIN_PASSWORD
+is not set the command prints a warning and exits without creating
+anything.
+.PP
+Because the command is idempotent it is safe to include in deployment
+scripts and container startup sequences; it is called automatically by
+the Docker container entrypoint on every start.
+.
+.SH ENVIRONMENT
+.TP
+.B SCD_INITIAL_ADMIN_USERNAME
+Username for the administrator account.
+.br
+Default:
+.I scd-admin
+.TP
+.B SCD_INITIAL_ADMIN_EMAIL
+Email address for the administrator account.
+This value is used as the login credential (the application uses
+email-based authentication).
+.br
+Default:
+.I scd-admin@fnal.gov
+.TP
+.B SCD_INITIAL_ADMIN_PASSWORD
+Password for the administrator account.
+.B Required.
+If this variable is empty or unset the command exits with a warning and
+no account is created.
+There is no default; the password must be supplied explicitly.
+.
+.SH EXIT STATUS
+.TP
+.B 0
+The account was created, or it already existed, or the password
+environment variable was not set (warning printed).
+.TP
+.B non-zero
+An unexpected database or configuration error occurred.
+.
+.SH EXAMPLES
+.PP
+Create the admin account with an inline password:
+.PP
+.nf
+    SCD_INITIAL_ADMIN_PASSWORD=s3cr3t python manage.py seed_admin
+.fi
+.PP
+Use a full set of environment variables:
+.PP
+.nf
+    export SCD_INITIAL_ADMIN_USERNAME=jane
+    export SCD_INITIAL_ADMIN_EMAIL=jane@fnal.gov
+    export SCD_INITIAL_ADMIN_PASSWORD=s3cr3t
+    python manage.py seed_admin
+.fi
+.PP
+In a Docker Compose environment the variables are typically supplied
+via an
+.I .env
+file and the command is called from the container
+.I CMD
+entrypoint automatically.
+No manual invocation is needed for standard deployments.
+.PP
+To run the command explicitly inside an already-running container:
+.PP
+.nf
+    docker compose exec web python manage.py seed_admin
+.fi
+.
+.SH NOTES
+.IP \(bu 2
+The created account is a Django superuser and has the
+.I Administrator
+application role.
+It can log in to both the Django admin interface
+.RI ( /admin/ )
+and the SCD Effort Reporting application.
+.IP \(bu 2
+After the initial deployment it is recommended to log in, change the
+password through the application or Django admin, and — if local signup
+is being disabled — set
+.I SCD_DISABLE_LOCAL_SIGNUP=1
+in the environment before restarting.
+.IP \(bu 2
+To create additional administrator accounts after deployment use the
+.I /admin-users/
+page in the web interface or the Django admin.
+.
+.SH FILES
+.TP
+.I apps/accounts/management/commands/seed_admin.py
+Source file for this command.
+.TP
+.I .env
+Docker Compose environment file where
+.I SCD_INITIAL_ADMIN_*
+variables are typically stored.
+.
+.SH SEE ALSO
+.BR scd\-seed\-taxonomy (1),
+.BR python\-manage (1)
+.PP
+Django management commands documentation:
+.I https://docs.djangoproject.com/en/5.0/ref/django-admin/
+.
+.SH AUTHOR
+Fermilab Scientific Computing Division

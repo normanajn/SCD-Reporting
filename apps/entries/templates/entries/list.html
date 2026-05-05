@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}My Entries — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <h1 class="text-2xl font-bold text-slate-900">My Entries</h1>
+    <a href="{% url 'entries:create' %}"
+       class="inline-flex items-center gap-1 bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+      + New Entry
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" class="flex flex-wrap gap-3 items-end">
+    <div>
+      <label class="block text-xs font-medium text-slate-500 mb-1">Project</label>
+      <select name="project"
+              class="rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+        <option value="">All projects</option>
+        {% for p in projects %}
+        <option value="{{ p.pk }}" {% if selected_project == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit"
+            class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-md transition-colors">
+      Filter
+    </button>
+    {% if selected_project %}
+    <a href="{% url 'entries:list' %}" class="text-sm text-slate-500 hover:underline self-end pb-1">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if entries %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-600">Period</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-600">Title</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-600 hidden sm:table-cell">Project / Category</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for entry in entries %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 text-slate-500 whitespace-nowrap tabular-nums text-xs">
+            {{ entry.period_start|date:"M d" }} –<br>{{ entry.period_end|date:"M d, Y" }}
+          </td>
+          <td class="px-4 py-3">
+            <a href="{% url 'entries:detail' entry.pk %}"
+               class="font-medium text-slate-800 hover:text-scd-primary">{{ entry.title }}</a>
+            <div class="flex flex-wrap gap-1 mt-1">
+              {% if entry.is_private %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">🔒 Private</span>
+              {% endif %}
+              {% for tag in entry.tags.all %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-scd-accent-soft text-scd-primary">#{{ tag.name }}</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td class="px-4 py-3 hidden sm:table-cell">
+            <span class="text-slate-700">{{ entry.project.name }}</span>
+            <span class="text-slate-400 mx-1">·</span>
+            <span class="text-slate-500">{{ entry.category.name }}</span>
+          </td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <a href="{% url 'entries:edit' entry.pk %}"
+               class="text-sm text-scd-primary hover:underline mr-3">Edit</a>
+            <a href="{% url 'entries:delete' entry.pk %}"
+               class="text-sm text-red-500 hover:underline">Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+  <div class="flex justify-center gap-2 text-sm">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if selected_project %}&project={{ selected_project }}{% endif %}"
+       class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">← Previous</a>
+    {% endif %}
+    <span class="px-3 py-1 text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if selected_project %}&project={{ selected_project }}{% endif %}"
+       class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm px-6 py-12 text-center">
+    <p class="text-slate-400 mb-3">
+      {% if selected_project %}No entries for this project.{% else %}No entries yet.{% endif %}
+    </p>
+    <a href="{% url 'entries:create' %}"
+       class="inline-block bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+      Submit your first entry
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

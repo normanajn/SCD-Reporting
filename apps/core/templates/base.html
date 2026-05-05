@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SCD Effort Reporting{% endblock %}</title>
+  {% if debug %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'scd-primary':       '#1e40af',
+        'scd-primary-hover': '#1d3a9e',
+        'scd-accent':        '#3b82f6',
+        'scd-accent-soft':   '#dbeafe',
+        'scd-private':       '#7c3aed',
+      }}}
+    }
+  </script>
+  {% else %}
+  {% load tailwind_tags %}{% tailwind_css %}
+  {% endif %}
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full bg-slate-50 text-slate-900"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+  <nav class="bg-scd-primary text-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+
+        <div class="flex items-center gap-8">
+          <a href="/" class="text-lg font-semibold tracking-tight whitespace-nowrap">SCD Reporting</a>
+          {% if user.is_authenticated %}
+          <div class="hidden sm:flex items-center gap-5 text-sm">
+            <a href="{% url 'dashboard' %}" class="opacity-90 hover:opacity-100 hover:underline">Dashboard</a>
+            {% url 'entries:list' as entries_url %}{% if entries_url %}
+            <a href="{{ entries_url }}" class="opacity-90 hover:opacity-100 hover:underline">My Entries</a>
+            {% endif %}
+            {% if user.is_auditor %}
+            {% url 'reports:index' as reports_url %}{% if reports_url %}
+            <a href="{{ reports_url }}" class="opacity-90 hover:opacity-100 hover:underline">Reports</a>
+            {% endif %}
+            {% url 'audit:index' as audit_url %}{% if audit_url %}
+            <a href="{{ audit_url }}" class="opacity-90 hover:opacity-100 hover:underline">Audit Log</a>
+            {% endif %}
+            {% endif %}
+            {% if user.is_scd_admin %}
+            {% url 'taxonomy:projects' as tax_url %}{% if tax_url %}
+            <a href="{{ tax_url }}" class="opacity-90 hover:opacity-100 hover:underline">Taxonomy</a>
+            {% endif %}
+            <a href="{% url 'admin-users' %}" class="opacity-90 hover:opacity-100 hover:underline">Users</a>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="flex items-center gap-3 text-sm">
+          <a href="{% url 'profile' %}" class="opacity-90 hover:opacity-100 hover:underline truncate max-w-[160px]">
+            {{ user.display_name|default:user.email }}
+          </a>
+          {% if user.is_scd_admin %}
+          <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Admin</span>
+          {% elif user.is_auditor %}
+          <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Auditor</span>
+          {% endif %}
+          <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="bg-white/10 hover:bg-white/25 px-3 py-1 rounded text-sm transition-colors">
+              Sign out
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </nav>
+
+  {% if messages %}
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-2">
+    {% for message in messages %}
+    <div role="alert"
+         class="px-4 py-3 rounded-md text-sm border
+           {% if 'error' in message.tags %}bg-red-50 text-red-800 border-red-200
+           {% elif 'success' in message.tags %}bg-green-50 text-green-800 border-green-200
+           {% elif 'warning' in message.tags %}bg-yellow-50 text-yellow-800 border-yellow-200
+           {% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

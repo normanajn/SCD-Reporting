@@ -1,0 +1,9 @@
+{$SCD_HOSTNAME} {
+    file_server /static/* {
+        root /srv
+    }
+    file_server /media/* {
+        root /srv
+    }
+    reverse_proxy web:8000
+}

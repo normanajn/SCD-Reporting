@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+      <p class="text-slate-500 mt-0.5 text-sm">
+        Welcome back, {{ user.display_name|default:user.email }}.
+      </p>
+    </div>
+    {% url 'entries:create' as create_url %}
+    {% if create_url %}
+    <a href="{{ create_url }}"
+       class="inline-flex items-center gap-2 bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+      + New Entry
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Recent entries -->
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <h2 class="font-semibold text-slate-800">Recent Entries</h2>
+      {% url 'entries:list' as entries_url %}
+      {% if entries_url %}
+      <a href="{{ entries_url }}" class="text-sm text-scd-primary hover:underline">View all</a>
+      {% endif %}
+    </div>
+    {% if recent_entries %}
+    <ul class="divide-y divide-slate-100">
+      {% for entry in recent_entries %}
+      <li class="px-6 py-3 flex items-center justify-between gap-4 hover:bg-slate-50">
+        <div class="min-w-0">
+          <a href="{% url 'entries:detail' entry.pk %}"
+             class="text-sm font-medium text-slate-800 hover:text-scd-primary truncate block">{{ entry.title }}</a>
+          <p class="text-xs text-slate-400 mt-0.5">
+            {{ entry.project.name }} · {{ entry.category.name }} ·
+            {{ entry.period_start|date:"M j" }}–{{ entry.period_end|date:"M j, Y" }}
+          </p>
+        </div>
+        <a href="{% url 'entries:edit' entry.pk %}"
+           class="shrink-0 text-xs text-scd-primary hover:underline">Edit</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="px-6 py-8 text-center text-sm text-slate-400">
+      No entries yet.
+      {% if create_url %}
+      <a href="{{ create_url }}" class="text-scd-primary hover:underline ml-1">Submit your first entry.</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if user.is_scd_admin %}
+  <!-- Admin quick links -->
+  <div>
+    <h2 class="font-semibold text-slate-800 mb-3">Administration</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <a href="{% url 'admin-users' %}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">👥</div>
+        <div class="text-sm font-medium text-slate-700">Users</div>
+      </a>
+      {% url 'taxonomy:projects' as tax_url %}
+      {% if tax_url %}
+      <a href="{{ tax_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">🏷️</div>
+        <div class="text-sm font-medium text-slate-700">Taxonomy</div>
+      </a>
+      {% endif %}
+      {% url 'reports:index' as reports_url %}
+      {% if reports_url %}
+      <a href="{{ reports_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">📊</div>
+        <div class="text-sm font-medium text-slate-700">Reports</div>
+      </a>
+      {% endif %}
+      {% url 'audit:index' as audit_url %}
+      {% if audit_url %}
+      <a href="{{ audit_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">🔍</div>
+        <div class="text-sm font-medium text-slate-700">Audit Log</div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

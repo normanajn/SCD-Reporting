@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Confirm Email — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center">
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+      {% if confirmation %}
+      <div class="text-4xl mb-4">✉️</div>
+      <h1 class="text-2xl font-bold text-slate-900 mb-2">Confirm your email</h1>
+      <p class="text-sm text-slate-500 mb-6">
+        Please confirm that <strong>{{ confirmation.email_address.email }}</strong>
+        is your email address.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit"
+                class="bg-scd-primary hover:bg-scd-primary-hover text-white font-medium py-2 px-6 rounded-md text-sm transition-colors">
+          Confirm email
+        </button>
+      </form>
+      {% else %}
+      <div class="text-4xl mb-4">❌</div>
+      <h1 class="text-2xl font-bold text-slate-900 mb-2">Invalid confirmation link</h1>
+      <p class="text-sm text-slate-500">
+        This link is invalid or has already been used.
+      </p>
+      <a href="{% url 'account_login' %}"
+         class="inline-block mt-4 text-sm text-scd-primary hover:underline">Back to sign in</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

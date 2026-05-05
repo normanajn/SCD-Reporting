@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Profile — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="max-w-lg">
+  <h1 class="text-2xl font-bold text-slate-900 mb-6">Profile</h1>
+
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm divide-y divide-slate-100">
+
+    <!-- Read-only info -->
+    <div class="px-6 py-4 space-y-3">
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Email</dt>
+        <dd class="mt-0.5 text-sm text-slate-800">{{ user.email }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Role</dt>
+        <dd class="mt-0.5">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            {% if user.role == 'admin' %}bg-blue-100 text-blue-800
+            {% elif user.role == 'auditor' %}bg-purple-100 text-purple-800
+            {% else %}bg-slate-100 text-slate-700{% endif %}">
+            {{ user.get_role_display }}
+          </span>
+        </dd>
+      </div>
+    </div>
+
+    <!-- Editable fields -->
+    <form method="post" class="px-6 py-5">
+      {% csrf_token %}
+      {% for field in form %}
+        {% include "components/_form_field.html" %}
+      {% endfor %}
+      <div class="flex gap-3 mt-2">
+        <button type="submit"
+                class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+          Save changes
+        </button>
+        <a href="{% url 'account_change_password' %}"
+           class="text-sm text-scd-primary hover:underline self-center">
+          Change password
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

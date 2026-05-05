@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Users — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">Users</h1>
+    <span class="text-sm text-slate-500">{{ users.count }} total</span>
+  </div>
+
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600">User</th>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600">Employee ID</th>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600">Role</th>
+          <th class="px-6 py-3 text-left font-semibold text-slate-600">Joined</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for u in users %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-3">
+            <div class="font-medium text-slate-800">{{ u.display_name|default:"—" }}</div>
+            <div class="text-slate-400 text-xs">{{ u.email }}</div>
+          </td>
+          <td class="px-6 py-3 text-slate-500">{{ u.employee_id|default:"—" }}</td>
+          <td class="px-6 py-3">
+            {% include "accounts/partials/_role_select.html" with u=u role_choices=role_choices %}
+          </td>
+          <td class="px-6 py-3 text-slate-400">{{ u.date_joined|date:"Y-m-d" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="px-6 py-8 text-center text-slate-400">No users found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
