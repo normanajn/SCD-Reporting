@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator
 from django.db import models
 
 
@@ -25,6 +26,12 @@ class WorkItem(models.Model):
         on_delete=models.PROTECT,
         related_name='work_items',
     )
+    group     = models.ForeignKey(
+        'taxonomy.WorkGroup',
+        null=True, blank=True,
+        on_delete=models.PROTECT,
+        related_name='work_items',
+    )
     tags      = models.ManyToManyField('taxonomy.Tag', blank=True)
     description  = models.TextField()
     period_kind  = models.CharField(
@@ -35,6 +42,12 @@ class WorkItem(models.Model):
     period_start = models.DateField(db_index=True)
     period_end   = models.DateField(db_index=True)
     is_private   = models.BooleanField(default=False, db_index=True)
+    is_critical  = models.BooleanField(default=False, db_index=True)
+    is_highlight = models.BooleanField(default=False, db_index=True)
+    highlight_stars = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MaxValueValidator(5)],
+    )
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)
 

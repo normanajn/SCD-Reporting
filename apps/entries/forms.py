@@ -1,7 +1,7 @@
 from django import forms
 from django.db.models import F
 
-from apps.taxonomy.models import Category, Project, Tag
+from apps.taxonomy.models import Category, Project, Tag, WorkGroup
 
 from .models import WorkItem
 
@@ -12,25 +12,33 @@ class WorkItemForm(forms.ModelForm):
     class Meta:
         model = WorkItem
         fields = [
-            'title', 'project', 'category',
+            'title', 'project', 'category', 'group',
             'period_kind', 'period_start', 'period_end',
-            'description', 'is_private',
+            'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
         ]
         widgets = {
-            'period_kind':  forms.HiddenInput(),
-            'period_start': forms.DateInput(attrs={'type': 'date'}),
-            'period_end':   forms.DateInput(attrs={'type': 'date'}),
-            'description':  forms.Textarea(attrs={'rows': 8}),
+            'period_kind':    forms.HiddenInput(),
+            'period_start':   forms.DateInput(attrs={'type': 'date'}),
+            'period_end':     forms.DateInput(attrs={'type': 'date'}),
+            'description':    forms.Textarea(attrs={'rows': 8}),
+            'highlight_stars': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['project'].queryset  = Project.objects.filter(is_active=True).order_by('sort_order', 'name')
         self.fields['category'].queryset = Category.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['group'].queryset      = WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['group'].required      = False
+        self.fields['highlight_stars'].required = False
         if self.instance.pk:
             self.fields['tags_input'].initial = ','.join(
                 self.instance.tags.values_list('name', flat=True)
             )
+
+    def clean_highlight_stars(self):
+        val = self.cleaned_data.get('highlight_stars')
+        return val if val is not None else 0
 
     def clean(self):
         cleaned = super().clean()

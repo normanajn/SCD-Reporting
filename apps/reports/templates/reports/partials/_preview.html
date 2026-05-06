@@ -9,11 +9,20 @@
       <span class="font-semibold text-slate-900">{{ total }}</span> entr{{ total|pluralize:"y,ies" }} matched
       {% if total > limit %} — showing first {{ limit }}{% endif %}
     </p>
+    <p id="selection-count" class="text-sm text-slate-500 hidden">
+      <span id="selected-n" class="font-semibold text-scd-primary">0</span> selected
+      <button type="button" id="clear-selection" class="ml-2 text-xs text-slate-400 hover:text-slate-600 underline">clear</button>
+    </p>
   </div>
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-slate-200 text-xs">
       <thead class="bg-slate-50">
         <tr>
+          <th class="px-4 py-2 w-8">
+            <input type="checkbox" id="select-all-entries"
+                   title="Select all"
+                   class="h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary cursor-pointer">
+          </th>
           <th class="px-4 py-2 text-left font-semibold text-slate-500 whitespace-nowrap">Period</th>
           <th class="px-4 py-2 text-left font-semibold text-slate-500">Author</th>
           <th class="px-4 py-2 text-left font-semibold text-slate-500">Title</th>
@@ -25,7 +34,11 @@
       </thead>
       <tbody class="divide-y divide-slate-100">
         {% for entry in rows %}
-        <tr class="hover:bg-slate-50">
+        <tr class="hover:bg-slate-50 entry-row">
+          <td class="px-4 py-2 w-8">
+            <input type="checkbox" name="selected_ids" value="{{ entry.pk }}"
+                   class="entry-checkbox h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary cursor-pointer">
+          </td>
           <td class="px-4 py-2 whitespace-nowrap tabular-nums text-slate-500">
             {{ entry.period_start|date:"M j" }}–{{ entry.period_end|date:"M j, Y" }}
           </td>
@@ -58,4 +71,46 @@
   </p>
   {% endif %}
 </div>
+
+<script>
+(function () {
+  var selectAll = document.getElementById('select-all-entries');
+  var countEl   = document.getElementById('selection-count');
+  var countN    = document.getElementById('selected-n');
+  var clearBtn  = document.getElementById('clear-selection');
+
+  function updateCount() {
+    var checked = document.querySelectorAll('.entry-checkbox:checked').length;
+    countN.textContent = checked;
+    if (checked > 0) {
+      countEl.classList.remove('hidden');
+    } else {
+      countEl.classList.add('hidden');
+    }
+    var total = document.querySelectorAll('.entry-checkbox').length;
+    selectAll.checked = checked > 0 && checked === total;
+    selectAll.indeterminate = checked > 0 && checked < total;
+  }
+
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.entry-checkbox').forEach(function (cb) {
+      cb.checked = selectAll.checked;
+    });
+    updateCount();
+  });
+
+  document.querySelectorAll('.entry-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', updateCount);
+  });
+
+  clearBtn.addEventListener('click', function () {
+    document.querySelectorAll('.entry-checkbox').forEach(function (cb) {
+      cb.checked = false;
+    });
+    selectAll.checked = false;
+    selectAll.indeterminate = false;
+    updateCount();
+  });
+})();
+</script>
 {% endif %}

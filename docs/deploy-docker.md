@@ -121,7 +121,7 @@ docker compose up -d --build
 
 The first build takes a few minutes because it:
 - Installs Node.js dependencies and compiles Tailwind CSS
-- Installs Python dependencies including WeasyPrint system libraries
+- Installs all Python dependencies (pure Python — no system libraries required)
 - On first start, the `web` container automatically runs `migrate`, `collectstatic`, and `seed_admin`
 
 Check that all three services are healthy:
@@ -190,6 +190,14 @@ SCD_DISABLE_LOCAL_SIGNUP=0
 
 # Email verification: none | optional | mandatory
 ACCOUNT_EMAIL_VERIFICATION=optional
+
+# ── AI Summary (optional) ───────────────────────────────────────────────────
+# Required to enable the AI Summary feature on the Reports page.
+# Obtain a key from https://console.anthropic.com
+ANTHROPIC_API_KEY=
+
+# Override the model used for summaries (default: claude-sonnet-4-6)
+# ANTHROPIC_SUMMARY_MODEL=claude-sonnet-4-6
 ```
 
 ---

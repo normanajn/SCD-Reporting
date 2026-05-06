@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404, render
+from django.db.models import ProtectedError
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import ListView, UpdateView
@@ -51,3 +52,59 @@ class UserRoleUpdateView(AdminRequiredMixin, View):
             'u': user,
             'role_choices': User.Role.choices,
         })
+
+
+class UserSetPasswordView(AdminRequiredMixin, View):
+    template_name = 'accounts/set_password.html'
+
+    def _get_target(self, pk):
+        return get_object_or_404(User, pk=pk)
+
+    def get(self, request, pk):
+        return render(request, self.template_name, {'target': self._get_target(pk)})
+
+    def post(self, request, pk):
+        target = self._get_target(pk)
+        p1 = request.POST.get('new_password1', '')
+        p2 = request.POST.get('new_password2', '')
+        if not p1:
+            messages.error(request, 'Password cannot be empty.')
+            return render(request, self.template_name, {'target': target})
+        if p1 != p2:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, self.template_name, {'target': target})
+        target.set_password(p1)
+        target.save(update_fields=['password'])
+        messages.success(request, f'Password updated for {target.email}.')
+        return redirect('admin-users')
+
+
+class UserDeleteView(AdminRequiredMixin, View):
+    template_name = 'accounts/confirm_delete_user.html'
+
+    def _get_target(self, pk):
+        return get_object_or_404(User, pk=pk)
+
+    def get(self, request, pk):
+        target = self._get_target(pk)
+        if target == request.user:
+            messages.error(request, 'You cannot delete your own account.')
+            return redirect('admin-users')
+        return render(request, self.template_name, {'target': target})
+
+    def post(self, request, pk):
+        target = self._get_target(pk)
+        if target == request.user:
+            messages.error(request, 'You cannot delete your own account.')
+            return redirect('admin-users')
+        email = target.email
+        try:
+            target.delete()
+            messages.success(request, f'Account "{email}" has been deleted.')
+        except ProtectedError:
+            messages.error(
+                request,
+                f'Cannot delete "{email}" — they have existing entries. '
+                'Remove or reassign their entries first.',
+            )
+        return redirect('admin-users')

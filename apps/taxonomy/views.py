@@ -8,8 +8,8 @@ from django.views.generic import UpdateView
 
 from apps.accounts.permissions import AdminRequiredMixin
 
-from .forms import CategoryForm, ProjectForm
-from .models import Category, Project, Tag
+from .forms import CategoryForm, ProjectForm, WorkGroupForm
+from .models import Category, Project, Tag, WorkGroup
 
 
 class ProjectManageView(AdminRequiredMixin, View):
@@ -73,6 +73,38 @@ class CategoryEditView(AdminRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         messages.success(self.request, f'Category "{form.instance.name}" saved.')
+        return super().form_valid(form)
+
+
+class WorkGroupManageView(AdminRequiredMixin, View):
+    template_name = 'taxonomy/groups.html'
+
+    def _ctx(self, form=None):
+        return {
+            'groups': WorkGroup.objects.order_by('sort_order', 'name'),
+            'form': form or WorkGroupForm(),
+        }
+
+    def get(self, request):
+        return render(request, self.template_name, self._ctx())
+
+    def post(self, request):
+        form = WorkGroupForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            messages.success(request, f'Group "{obj.name}" added.')
+            return redirect('taxonomy:groups')
+        return render(request, self.template_name, self._ctx(form))
+
+
+class WorkGroupEditView(AdminRequiredMixin, UpdateView):
+    model = WorkGroup
+    form_class = WorkGroupForm
+    template_name = 'taxonomy/group_form.html'
+    success_url = reverse_lazy('taxonomy:groups')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Group "{form.instance.name}" saved.')
         return super().form_valid(form)
 
 

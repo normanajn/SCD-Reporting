@@ -9,5 +9,7 @@ urlpatterns = [
     path('projects/<int:pk>/edit/', views.ProjectEditView.as_view(), name='project-edit'),
     path('categories/', views.CategoryManageView.as_view(), name='categories'),
     path('categories/<int:pk>/edit/', views.CategoryEditView.as_view(), name='category-edit'),
-    path('tags/autocomplete/', views.TagAutocompleteView.as_view(), name='tag-autocomplete'),
+    path('groups/',              views.WorkGroupManageView.as_view(), name='groups'),
+    path('groups/<int:pk>/edit/', views.WorkGroupEditView.as_view(),  name='group-edit'),
+    path('tags/autocomplete/',   views.TagAutocompleteView.as_view(), name='tag-autocomplete'),
 ]

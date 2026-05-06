@@ -9,6 +9,7 @@ A Django web application for Fermilab Scientific Computing Division employees to
 - [Features](#features)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
+- [Quickstart](#quickstart)
 - [Local Development](#local-development)
 - [Running Tests](#running-tests)
 - [Docker Deployment](#docker-deployment)
@@ -21,12 +22,15 @@ A Django web application for Fermilab Scientific Computing Division employees to
 
 ## Features
 
-- **Effort entries** — submit and manage weekly/biweekly/monthly work entries with Markdown descriptions, tags, period dates, and a privacy flag
+- **Effort entries** — submit and manage weekly/biweekly/monthly work entries with Markdown descriptions, tags, period dates, group assignment, and flags for privacy, criticality, and highlight rating (0–5 stars)
 - **HTMX interactions** — period chip selector pre-fills date fields; tag autocomplete with chip UI; live Markdown preview; all without full page reloads
 - **Role-based access** — three roles (User, Administrator, Auditor) with enforced permission checks throughout
-- **Reports** — admins and auditors filter entries by author, project, category, and date range, then download as plain text, CSV, JSON, XLSX, or PDF
-- **Audit log** — every WorkItem create/update/delete, all login/logout events, and every report export are recorded with actor, IP address, user-agent, and field-level diffs
-- **SSO-ready** — local email/password auth now via django-allauth; a seam exists for CILogon integration when required
+- **Reports** — admins and auditors filter entries by author, project, category, and date range; preview results with per-row checkboxes to select a subset; download as plain text, CSV, JSON, XLSX, or PDF
+- **AI Summary** — generate a structured narrative summary of any filtered or selected entries via the Anthropic API; download as plain text or PDF; system prompt and user template are editable from the web UI by admins
+- **Audit log** — every WorkItem create/update/delete, all login/logout events, and every report export (including AI summaries) are recorded with actor, IP address, user-agent, and field-level diffs
+- **Taxonomy management** — projects, categories, and organisational groups are managed through a tabbed web UI (Admin role required); groups can be assigned to entries to associate work with a team or division
+- **User management** — administrators can create accounts, assign roles, reset passwords, and delete users directly from the web interface
+- **SSO-ready** — local email/password auth via django-allauth; a seam exists for CILogon integration when required
 
 ---
 
@@ -36,9 +40,9 @@ A Django web application for Fermilab Scientific Computing Division employees to
 apps/
 ├── core/        Dashboard, base templates, shared components
 ├── accounts/    Custom User model (role + employee_id), profile, admin user management
-├── taxonomy/    Project and Category models, Tag autocomplete
+├── taxonomy/    Project, Category, and WorkGroup models; Tag autocomplete
 ├── entries/     WorkItem CRUD (the effort entries themselves)
-├── reports/     Filter form, five exporters, HTMX preview
+├── reports/     Filter form, five exporters, row selection, AI summary, HTMX preview
 └── audit/       AuditLogEntry model, log_event service, signals, middleware, viewer
 ```
 
@@ -54,11 +58,18 @@ Each app is independently namespaced and has its own URLs, templates, and tests.
 | Auth | django-allauth ≥ 65 (local; CILogon seam ready) |
 | Frontend | Tailwind CSS 3 via django-tailwind, HTMX 2 |
 | Database | PostgreSQL 16 (production), SQLite (local dev fallback) |
-| PDF export | WeasyPrint |
+| PDF export | reportlab (pure Python, no system dependencies) |
 | XLSX export | openpyxl |
+| AI summary | Anthropic Python SDK (claude-sonnet-4-6 by default) |
 | Filtering | django-filter |
 | Container | Docker + Caddy (reverse proxy + automatic TLS) |
 | Tests | pytest-django |
+
+---
+
+## Quickstart
+
+For step-by-step instructions for macOS, Linux, and Windows see **[docs/quickstart.md](docs/quickstart.md)**.
 
 ---
 
@@ -120,6 +131,17 @@ The app will be available at <http://localhost:8000>.
 
 > **Note:** The development settings module is `scd_reporting.settings.dev`, which enables `DEBUG=True`, uses the Tailwind Play CDN (so the npm watcher is optional for casual development), and logs emails to the console.
 
+### AI Summary (optional)
+
+To use the AI Summary feature in development, set your Anthropic API key before starting the server:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+python manage.py runserver
+```
+
+Without the key the summary button returns an error message in the UI; all other features work normally.
+
 ---
 
 ## Running Tests
@@ -137,7 +159,7 @@ The app will be available at <http://localhost:8000>.
 
 Tests use `scd_reporting.settings.dev` and SQLite in-memory (via `pytest-django`). No external services are required.
 
-Current baseline: **70 tests, all passing.**
+Current baseline: **77 tests, all passing.**
 
 ---
 
@@ -160,8 +182,8 @@ docker compose up -d
 | Role | Description | Permissions |
 |---|---|---|
 | **User** | Regular SCD staff | Submit and manage their own entries; view their own dashboard |
-| **Administrator** | SCD managers | All User permissions + manage taxonomy, view all entries, run reports, view audit log, manage user roles |
-| **Auditor** | Read-only oversight | View all entries, run reports, view audit log — no write access |
+| **Administrator** | SCD managers | All User permissions + manage taxonomy (projects, categories, groups), reset/delete user accounts, view all entries, run reports, generate AI summaries, configure AI prompts, view audit log |
+| **Auditor** | Read-only oversight | View all entries, run reports, generate AI summaries, view audit log — no write access |
 
 Role assignment is done via the Admin Users page (`/admin-users/`) by an Administrator.
 
@@ -176,14 +198,23 @@ Role assignment is done via the Admin Users page (`/admin-users/`) by an Adminis
 | `/accounts/signup/` | Sign up | Public (can be disabled) |
 | `/profile/` | Edit profile | Authenticated |
 | `/admin-users/` | User management | Admin |
+| `/admin-users/<pk>/set-password/` | Reset a user's password | Admin |
+| `/admin-users/<pk>/delete/` | Delete a user account | Admin |
 | `/taxonomy/projects/` | Manage projects | Admin |
 | `/taxonomy/categories/` | Manage categories | Admin |
+| `/taxonomy/groups/` | Manage organisational groups | Admin |
 | `/entries/` | My entries list | Authenticated |
 | `/entries/new/` | Create entry | Authenticated |
 | `/entries/<pk>/` | Entry detail | Entry owner |
 | `/entries/<pk>/edit/` | Edit entry | Entry owner |
 | `/entries/<pk>/delete/` | Delete entry | Entry owner |
-| `/reports/` | Report filter + export | Admin / Auditor |
+| `/reports/` | Report filter, preview, export, AI summary | Admin / Auditor |
+| `/reports/preview/` | HTMX preview partial (POST) | Admin / Auditor |
+| `/reports/download/<fmt>/` | File download (txt csv json xlsx pdf) | Admin / Auditor |
+| `/reports/summary/` | Generate AI summary (POST, HTMX) | Admin / Auditor |
+| `/reports/summary/download/txt/` | Download AI summary as plain text | Admin / Auditor |
+| `/reports/summary/download/pdf/` | Download AI summary as PDF | Admin / Auditor |
+| `/reports/prompt-config/` | Save AI prompt configuration (POST) | Admin |
 | `/audit/` | Audit log viewer | Admin / Auditor |
 | `/admin/` | Django admin | Superuser |
 
@@ -216,6 +247,8 @@ All variables are loaded via `.env` in Docker Compose. For local development, ex
 | `SCD_INITIAL_ADMIN_EMAIL` | `scd-admin@fnal.gov` | Email of the bootstrapped admin |
 | `SCD_DISABLE_LOCAL_SIGNUP` | `0` | Set to `1` to block new local accounts (for SSO-only deployments) |
 | `ACCOUNT_EMAIL_VERIFICATION` | `optional` | allauth email verification mode: `none`, `optional`, or `mandatory` |
+| `ANTHROPIC_API_KEY` | *(empty)* | API key for the Anthropic AI summary feature. Required to use AI Summary; the feature is silently disabled if unset. Obtain from [console.anthropic.com](https://console.anthropic.com). |
+| `ANTHROPIC_SUMMARY_MODEL` | `claude-sonnet-4-6` | Anthropic model used for report summaries. Override to use a different model (e.g. `claude-haiku-4-5-20251001` for faster/cheaper generation). |
 
 ---
 
@@ -247,6 +280,6 @@ Creates the following if they do not already exist:
 
 **Categories:** Scientific, Operations, Outreach, Training
 
-Additional projects and categories can be created through the web interface at `/taxonomy/projects/` and `/taxonomy/categories/` (Admin role required).
+Additional projects, categories, and organisational groups can be created through the web interface at `/taxonomy/projects/`, `/taxonomy/categories/`, and `/taxonomy/groups/` (Admin role required).
 
 See [docs/man/scd-seed-taxonomy.1](docs/man/scd-seed-taxonomy.1) for the full man page.

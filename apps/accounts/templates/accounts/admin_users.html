@@ -17,6 +17,7 @@
           <th class="px-6 py-3 text-left font-semibold text-slate-600">Employee ID</th>
           <th class="px-6 py-3 text-left font-semibold text-slate-600">Role</th>
           <th class="px-6 py-3 text-left font-semibold text-slate-600">Joined</th>
+          <th class="px-6 py-3 text-right font-semibold text-slate-600">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
@@ -31,6 +32,16 @@
             {% include "accounts/partials/_role_select.html" with u=u role_choices=role_choices %}
           </td>
           <td class="px-6 py-3 text-slate-400">{{ u.date_joined|date:"Y-m-d" }}</td>
+          <td class="px-6 py-3 text-right whitespace-nowrap">
+            <a href="{% url 'user-set-password' u.pk %}"
+               class="text-xs text-scd-primary hover:underline mr-3">Reset password</a>
+            {% if u != request.user %}
+            <a href="{% url 'user-delete' u.pk %}"
+               class="text-xs text-red-500 hover:underline">Delete</a>
+            {% else %}
+            <span class="text-xs text-slate-300">Delete</span>
+            {% endif %}
+          </td>
         </tr>
         {% empty %}
         <tr>

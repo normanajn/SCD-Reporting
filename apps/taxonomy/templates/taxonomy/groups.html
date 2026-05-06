@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Categories — SCD Reporting{% endblock %}
+{% block title %}Groups — SCD Reporting{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -13,9 +13,9 @@
     <a href="{% url 'taxonomy:projects' %}"
        class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Projects</a>
     <a href="{% url 'taxonomy:categories' %}"
-       class="px-4 py-2 text-sm font-medium text-scd-primary border-b-2 border-scd-primary -mb-px">Categories</a>
+       class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Categories</a>
     <a href="{% url 'taxonomy:groups' %}"
-       class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Groups</a>
+       class="px-4 py-2 text-sm font-medium text-scd-primary border-b-2 border-scd-primary -mb-px">Groups</a>
   </div>
 
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
@@ -30,27 +30,27 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
-        {% for c in categories %}
+        {% for g in groups %}
         <tr class="hover:bg-slate-50">
-          <td class="px-6 py-3 text-slate-400 tabular-nums">{{ c.sort_order }}</td>
-          <td class="px-6 py-3 font-medium text-slate-800">{{ c.name }}</td>
-          <td class="px-6 py-3 text-slate-500 font-mono text-xs">{{ c.short_code|default:"—" }}</td>
+          <td class="px-6 py-3 text-slate-400 tabular-nums">{{ g.sort_order }}</td>
+          <td class="px-6 py-3 font-medium text-slate-800">{{ g.name }}</td>
+          <td class="px-6 py-3 text-slate-500 font-mono text-xs">{{ g.short_code|default:"—" }}</td>
           <td class="px-6 py-3">
-            {% if c.is_active %}
+            {% if g.is_active %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
             {% else %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Inactive</span>
             {% endif %}
           </td>
           <td class="px-6 py-3 text-right">
-            <a href="{% url 'taxonomy:category-edit' c.pk %}"
+            <a href="{% url 'taxonomy:group-edit' g.pk %}"
                class="text-sm text-scd-primary hover:underline">Edit</a>
           </td>
         </tr>
         {% empty %}
         <tr>
           <td colspan="5" class="px-6 py-8 text-center text-slate-400">
-            No categories yet. Add one below.
+            No groups yet. Add one below.
           </td>
         </tr>
         {% endfor %}
@@ -60,7 +60,7 @@
 
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
     <div class="px-6 py-4 border-b border-slate-100">
-      <h2 class="font-semibold text-slate-800">Add category</h2>
+      <h2 class="font-semibold text-slate-800">Add group</h2>
     </div>
     <form method="post" class="px-6 py-5">
       {% csrf_token %}
@@ -71,7 +71,7 @@
       </div>
       <button type="submit"
               class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
-        Add category
+        Add group
       </button>
     </form>
   </div>

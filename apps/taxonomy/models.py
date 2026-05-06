@@ -32,6 +32,12 @@ class Category(TaxonomyBase):
         verbose_name_plural = 'categories'
 
 
+class WorkGroup(TaxonomyBase):
+    class Meta(TaxonomyBase.Meta):
+        verbose_name = 'Group'
+        verbose_name_plural = 'Groups'
+
+
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
     use_count = models.PositiveIntegerField(default=0, db_index=True)

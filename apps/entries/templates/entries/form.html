@@ -41,8 +41,8 @@
         {% endfor %}
       </div>
 
-      {# ── Project / Category ────────────────────────────────────────────────── #}
-      <div class="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {# ── Project / Category / Group ───────────────────────────────────────── #}
+      <div class="px-6 py-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label for="{{ form.project.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
             Project <span class="text-red-500">*</span>
@@ -76,6 +76,24 @@
             {% endfor %}
           </select>
           {% for error in form.category.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ error }}</p>
+          {% endfor %}
+        </div>
+        <div>
+          <label for="{{ form.group.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            Group
+          </label>
+          <select name="group" id="{{ form.group.id_for_label }}"
+                  class="w-full rounded-md border {% if form.group.errors %}border-red-400{% else %}border-slate-300{% endif %} px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">— none —</option>
+            {% for pk, label in form.fields.group.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if form.group.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          {% for error in form.group.errors %}
           <p class="mt-1 text-xs text-red-600">{{ error }}</p>
           {% endfor %}
         </div>
@@ -176,8 +194,10 @@
         </div>
       </div>
 
-      {# ── Privacy ───────────────────────────────────────────────────────────── #}
-      <div class="px-6 py-5">
+      {# ── Flags ─────────────────────────────────────────────────────────────── #}
+      <div class="px-6 py-5 space-y-3">
+
+        {# Private #}
         <label class="flex items-center gap-3 cursor-pointer select-none">
           <input type="checkbox" name="is_private" id="{{ form.is_private.id_for_label }}"
                  {% if form.is_private.value %}checked{% endif %}
@@ -187,6 +207,42 @@
             <span class="text-slate-400 ml-1">— visible only to you and admins</span>
           </span>
         </label>
+
+        {# Critical #}
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input type="checkbox" name="is_critical" id="{{ form.is_critical.id_for_label }}"
+                 {% if form.is_critical.value %}checked{% endif %}
+                 class="h-4 w-4 rounded border-slate-300 text-red-500 focus:ring-red-400">
+          <span class="text-sm text-slate-700">
+            <span class="font-medium">Critical</span>
+            <span class="text-slate-400 ml-1">— flag this entry as high-priority</span>
+          </span>
+        </label>
+
+        {# Highlight + stars #}
+        <div class="flex items-center gap-4 flex-wrap">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" name="is_highlight" id="{{ form.is_highlight.id_for_label }}"
+                   {% if form.is_highlight.value %}checked{% endif %}
+                   onchange="onHighlightChange()"
+                   class="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400">
+            <span class="text-sm font-medium text-slate-700">Highlight</span>
+          </label>
+
+          {# Star selector #}
+          {{ form.highlight_stars }}
+          <div id="star-selector" class="flex items-center gap-0.5"
+               aria-label="Highlight stars">
+            {% for i in "12345" %}
+            <button type="button" data-stars="{{ forloop.counter }}"
+                    class="star-btn text-2xl leading-none transition-colors focus:outline-none"
+                    onclick="setStars({{ forloop.counter }})">☆</button>
+            {% endfor %}
+            <button type="button" class="ml-2 text-xs text-slate-400 hover:text-slate-600"
+                    onclick="setStars(0)" title="Clear stars">✕</button>
+          </div>
+        </div>
+
       </div>
 
     </div>{# end card #}
@@ -283,5 +339,27 @@
 
   // Render chips from any pre-filled value (edit mode) on page load
   renderChips();
+
+  // ── Star rating ──────────────────────────────────────────────────────────────
+  function setStars(n) {
+    document.getElementById('id_highlight_stars').value = n;
+    document.querySelectorAll('.star-btn').forEach(function(btn) {
+      btn.textContent = parseInt(btn.dataset.stars) <= n ? '★' : '☆';
+      btn.classList.toggle('text-amber-400', parseInt(btn.dataset.stars) <= n);
+      btn.classList.toggle('text-slate-300', parseInt(btn.dataset.stars) > n);
+    });
+  }
+
+  function onHighlightChange() {
+    const checked = document.getElementById('{{ form.is_highlight.id_for_label }}').checked;
+    document.getElementById('star-selector').style.opacity = checked ? '1' : '0.35';
+  }
+
+  // Initialise stars and highlight state from existing values
+  (function() {
+    const initial = parseInt('{{ form.highlight_stars.value|default:"0" }}') || 0;
+    setStars(initial);
+    onHighlightChange();
+  })();
 </script>
 {% endblock %}

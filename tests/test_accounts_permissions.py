@@ -76,6 +76,92 @@ def test_profile_accessible_to_all_auth_users(client, make_user):
 
 
 @pytest.mark.django_db
+def test_set_password_requires_admin(client, make_user):
+    target = make_user(role=User.Role.USER, username='tgt1', email='tgt1@example.com')
+    regular = make_user(role=User.Role.USER, username='reg2', email='reg2@example.com')
+    client.force_login(regular)
+    assert client.get(f'/admin-users/{target.pk}/set-password/').status_code == 403
+
+
+@pytest.mark.django_db
+def test_set_password_updates_password(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm2', email='adm2@example.com')
+    target = make_user(role=User.Role.USER, username='tgt2', email='tgt2@example.com')
+    client.force_login(admin)
+    resp = client.post(f'/admin-users/{target.pk}/set-password/', {
+        'new_password1': 'newpassword99',
+        'new_password2': 'newpassword99',
+    })
+    assert resp.status_code == 302
+    target.refresh_from_db()
+    assert target.check_password('newpassword99')
+
+
+@pytest.mark.django_db
+def test_set_password_mismatch_shows_error(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm3', email='adm3@example.com')
+    target = make_user(role=User.Role.USER, username='tgt3', email='tgt3@example.com')
+    client.force_login(admin)
+    resp = client.post(f'/admin-users/{target.pk}/set-password/', {
+        'new_password1': 'abc',
+        'new_password2': 'xyz',
+    })
+    assert resp.status_code == 200
+    assert b'do not match' in resp.content
+
+
+@pytest.mark.django_db
+def test_delete_user_requires_admin(client, make_user):
+    target = make_user(role=User.Role.USER, username='tgt4', email='tgt4@example.com')
+    regular = make_user(role=User.Role.USER, username='reg3', email='reg3@example.com')
+    client.force_login(regular)
+    assert client.post(f'/admin-users/{target.pk}/delete/').status_code == 403
+
+
+@pytest.mark.django_db
+def test_delete_user_removes_account(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm4', email='adm4@example.com')
+    target = make_user(role=User.Role.USER, username='tgt5', email='tgt5@example.com')
+    client.force_login(admin)
+    resp = client.post(f'/admin-users/{target.pk}/delete/')
+    assert resp.status_code == 302
+    assert not User.objects.filter(pk=target.pk).exists()
+
+
+@pytest.mark.django_db
+def test_delete_self_is_blocked(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm5', email='adm5@example.com')
+    client.force_login(admin)
+    resp = client.post(f'/admin-users/{admin.pk}/delete/')
+    assert resp.status_code == 302
+    assert User.objects.filter(pk=admin.pk).exists()
+
+
+@pytest.mark.django_db
+def test_delete_user_with_entries_is_blocked(client, make_user, db):
+    from datetime import date, timedelta
+    from apps.entries.models import WorkItem
+    from apps.taxonomy.models import Project, Category
+
+    admin = make_user(role=User.Role.ADMIN, username='adm6', email='adm6@example.com')
+    target = make_user(role=User.Role.USER, username='tgt6', email='tgt6@example.com')
+    project  = Project.objects.create(name='P1', slug='p1')
+    category = Category.objects.create(name='C1', slug='c1')
+    today = date.today()
+    WorkItem.objects.create(
+        author=target, title='entry', project=project, category=category,
+        period_kind='week',
+        period_start=today - timedelta(days=today.weekday()),
+        period_end=today - timedelta(days=today.weekday()) + timedelta(days=6),
+        description='desc',
+    )
+    client.force_login(admin)
+    resp = client.post(f'/admin-users/{target.pk}/delete/')
+    assert resp.status_code == 302
+    assert User.objects.filter(pk=target.pk).exists()  # not deleted
+
+
+@pytest.mark.django_db
 def test_seed_admin_creates_user(db):
     from django.core.management import call_command
     import os

@@ -37,22 +37,27 @@ def _base_qs(qs):
 def _rows(qs):
     for item in _base_qs(qs):
         yield {
-            'id':          item.pk,
-            'author':      item.author.email,
-            'title':       item.title,
-            'project':     item.project.name,
-            'category':    item.category.name,
-            'period_kind': item.get_period_kind_display(),
-            'period_start': item.period_start.isoformat(),
-            'period_end':   item.period_end.isoformat(),
-            'tags':        ','.join(sorted(t.name for t in item.tags.all())),
-            'private':     'yes' if item.is_private else 'no',
-            'description': item.description,
+            'id':             item.pk,
+            'author':         item.author.email,
+            'title':          item.title,
+            'project':        item.project.name,
+            'category':       item.category.name,
+            'group':          item.group.name if item.group else '',
+            'period_kind':    item.get_period_kind_display(),
+            'period_start':   item.period_start.isoformat(),
+            'period_end':     item.period_end.isoformat(),
+            'tags':           ','.join(sorted(t.name for t in item.tags.all())),
+            'private':        'yes' if item.is_private else 'no',
+            'critical':       'yes' if item.is_critical else 'no',
+            'highlight':      'yes' if item.is_highlight else 'no',
+            'highlight_stars': item.highlight_stars,
+            'description':    item.description,
         }
 
 
-HEADERS = ['id', 'author', 'title', 'project', 'category',
-           'period_kind', 'period_start', 'period_end', 'tags', 'private', 'description']
+HEADERS = ['id', 'author', 'title', 'project', 'category', 'group',
+           'period_kind', 'period_start', 'period_end', 'tags',
+           'private', 'critical', 'highlight', 'highlight_stars', 'description']
 
 
 # ── Text ──────────────────────────────────────────────────────────────────────
@@ -141,15 +146,17 @@ def export_xlsx(qs) -> HttpResponse:
 
 @register('pdf')
 def export_pdf(qs) -> HttpResponse:
-    from weasyprint import HTML
+    from ._pdf import table_to_pdf
 
     rows = list(_rows(qs))
-    html_str = render_to_string('reports/pdf_report.html', {
-        'rows':    rows,
-        'headers': HEADERS,
-        'generated_at': timezone.now(),
-    })
-    pdf_bytes = HTML(string=html_str).write_pdf()
+    ts = timezone.now().strftime('%Y-%m-%d %H:%M')
+    cols = ['author', 'title', 'project', 'category', 'period_start', 'period_end',
+            'private', 'critical', 'highlight', 'tags']
+    pdf_bytes = table_to_pdf(
+        rows=rows, headers=cols,
+        title='SCD Effort Report',
+        meta=f'Generated {ts} UTC  ·  {len(rows)} {"entry" if len(rows) == 1 else "entries"}',
+    )
     resp = HttpResponse(pdf_bytes, content_type='application/pdf')
     resp['Content-Disposition'] = f'attachment; filename="{_filename("pdf")}"'
     return resp

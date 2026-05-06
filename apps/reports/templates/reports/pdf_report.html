@@ -44,7 +44,7 @@
         <td>{{ r.category }}</td>
         <td><strong>{{ r.title }}</strong></td>
         <td class="tags">{{ r.tags }}</td>
-        <td>{% if r.private == 'yes' %}<span class="private">🔒</span>{% endif %}</td>
+        <td>{% if r.private == 'yes' %}<span class="private">PRIVATE</span>{% endif %}</td>
         <td class="desc">{{ r.description|truncatechars:120 }}</td>
       </tr>
       {% endfor %}

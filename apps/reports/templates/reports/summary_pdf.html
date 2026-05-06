@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SCD Effort Report — AI Summary</title>
+<style>
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10pt; color: #1e293b; margin: 2cm; line-height: 1.6; }
+  h1 { font-size: 16pt; color: #1e40af; margin-bottom: 0; }
+  .meta { font-size: 8.5pt; color: #64748b; margin-bottom: 1cm; margin-top: 0.15cm; }
+  .divider { border: none; border-top: 1pt solid #e2e8f0; margin: 0.5cm 0; }
+  h2 { font-size: 12pt; color: #1e293b; margin-top: 0.7cm; margin-bottom: 0.2cm; }
+  h3 { font-size: 10.5pt; color: #334155; margin-top: 0.5cm; margin-bottom: 0.15cm; }
+  p { margin: 0.2cm 0; }
+  ul, ol { margin: 0.2cm 0 0.2cm 0.7cm; padding: 0; }
+  li { margin-bottom: 0.1cm; }
+  table { width: 100%; border-collapse: collapse; margin: 0.3cm 0; font-size: 8.5pt; }
+  thead th { background: #1e40af; color: #fff; text-align: left; padding: 4pt 6pt; }
+  tbody td { padding: 3pt 6pt; border-bottom: 0.5pt solid #e2e8f0; vertical-align: top; }
+  tbody tr:nth-child(even) td { background: #f8fafc; }
+  code { background: #f1f5f9; padding: 1pt 3pt; border-radius: 2pt; font-size: 8pt; font-family: 'Courier New', monospace; }
+  strong { font-weight: 600; }
+  @page { size: A4 portrait; margin: 2cm; }
+</style>
+</head>
+<body>
+  <h1>SCD Effort Report — AI Summary</h1>
+  <p class="meta">Generated {{ generated_at|date:"Y-m-d H:i" }} UTC</p>
+  <hr class="divider">
+  {{ html_body|safe }}
+</body>
+</html>
