@@ -69,7 +69,31 @@ Each app is independently namespaced and has its own URLs, templates, and tests.
 
 ## Quickstart
 
-For step-by-step instructions for macOS, Linux, and Windows see **[docs/quickstart.md](docs/quickstart.md)**.
+The fastest way to get running — one command handles everything:
+
+```bash
+# macOS / Linux
+git clone https://github.com/your-org/SCD-Reporting.git
+cd SCD-Reporting
+./bootstrap.sh --admin-password yourpassword
+```
+
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/your-org/SCD-Reporting.git
+cd SCD-Reporting
+.\bootstrap.ps1 -AdminPassword yourpassword
+```
+
+The script creates a virtual environment, installs dependencies, migrates the database, seeds initial data, and starts the server at <http://localhost:8000>. Log in with `scd-admin@fnal.gov` and the password you provided.
+
+To enable the AI Summary feature, pass your Anthropic API key:
+
+```bash
+./bootstrap.sh --admin-password yourpassword --anthropic-key sk-ant-...
+```
+
+For platform-specific prerequisites and manual setup steps see **[docs/quickstart.md](docs/quickstart.md)**.
 
 ---
 
@@ -78,23 +102,22 @@ For step-by-step instructions for macOS, Linux, and Windows see **[docs/quicksta
 ### Prerequisites
 
 - Python 3.12+
-- Node.js 20+ (for Tailwind CSS compilation)
+- Node.js 20+ (optional — Tailwind falls back to the Play CDN in dev mode)
 - Git
 
 ### Setup
 
-```bash
-git clone https://github.com/your-org/SCD-Reporting.git
-cd SCD-Reporting
+The `bootstrap.sh` / `bootstrap.ps1` script handles all of the steps below automatically. Use the manual steps if you need finer control or are integrating with an existing environment.
 
+```bash
 # Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+python3.12 -m venv .venv
+source .venv/bin/activate        # Windows: .\.venv\Scripts\Activate.ps1
 
 # Install Python dependencies
 pip install -r requirements-dev.txt
 
-# Install Node dependencies for Tailwind
+# Install Node dependencies for Tailwind (optional)
 cd theme/static_src && npm install && cd ../..
 ```
 
@@ -103,44 +126,41 @@ cd theme/static_src && npm install && cd ../..
 The default development configuration uses SQLite — no database server required.
 
 ```bash
-# Apply all migrations
 python manage.py migrate
-
-# Seed the default projects and categories
 python manage.py seed_taxonomy
-
-# Create an admin account (uses SCD_INITIAL_ADMIN_* env vars; see below)
-SCD_INITIAL_ADMIN_PASSWORD=devpassword python manage.py seed_admin
+SCD_INITIAL_ADMIN_PASSWORD=yourpassword python manage.py seed_admin
 ```
 
 ### Run the development server
 
-In one terminal, start the Tailwind CSS watcher:
-
-```bash
-cd theme/static_src && npm start
-```
-
-In another terminal, start Django:
-
 ```bash
 python manage.py runserver
 ```
 
-The app will be available at <http://localhost:8000>.
+The app is available at <http://localhost:8000>. Log in with `scd-admin@fnal.gov` and your chosen password.
 
-> **Note:** The development settings module is `scd_reporting.settings.dev`, which enables `DEBUG=True`, uses the Tailwind Play CDN (so the npm watcher is optional for casual development), and logs emails to the console.
+> The development settings (`scd_reporting.settings.dev`) enable `DEBUG=True`, load Tailwind from the Play CDN, and log emails to the console.
+>
+> For CSS hot-reload during frontend work, run `cd theme/static_src && npm start` in a second terminal.
 
-### AI Summary (optional)
+### AI Summary
 
-To use the AI Summary feature in development, set your Anthropic API key before starting the server:
+To enable the AI Summary feature, export your Anthropic API key before starting the server:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...          # Windows: $env:ANTHROPIC_API_KEY="sk-ant-..."
 python manage.py runserver
 ```
 
-Without the key the summary button returns an error message in the UI; all other features work normally.
+Without the key the summary button returns an error in the UI; all other features work normally. Obtain a key at [console.anthropic.com](https://console.anthropic.com).
+
+To use a different model:
+
+```bash
+export ANTHROPIC_SUMMARY_MODEL=claude-haiku-4-5-20251001   # faster / cheaper
+```
+
+The default is `claude-sonnet-4-6`.
 
 ---
 
