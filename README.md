@@ -1,6 +1,6 @@
 # SCD Effort Reporting
 
-A Django web application for Fermilab Scientific Computing Division employees to log and review weekly effort reports. Staff submit entries describing work performed against projects and categories; administrators and auditors can filter, preview, and export the full dataset; every data change is recorded in a tamper-evident audit log.
+A Django web application for Fermilab Scientific Computing Division employees to log and review weekly effort reports. Staff submit entries describing work performed against projects and categories; administrators and auditors can filter, preview, and export the full dataset; key application events are recorded in an audit log.
 
 ---
 
@@ -27,7 +27,7 @@ A Django web application for Fermilab Scientific Computing Division employees to
 - **Role-based access** — three roles (User, Administrator, Auditor) with enforced permission checks throughout
 - **Reports** — admins and auditors filter entries by author, project, category, and date range; preview results with per-row checkboxes to select a subset; download as plain text, CSV, JSON, XLSX, or PDF
 - **AI Summary** — generate a structured narrative summary of any filtered or selected entries via the Anthropic API; download as plain text or PDF; system prompt and user template are editable from the web UI by admins
-- **Audit log** — every WorkItem create/update/delete, all login/logout events, and every report export (including AI summaries) are recorded with actor, IP address, user-agent, and field-level diffs
+- **Audit log** — WorkItem create/update/delete events, login/logout events, and report exports (including AI summaries) are recorded with actor, IP address, user-agent, and field-level diffs for tracked WorkItem fields
 - **Taxonomy management** — projects, categories, and organisational groups are managed through a tabbed web UI (Admin role required); groups can be assigned to entries to associate work with a team or division
 - **User management** — administrators can create accounts, assign roles, reset passwords, and delete users directly from the web interface
 - **SSO-ready** — local email/password auth via django-allauth; a seam exists for CILogon integration when required
@@ -179,7 +179,7 @@ The default is `claude-sonnet-4-6`.
 
 Tests use `scd_reporting.settings.dev` and SQLite in-memory (via `pytest-django`). No external services are required.
 
-Current baseline: **77 tests, all passing.**
+Current baseline: **83 tests, all passing.**
 
 ---
 
