@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 _registry: dict = {}
+SPREADSHEET_FORMULA_PREFIXES = ('=', '+', '-', '@')
 
 
 def register(fmt: str):
@@ -55,6 +56,17 @@ def _rows(qs):
         }
 
 
+def _spreadsheet_safe(value):
+    if isinstance(value, str) and value.startswith(SPREADSHEET_FORMULA_PREFIXES):
+        return f"'{value}"
+    return value
+
+
+def _spreadsheet_rows(qs):
+    for row in _rows(qs):
+        yield {key: _spreadsheet_safe(value) for key, value in row.items()}
+
+
 HEADERS = ['id', 'author', 'title', 'project', 'category', 'group',
            'period_kind', 'period_start', 'period_end', 'tags',
            'private', 'critical', 'highlight', 'highlight_stars', 'description']
@@ -86,7 +98,7 @@ def export_csv(qs) -> HttpResponse:
     buf = io.StringIO()
     writer = csv.DictWriter(buf, fieldnames=HEADERS)
     writer.writeheader()
-    for r in _rows(qs):
+    for r in _spreadsheet_rows(qs):
         writer.writerow(r)
     resp = HttpResponse(buf.getvalue(), content_type='text/csv; charset=utf-8')
     resp['Content-Disposition'] = f'attachment; filename="{_filename("csv")}"'
@@ -122,7 +134,7 @@ def export_xlsx(qs) -> HttpResponse:
         cell.font = header_font
         cell.fill = header_fill
 
-    for row_idx, r in enumerate(_rows(qs), start=2):
+    for row_idx, r in enumerate(_spreadsheet_rows(qs), start=2):
         for col_idx, key in enumerate(HEADERS, start=1):
             ws.cell(row=row_idx, column=col_idx, value=r[key])
 
@@ -146,16 +158,15 @@ def export_xlsx(qs) -> HttpResponse:
 
 @register('pdf')
 def export_pdf(qs) -> HttpResponse:
-    from ._pdf import table_to_pdf
+    from ._pdf import entries_to_pdf
 
     rows = list(_rows(qs))
     ts = timezone.now().strftime('%Y-%m-%d %H:%M')
-    cols = ['author', 'title', 'project', 'category', 'period_start', 'period_end',
-            'private', 'critical', 'highlight', 'tags']
-    pdf_bytes = table_to_pdf(
-        rows=rows, headers=cols,
+    n = len(rows)
+    pdf_bytes = entries_to_pdf(
+        rows=rows,
         title='SCD Effort Report',
-        meta=f'Generated {ts} UTC  ·  {len(rows)} {"entry" if len(rows) == 1 else "entries"}',
+        meta=f'Generated {ts} UTC  ·  {n} {"entry" if n == 1 else "entries"}',
     )
     resp = HttpResponse(pdf_bytes, content_type='application/pdf')
     resp['Content-Disposition'] = f'attachment; filename="{_filename("pdf")}"'

@@ -15,7 +15,7 @@
     </p>
   </div>
   <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 text-xs">
+    <table class="preview-table min-w-full divide-y divide-slate-200 text-xs">
       <thead class="bg-slate-50">
         <tr>
           <th class="px-4 py-2 w-8">
@@ -23,13 +23,34 @@
                    title="Select all"
                    class="h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary cursor-pointer">
           </th>
-          <th class="px-4 py-2 text-left font-semibold text-slate-500 whitespace-nowrap">Period</th>
-          <th class="px-4 py-2 text-left font-semibold text-slate-500">Author</th>
-          <th class="px-4 py-2 text-left font-semibold text-slate-500">Title</th>
-          <th class="px-4 py-2 text-left font-semibold text-slate-500 hidden sm:table-cell">Project</th>
-          <th class="px-4 py-2 text-left font-semibold text-slate-500 hidden sm:table-cell">Category</th>
-          <th class="px-4 py-2 text-left font-semibold text-slate-500 hidden md:table-cell">Tags</th>
-          <th class="px-4 py-2 text-left font-semibold text-slate-500">Priv.</th>
+          <th data-col="1"
+              class="px-4 py-2 text-left font-semibold text-slate-500 whitespace-nowrap cursor-pointer select-none hover:text-slate-700">
+            Period <span class="sort-ind ml-0.5 text-slate-300">⇅</span>
+          </th>
+          <th data-col="2"
+              class="px-4 py-2 text-left font-semibold text-slate-500 cursor-pointer select-none hover:text-slate-700">
+            Author <span class="sort-ind ml-0.5 text-slate-300">⇅</span>
+          </th>
+          <th data-col="3"
+              class="px-4 py-2 text-left font-semibold text-slate-500 cursor-pointer select-none hover:text-slate-700">
+            Title <span class="sort-ind ml-0.5 text-slate-300">⇅</span>
+          </th>
+          <th data-col="4"
+              class="px-4 py-2 text-left font-semibold text-slate-500 hidden sm:table-cell cursor-pointer select-none hover:text-slate-700">
+            Project <span class="sort-ind ml-0.5 text-slate-300">⇅</span>
+          </th>
+          <th data-col="5"
+              class="px-4 py-2 text-left font-semibold text-slate-500 hidden sm:table-cell cursor-pointer select-none hover:text-slate-700">
+            Category <span class="sort-ind ml-0.5 text-slate-300">⇅</span>
+          </th>
+          <th data-col="6"
+              class="px-4 py-2 text-left font-semibold text-slate-500 hidden md:table-cell cursor-pointer select-none hover:text-slate-700">
+            Tags <span class="sort-ind ml-0.5 text-slate-300">⇅</span>
+          </th>
+          <th data-col="7"
+              class="px-4 py-2 text-left font-semibold text-slate-500 cursor-pointer select-none hover:text-slate-700">
+            Priv. <span class="sort-ind ml-0.5 text-slate-300">⇅</span>
+          </th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
@@ -39,12 +60,13 @@
             <input type="checkbox" name="selected_ids" value="{{ entry.pk }}"
                    class="entry-checkbox h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary cursor-pointer">
           </td>
-          <td class="px-4 py-2 whitespace-nowrap tabular-nums text-slate-500">
+          <td class="px-4 py-2 whitespace-nowrap tabular-nums text-slate-500"
+              data-sort="{{ entry.period_end|date:'Y-m-d' }}">
             {{ entry.period_start|date:"M j" }}–{{ entry.period_end|date:"M j, Y" }}
           </td>
           <td class="px-4 py-2 text-slate-600">{{ entry.author.email }}</td>
           <td class="px-4 py-2 font-medium text-slate-800">
-            <a href="{% url 'entries:detail' entry.pk %}" class="hover:text-scd-primary" target="_blank">
+            <a href="{% url 'entries:detail' entry.pk %}?from=reports" class="hover:text-scd-primary">
               {{ entry.title }}
             </a>
           </td>
@@ -55,7 +77,7 @@
             <span class="inline-block px-1.5 py-0.5 rounded text-xs bg-scd-accent-soft text-scd-primary mr-0.5">#{{ tag.name }}</span>
             {% endfor %}
           </td>
-          <td class="px-4 py-2 text-center">
+          <td class="px-4 py-2 text-center" data-sort="{% if entry.is_private %}1{% else %}0{% endif %}">
             {% if entry.is_private %}
             <span class="text-purple-600" title="Private">🔒</span>
             {% endif %}
@@ -74,6 +96,7 @@
 
 <script>
 (function () {
+  // ── Checkbox select-all ───────────────────────────────────────────────────
   var selectAll = document.getElementById('select-all-entries');
   var countEl   = document.getElementById('selection-count');
   var countN    = document.getElementById('selected-n');
@@ -82,11 +105,7 @@
   function updateCount() {
     var checked = document.querySelectorAll('.entry-checkbox:checked').length;
     countN.textContent = checked;
-    if (checked > 0) {
-      countEl.classList.remove('hidden');
-    } else {
-      countEl.classList.add('hidden');
-    }
+    countEl.classList.toggle('hidden', checked === 0);
     var total = document.querySelectorAll('.entry-checkbox').length;
     selectAll.checked = checked > 0 && checked === total;
     selectAll.indeterminate = checked > 0 && checked < total;
@@ -104,12 +123,53 @@
   });
 
   clearBtn.addEventListener('click', function () {
-    document.querySelectorAll('.entry-checkbox').forEach(function (cb) {
-      cb.checked = false;
-    });
+    document.querySelectorAll('.entry-checkbox').forEach(function (cb) { cb.checked = false; });
     selectAll.checked = false;
     selectAll.indeterminate = false;
     updateCount();
+  });
+
+  // ── Column sorting ────────────────────────────────────────────────────────
+  var table   = document.querySelector('.preview-table');
+  var tbody   = table.querySelector('tbody');
+  var headers = table.querySelectorAll('th[data-col]');
+  var sortCol = -1;
+  var sortAsc = true;
+
+  headers.forEach(function (th) {
+    th.addEventListener('click', function () {
+      var col = parseInt(th.dataset.col, 10);
+      if (sortCol === col) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col;
+        sortAsc = true;
+      }
+
+      // Update all indicators
+      headers.forEach(function (h) {
+        var ind = h.querySelector('.sort-ind');
+        ind.textContent = '⇅';
+        ind.className = 'sort-ind ml-0.5 text-slate-300';
+      });
+      var active = th.querySelector('.sort-ind');
+      active.textContent = sortAsc ? '▲' : '▼';
+      active.className = 'sort-ind ml-0.5 text-scd-primary';
+
+      // Sort rows
+      var rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort(function (a, b) {
+        var aCell = a.querySelectorAll('td')[col];
+        var bCell = b.querySelectorAll('td')[col];
+        var aVal = (aCell.dataset.sort !== undefined ? aCell.dataset.sort : aCell.textContent).trim().toLowerCase();
+        var bVal = (bCell.dataset.sort !== undefined ? bCell.dataset.sort : bCell.textContent).trim().toLowerCase();
+        if (aVal < bVal) return sortAsc ? -1 : 1;
+        if (aVal > bVal) return sortAsc ? 1 : -1;
+        return 0;
+      });
+
+      rows.forEach(function (row) { tbody.appendChild(row); });
+    });
   });
 })();
 </script>

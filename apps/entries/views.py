@@ -1,6 +1,5 @@
 from datetime import date, timedelta
 
-import markdown as md_lib
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import F
@@ -9,14 +8,11 @@ from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
+from apps.core.markdown import render_markdown
 from apps.taxonomy.models import Project, Tag
 
 from .forms import WorkItemForm
 from .models import WorkItem
-
-
-def _render_md(text: str) -> str:
-    return md_lib.markdown(text, extensions=['fenced_code', 'tables'])
 
 
 # ── List ──────────────────────────────────────────────────────────────────────
@@ -54,11 +50,14 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
     def get_initial(self):
         today = date.today()
         week_start = today - timedelta(days=today.weekday())
-        return {
+        initial = {
             'period_kind':  'week',
             'period_start': week_start.isoformat(),
             'period_end':   (week_start + timedelta(days=6)).isoformat(),
         }
+        if self.request.user.group_id:
+            initial['group'] = self.request.user.group_id
+        return initial
 
     def form_valid(self, form):
         form.instance.author = self.request.user
@@ -77,11 +76,14 @@ class EntryDetailView(LoginRequiredMixin, DetailView):
     template_name = 'entries/detail.html'
 
     def get_queryset(self):
-        return WorkItem.objects.filter(author=self.request.user).prefetch_related('tags')
+        qs = WorkItem.objects.prefetch_related('tags')
+        if not self.request.user.is_auditor:
+            qs = qs.filter(author=self.request.user)
+        return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['description_html'] = _render_md(self.object.description)
+        ctx['description_html'] = render_markdown(self.object.description)
         return ctx
 
 
@@ -153,5 +155,5 @@ class MarkdownPreviewView(LoginRequiredMixin, View):
     def post(self, request):
         text = request.POST.get('description', '')
         return render(request, 'entries/partials/_markdown_preview.html', {
-            'html': _render_md(text),
+            'html': render_markdown(text),
         })

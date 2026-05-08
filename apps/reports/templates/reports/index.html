@@ -24,6 +24,21 @@
                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
         </div>
 
+        {# Group #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Group</label>
+          <select name="group"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All groups</option>
+            {% for pk, label in filter.filters.group.field.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if filter.form.group.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
         {# Project #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Project</label>
@@ -54,31 +69,55 @@
           </select>
         </div>
 
-        {# Period after #}
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Period start on/after</label>
-          <input type="date" name="period_after"
-                 value="{{ filter.form.period_after.value|default:'' }}"
-                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
-                        focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+        {# Period quick-select + date range #}
+        <div class="sm:col-span-2 lg:col-span-2 grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Period start on/after</label>
+            <input id="period-after" type="date" name="period_after"
+                   value="{{ filter.form.period_after.value|default:'' }}"
+                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Period end on/before</label>
+            <input id="period-before" type="date" name="period_before"
+                   value="{{ filter.form.period_before.value|default:'' }}"
+                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+          </div>
+          <div class="col-span-2 flex flex-wrap gap-2">
+            <button type="button" data-range="7"
+                    class="range-btn text-xs font-medium px-3 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-50 transition-colors">
+              Past week
+            </button>
+            <button type="button" data-range="14"
+                    class="range-btn text-xs font-medium px-3 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-50 transition-colors">
+              Past 2 weeks
+            </button>
+            <button type="button" data-range="30"
+                    class="range-btn text-xs font-medium px-3 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-50 transition-colors">
+              Past month
+            </button>
+            <button type="button" id="clear-dates"
+                    class="text-xs font-medium px-3 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50 transition-colors">
+              Clear
+            </button>
+          </div>
         </div>
 
-        {# Period before #}
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Period end on/before</label>
-          <input type="date" name="period_before"
-                 value="{{ filter.form.period_before.value|default:'' }}"
-                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
-                        focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
-        </div>
-
-        {# Private #}
-        <div class="flex items-end pb-1">
+        {# Private filters #}
+        <div class="flex flex-col gap-2 justify-end pb-1">
           <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-slate-700">
             <input type="checkbox" name="is_private" value="true"
                    {% if filter.form.is_private.value %}checked{% endif %}
                    class="h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary">
             Private entries only
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-slate-700">
+            <input type="checkbox" name="exclude_private" value="true"
+                   {% if filter.form.exclude_private.value %}checked{% endif %}
+                   class="h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary">
+            Exclude private entries
           </label>
         </div>
 
@@ -186,4 +225,31 @@
   {% endif %}
 
 </div>
+
+<script>
+(function () {
+  var afterInput  = document.getElementById('period-after');
+  var beforeInput = document.getElementById('period-before');
+
+  function toISO(d) {
+    return d.toISOString().slice(0, 10);
+  }
+
+  document.querySelectorAll('.range-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var days  = parseInt(btn.dataset.range, 10);
+      var today = new Date();
+      var start = new Date(today);
+      start.setDate(today.getDate() - days + 1);
+      afterInput.value  = toISO(start);
+      beforeInput.value = toISO(today);
+    });
+  });
+
+  document.getElementById('clear-dates').addEventListener('click', function () {
+    afterInput.value  = '';
+    beforeInput.value = '';
+  });
+})();
+</script>
 {% endblock %}

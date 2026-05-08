@@ -1,7 +1,10 @@
 """Tests for the reports app: access control, preview, and all five exporters."""
+import csv
+import io
 import json
 from datetime import date, timedelta
 
+import openpyxl
 import pytest
 
 from django.urls import reverse
@@ -143,6 +146,48 @@ class TestExporters:
         # XLSX magic bytes: PK header
         assert resp.content[:2] == b'PK'
 
+    def test_csv_escapes_spreadsheet_formulas(self, client, admin_user, entry):
+        entry.title = '=IMPORTXML("https://example.com")'
+        entry.description = '@SUM(1,1)'
+        entry.save()
+        client.force_login(admin_user)
+
+        resp = self._download(client, 'csv')
+
+        rows = list(csv.DictReader(io.StringIO(resp.content.decode())))
+        assert rows[0]['title'] == '\'=IMPORTXML("https://example.com")'
+        assert rows[0]['description'] == "'@SUM(1,1)"
+
+    def test_xlsx_escapes_spreadsheet_formulas(self, client, admin_user, entry):
+        entry.title = '=HYPERLINK("https://example.com")'
+        entry.description = '+SUM(1,1)'
+        entry.save()
+        client.force_login(admin_user)
+
+        resp = self._download(client, 'xlsx')
+
+        wb = openpyxl.load_workbook(io.BytesIO(resp.content), data_only=False)
+        ws = wb.active
+        assert ws['C2'].value == '\'=HYPERLINK("https://example.com")'
+        assert ws['O2'].value == "'+SUM(1,1)"
+
+    def test_non_spreadsheet_formats_preserve_text_content(self, client, admin_user, entry):
+        entry.title = '=Plain text title'
+        entry.description = '@Plain text description'
+        entry.save()
+        client.force_login(admin_user)
+
+        txt_resp = self._download(client, 'txt')
+        json_resp = self._download(client, 'json')
+        pdf_resp = self._download(client, 'pdf')
+
+        assert b'=Plain text title' in txt_resp.content
+        data = json.loads(json_resp.content)
+        assert data[0]['title'] == '=Plain text title'
+        assert data[0]['description'] == '@Plain text description'
+        assert pdf_resp.status_code == 200
+        assert pdf_resp.content[:4] == b'%PDF'
+
     def test_unknown_format_returns_400(self, client, admin_user):
         client.force_login(admin_user)
         resp = self._download(client, 'docx')
@@ -153,3 +198,21 @@ class TestExporters:
         resp = self._download(client, 'json', {'author_email': 'nobody@nowhere.com'})
         data = json.loads(resp.content)
         assert data == []
+
+
+class TestReportSummary:
+    def test_ai_summary_markdown_is_sanitized(self, client, admin_user, entry, monkeypatch):
+        def fake_generate(qs):
+            return '# Summary\n\n<img src=x onerror=alert(1)> **safe** [bad](javascript:alert(1))'
+
+        monkeypatch.setattr('apps.reports.views.ai_summary.generate', fake_generate)
+        client.force_login(admin_user)
+
+        resp = client.post(reverse('reports:summary'), {})
+
+        assert resp.status_code == 200
+        assert b'<h1>Summary</h1>' in resp.content
+        assert b'<strong>safe</strong>' in resp.content
+        assert b'<img' not in resp.content
+        assert b'<a>bad</a>' in resp.content
+        assert b'<a href="javascript:' not in resp.content

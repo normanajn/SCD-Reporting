@@ -1,11 +1,10 @@
-import markdown as md_lib
-
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
 
 from apps.accounts.permissions import AuditorOrAdminRequiredMixin
+from apps.core.markdown import render_markdown
 from apps.entries.models import WorkItem
 
 from . import ai_summary, exporters
@@ -85,7 +84,7 @@ class ReportSummaryView(AuditorOrAdminRequiredMixin, View):
             request=request,
             changes={'format': 'ai_summary', 'count': count, 'selection': bool(selected_ids)},
         )
-        html = md_lib.markdown(text, extensions=['tables', 'fenced_code'])
+        html = render_markdown(text)
         return render(request, 'reports/partials/_summary.html', {
             'summary_text': text,
             'summary_html': html,

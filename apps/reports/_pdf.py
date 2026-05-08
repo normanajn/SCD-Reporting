@@ -3,7 +3,7 @@ import re
 from io import BytesIO
 
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -129,25 +129,92 @@ def md_to_pdf(markdown_text: str, title: str, meta: str) -> bytes:
     return buf.getvalue()
 
 
-def table_to_pdf(rows: list, headers: list, title: str, meta: str) -> bytes:
-    """Render a list-of-dicts table as a landscape A4 PDF and return the bytes."""
+_RED    = colors.HexColor('#dc2626')
+_PURPLE = colors.HexColor('#7c3aed')
+_AMBER  = colors.HexColor('#d97706')
+
+
+def _desc_paragraphs(text: str, style) -> list:
+    """Split description on blank lines; preserve single-line breaks within blocks."""
+    result = []
+    for block in re.split(r'\n{2,}', text.strip()):
+        block = block.strip()
+        if block:
+            result.append(Paragraph(_safe(block).replace('\n', '<br/>'), style))
+    return result
+
+
+def entries_to_pdf(rows: list, title: str, meta: str) -> bytes:
+    """Render a list of entry dicts as a full-detail per-entry PDF."""
     buf = BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=landscape(A4),
-        leftMargin=15*mm, rightMargin=15*mm, topMargin=15*mm, bottomMargin=15*mm,
+        buf, pagesize=A4,
+        leftMargin=20*mm, rightMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm,
     )
+
+    entry_title_st = ParagraphStyle('et', fontName='Helvetica-Bold', fontSize=11,
+                                     textColor=_PRIMARY, spaceAfter=3, spaceBefore=0)
+    meta_st        = ParagraphStyle('em', fontName='Helvetica', fontSize=8,
+                                     textColor=_SLATE_600, spaceAfter=2, leading=12)
+    desc_st        = ParagraphStyle('ed', fontName='Helvetica', fontSize=9,
+                                     textColor=_SLATE_800, spaceAfter=0, leading=13,
+                                     leftIndent=0)
     s = _s()
+
     story: list = [
         Paragraph(title, s['title']),
         Paragraph(meta,  s['meta']),
+        HRFlowable(width='100%', color=_SLATE_200, spaceAfter=10),
     ]
 
-    header_row = [h.replace('_', ' ').title() for h in headers]
-    data = [header_row] + [[_safe(str(r.get(h, ''))) for h in headers] for r in rows]
+    for i, r in enumerate(rows):
+        if i > 0:
+            story.append(HRFlowable(width='100%', color=_SLATE_200,
+                                    spaceBefore=10, spaceAfter=10))
 
-    t = Table(data, repeatRows=1)
-    t.setStyle(_tbl_style())
-    story.append(t)
+        # ── Title + flags ─────────────────────────────────────────────────────
+        flags_xml = []
+        if r.get('critical') == 'yes':
+            flags_xml.append('<font color="#dc2626"><b> [CRITICAL]</b></font>')
+        if r.get('highlight') == 'yes':
+            stars = int(r.get('highlight_stars') or 0)
+            star_str = ' ' + ('*' * stars) if stars else ''
+            flags_xml.append(f'<font color="#d97706"><b> [HIGHLIGHT{_safe(star_str)}]</b></font>')
+        if r.get('private') == 'yes':
+            flags_xml.append('<font color="#7c3aed"><b> [PRIVATE]</b></font>')
+
+        story.append(Paragraph(
+            _safe(r['title']) + ''.join(flags_xml),
+            entry_title_st,
+        ))
+
+        # ── Author / project / category / group ───────────────────────────────
+        meta1_parts = [
+            f'<b>Author:</b> {_safe(r["author"])}',
+            f'<b>Project:</b> {_safe(r["project"])}',
+            f'<b>Category:</b> {_safe(r["category"])}',
+        ]
+        if r.get('group'):
+            meta1_parts.append(f'<b>Group:</b> {_safe(r["group"])}')
+        story.append(Paragraph('  |  '.join(meta1_parts), meta_st))
+
+        # ── Period / tags ─────────────────────────────────────────────────────
+        meta2_parts = [
+            f'<b>Period:</b> {_safe(r["period_start"])} – {_safe(r["period_end"])}'
+            f'  ({_safe(r["period_kind"])})',
+        ]
+        if r.get('tags'):
+            meta2_parts.append(f'<b>Tags:</b> {_safe(r["tags"])}')
+        story.append(Paragraph('  |  '.join(meta2_parts), meta_st))
+
+        # ── Description ───────────────────────────────────────────────────────
+        desc = (r.get('description') or '').strip()
+        if desc:
+            story.append(Spacer(1, 3))
+            story.extend(_desc_paragraphs(desc, desc_st))
+
+    if not rows:
+        story.append(Paragraph('No entries matched the selected filters.', s['body']))
 
     doc.build(story)
     return buf.getvalue()

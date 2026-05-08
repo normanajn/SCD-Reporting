@@ -6,6 +6,8 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import ListView, UpdateView
 
+from .forms import AdminCreateUserForm, ProfileForm
+from .models import SiteSettings
 from .permissions import AdminRequiredMixin
 
 User = get_user_model()
@@ -13,7 +15,7 @@ User = get_user_model()
 
 class ProfileView(AdminRequiredMixin, UpdateView):
     model = User
-    fields = ['display_name', 'employee_id']
+    form_class = ProfileForm
     template_name = 'accounts/profile.html'
     success_url = reverse_lazy('profile')
 
@@ -38,6 +40,8 @@ class AdminUsersView(AdminRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['role_choices'] = User.Role.choices
+        ctx['site_settings'] = SiteSettings.get_solo()
+        ctx['create_form'] = AdminCreateUserForm()
         return ctx
 
 
@@ -108,3 +112,33 @@ class UserDeleteView(AdminRequiredMixin, View):
                 'Remove or reassign their entries first.',
             )
         return redirect('admin-users')
+
+
+class SignupToggleView(AdminRequiredMixin, View):
+    def post(self, request):
+        s = SiteSettings.get_solo()
+        s.allow_signup = not s.allow_signup
+        s.save(update_fields=['allow_signup'])
+        state = 'enabled' if s.allow_signup else 'disabled'
+        messages.success(request, f'Self-serve signup {state}.')
+        return redirect('admin-users')
+
+
+class AdminCreateUserView(AdminRequiredMixin, View):
+    def post(self, request):
+        form = AdminCreateUserForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            messages.success(request, f'User "{user.email}" created.')
+            return redirect('admin-users')
+        # Re-render page with form errors
+        users = User.objects.order_by('email')
+        return render(request, 'accounts/admin_users.html', {
+            'users': users,
+            'role_choices': User.Role.choices,
+            'site_settings': SiteSettings.get_solo(),
+            'create_form': form,
+            'show_create_form': True,
+        })

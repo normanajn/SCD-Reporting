@@ -126,6 +126,19 @@ class TestEntryDetail:
         assert resp.status_code == 200
         assert b'<strong>world</strong>' in resp.content
 
+    def test_sanitizes_unsafe_markdown_html(self, client, user, entry):
+        entry.description = 'Safe **bold** <img src=x onerror=alert(1)> [bad](javascript:alert(1))'
+        entry.save()
+        client.force_login(user)
+
+        resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
+
+        assert resp.status_code == 200
+        assert b'<strong>bold</strong>' in resp.content
+        assert b'<img' not in resp.content
+        assert b'onerror' not in resp.content
+        assert b'javascript:' not in resp.content
+
     def test_other_user_gets_404(self, db, client, entry):
         other = User.objects.create_user(username='other2', email='other2@example.com', password='pass')
         client.force_login(other)
@@ -218,6 +231,17 @@ class TestMarkdownPreview:
         resp = client.post(reverse('entries:markdown-preview'), {'description': '**bold**'})
         assert resp.status_code == 200
         assert b'<strong>bold</strong>' in resp.content
+
+    def test_sanitizes_unsafe_html(self, client, user):
+        client.force_login(user)
+        resp = client.post(reverse('entries:markdown-preview'), {
+            'description': '<script>alert(1)</script><img src=x onerror=alert(1)> **ok**',
+        })
+        assert resp.status_code == 200
+        assert b'<strong>ok</strong>' in resp.content
+        assert b'<script' not in resp.content
+        assert b'<img' not in resp.content
+        assert b'onerror' not in resp.content
 
     def test_empty_description_returns_empty(self, client, user):
         client.force_login(user)

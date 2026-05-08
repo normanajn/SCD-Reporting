@@ -1,7 +1,7 @@
 import django_filters
 
 from apps.entries.models import WorkItem
-from apps.taxonomy.models import Category, Project
+from apps.taxonomy.models import Category, Project, WorkGroup
 
 
 class WorkItemFilter(django_filters.FilterSet):
@@ -9,6 +9,11 @@ class WorkItemFilter(django_filters.FilterSet):
         field_name='author__email',
         lookup_expr='icontains',
         label='Author email',
+    )
+    group = django_filters.ModelChoiceFilter(
+        queryset=WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name'),
+        label='Group',
+        empty_label='All groups',
     )
     project = django_filters.ModelChoiceFilter(
         queryset=Project.objects.filter(is_active=True).order_by('sort_order', 'name'),
@@ -31,7 +36,16 @@ class WorkItemFilter(django_filters.FilterSet):
         lookup_expr='lte',
         label='Period end on/before',
     )
-    is_private = django_filters.BooleanFilter(label='Private only')
+    is_private      = django_filters.BooleanFilter(label='Private only')
+    exclude_private = django_filters.BooleanFilter(
+        method='filter_exclude_private',
+        label='Exclude private',
+    )
+
+    def filter_exclude_private(self, queryset, name, value):
+        if value:
+            return queryset.filter(is_private=False)
+        return queryset
 
     class Meta:
         model = WorkItem

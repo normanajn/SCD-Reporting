@@ -8,7 +8,8 @@ class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
         if getattr(settings, 'SCD_DISABLE_LOCAL_SIGNUP', False):
             return False
-        return super().is_open_for_signup(request)
+        from .models import SiteSettings
+        return SiteSettings.get_solo().allow_signup
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
