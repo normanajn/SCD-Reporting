@@ -1,4 +1,6 @@
 from django import forms
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from apps.taxonomy.models import WorkGroup
 
@@ -39,6 +41,13 @@ class AdminCreateUserForm(forms.ModelForm):
         p2 = cleaned.get('password2')
         if p1 and p2 and p1 != p2:
             self.add_error('password2', 'Passwords do not match.')
+        elif p1:
+            # Build an unsaved user so validators can check similarity to email etc.
+            user = User(email=cleaned.get('email', ''), username=cleaned.get('email', ''))
+            try:
+                validate_password(p1, user=user)
+            except ValidationError as e:
+                self.add_error('password', e)
         return cleaned
 
     def save(self, commit=True):

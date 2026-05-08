@@ -1,5 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -76,6 +78,12 @@ class UserSetPasswordView(AdminRequiredMixin, View):
             return render(request, self.template_name, {'target': target})
         if p1 != p2:
             messages.error(request, 'Passwords do not match.')
+            return render(request, self.template_name, {'target': target})
+        try:
+            validate_password(p1, user=target)
+        except ValidationError as e:
+            for msg in e.messages:
+                messages.error(request, msg)
             return render(request, self.template_name, {'target': target})
         target.set_password(p1)
         target.save(update_fields=['password'])

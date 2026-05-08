@@ -162,6 +162,64 @@ def test_delete_user_with_entries_is_blocked(client, make_user, db):
 
 
 @pytest.mark.django_db
+def test_create_user_rejects_weak_password(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm7', email='adm7@example.com')
+    client.force_login(admin)
+    resp = client.post('/admin-users/create/', {
+        'email': 'newuser@example.com',
+        'role': 'user',
+        'password': '123',
+        'password2': '123',
+    })
+    # Should re-render the form, not redirect
+    assert resp.status_code == 200
+    assert not User.objects.filter(email='newuser@example.com').exists()
+
+
+@pytest.mark.django_db
+def test_create_user_accepts_strong_password(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm8', email='adm8@example.com')
+    client.force_login(admin)
+    resp = client.post('/admin-users/create/', {
+        'email': 'newuser2@example.com',
+        'role': 'user',
+        'password': 'Str0ng!Passw0rd#99',
+        'password2': 'Str0ng!Passw0rd#99',
+    })
+    assert resp.status_code == 302
+    assert User.objects.filter(email='newuser2@example.com').exists()
+
+
+@pytest.mark.django_db
+def test_set_password_rejects_weak_password(client, make_user):
+    admin  = make_user(role=User.Role.ADMIN, username='adm9',  email='adm9@example.com')
+    target = make_user(role=User.Role.USER,  username='tgt9',  email='tgt9@example.com')
+    client.force_login(admin)
+    resp = client.post(f'/admin-users/{target.pk}/set-password/', {
+        'new_password1': 'password',
+        'new_password2': 'password',
+    })
+    assert resp.status_code == 200
+    # Password must not have changed
+    target.refresh_from_db()
+    assert not target.check_password('password')
+
+
+@pytest.mark.django_db
+def test_set_password_accepts_strong_password(client, make_user):
+    admin  = make_user(role=User.Role.ADMIN, username='adm10', email='adm10@example.com')
+    target = make_user(role=User.Role.USER,  username='tgt10', email='tgt10@example.com')
+    client.force_login(admin)
+    resp = client.post(f'/admin-users/{target.pk}/set-password/', {
+        'new_password1': 'Str0ng!Passw0rd#99',
+        'new_password2': 'Str0ng!Passw0rd#99',
+    })
+    assert resp.status_code == 302
+    target.refresh_from_db()
+    assert target.check_password('Str0ng!Passw0rd#99')
+
+
+@pytest.mark.django_db
 def test_seed_admin_creates_user(db):
     from django.core.management import call_command
     import os
