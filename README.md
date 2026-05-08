@@ -179,7 +179,7 @@ The default is `claude-sonnet-4-6`.
 
 Tests use `scd_reporting.settings.dev` and SQLite in-memory (via `pytest-django`). No external services are required.
 
-Current baseline: **83 tests, all passing.**
+Current baseline: **87 tests, all passing.**
 
 ---
 
