@@ -11,5 +11,6 @@ urlpatterns = [
     path('categories/<int:pk>/edit/', views.CategoryEditView.as_view(), name='category-edit'),
     path('groups/',              views.WorkGroupManageView.as_view(), name='groups'),
     path('groups/<int:pk>/edit/', views.WorkGroupEditView.as_view(),  name='group-edit'),
+    path('export/',              views.TaxonomyExportView.as_view(),  name='export'),
     path('tags/autocomplete/',   views.TagAutocompleteView.as_view(), name='tag-autocomplete'),
 ]

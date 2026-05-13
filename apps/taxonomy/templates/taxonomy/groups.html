@@ -9,13 +9,19 @@
     <p class="text-sm text-slate-500 mt-0.5">Manage the labels used to classify effort entries.</p>
   </div>
 
-  <div class="flex gap-1 border-b border-slate-200">
-    <a href="{% url 'taxonomy:projects' %}"
-       class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Projects</a>
-    <a href="{% url 'taxonomy:categories' %}"
-       class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Categories</a>
-    <a href="{% url 'taxonomy:groups' %}"
-       class="px-4 py-2 text-sm font-medium text-scd-primary border-b-2 border-scd-primary -mb-px">Groups</a>
+  <div class="flex items-end justify-between border-b border-slate-200">
+    <div class="flex gap-1">
+      <a href="{% url 'taxonomy:projects' %}"
+         class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Projects</a>
+      <a href="{% url 'taxonomy:categories' %}"
+         class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Categories</a>
+      <a href="{% url 'taxonomy:groups' %}"
+         class="px-4 py-2 text-sm font-medium text-scd-primary border-b-2 border-scd-primary -mb-px">Groups</a>
+    </div>
+    <a href="{% url 'taxonomy:export' %}"
+       class="mb-1 text-xs font-medium px-3 py-1.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors">
+      ↓ Export JSON
+    </a>
   </div>
 
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">

@@ -1,6 +1,9 @@
+import json
+from datetime import datetime, timezone
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
@@ -106,6 +109,35 @@ class WorkGroupEditView(AdminRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, f'Group "{form.instance.name}" saved.')
         return super().form_valid(form)
+
+
+class TaxonomyExportView(AdminRequiredMixin, View):
+    def get(self, request):
+        def rows(qs):
+            return [
+                {
+                    'name':       obj.name,
+                    'slug':       obj.slug,
+                    'short_code': obj.short_code,
+                    'is_active':  obj.is_active,
+                    'sort_order': obj.sort_order,
+                }
+                for obj in qs
+            ]
+
+        payload = {
+            'exported_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'projects':    rows(Project.objects.order_by('sort_order', 'name')),
+            'categories':  rows(Category.objects.order_by('sort_order', 'name')),
+            'groups':      rows(WorkGroup.objects.order_by('sort_order', 'name')),
+        }
+        filename = f"taxonomy-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.json"
+        response = HttpResponse(
+            json.dumps(payload, indent=2),
+            content_type='application/json',
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
 
 class TagAutocompleteView(LoginRequiredMixin, View):
