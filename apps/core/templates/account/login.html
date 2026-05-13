@@ -24,6 +24,26 @@
         </button>
       </form>
 
+      {% if OIDC_ENABLED %}
+      <div class="relative my-5">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-slate-200"></div>
+        </div>
+        <div class="relative flex justify-center text-xs">
+          <span class="px-2 bg-white text-slate-400">or</span>
+        </div>
+      </div>
+
+      {% load socialaccount %}
+      <a href="{% provider_login_url 'keycloak' %}"
+         class="flex items-center justify-center gap-2 w-full border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium py-2 px-4 rounded-md text-sm transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+        Log in with SSO
+      </a>
+      {% endif %}
+
       <div class="mt-5 space-y-2 text-center text-sm text-slate-500">
         <p>
           <a href="{% url 'account_reset_password' %}"

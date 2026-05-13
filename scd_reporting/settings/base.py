@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'allauth.socialaccount.providers.openid_connect',
     'django_htmx',
     'django_filters',
     'tailwind',
@@ -106,18 +107,69 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# django-allauth
+# django-allauth — local auth
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get('ACCOUNT_EMAIL_VERIFICATION', 'optional')
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
-# SSO seam — flip to '1' to disable local signup once CILogon is configured
+# SSO seam — flip to '1' to disable local signup once OIDC is configured
 SCD_DISABLE_LOCAL_SIGNUP = os.environ.get('SCD_DISABLE_LOCAL_SIGNUP', '0') == '1'
 
 ACCOUNT_ADAPTER = 'apps.accounts.adapters.AccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'apps.accounts.adapters.SocialAccountAdapter'
+
+# ── OIDC / SSO ────────────────────────────────────────────────────────────────
+# Client secret: read from a file (preferred for production) or env var fallback.
+#   OIDC_CLIENT_SECRET_FILE=/run/secrets/oidc_secret   (contents = raw secret)
+#   OIDC_CLIENT_SECRET=<value>                         (direct env var fallback)
+#
+# Discovery URL: either the full .well-known URL or the base realm URL.
+#   OIDC_PROVIDER_URL=https://host/realms/myrealm/.well-known/openid-configuration
+#   OIDC_PROVIDER_URL=https://host/realms/myrealm
+#
+# Client ID:
+#   OIDC_CLIENT_ID=scd-report-summarizer
+
+def _read_oidc_secret():
+    path = os.environ.get('OIDC_CLIENT_SECRET_FILE', '').strip()
+    if path:
+        try:
+            return Path(path).read_text().strip()
+        except OSError:
+            pass
+    return os.environ.get('OIDC_CLIENT_SECRET', '')
+
+_OIDC_PROVIDER_URL = os.environ.get('OIDC_PROVIDER_URL', '').strip()
+# Accept full discovery URL or base realm URL — allauth wants the base URL
+_OIDC_SERVER_URL = (
+    _OIDC_PROVIDER_URL.removesuffix('/.well-known/openid-configuration')
+    if _OIDC_PROVIDER_URL else ''
+)
+OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', '').strip()
+OIDC_ENABLED = bool(_OIDC_SERVER_URL and OIDC_CLIENT_ID)
+
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
+if OIDC_ENABLED:
+    SOCIALACCOUNT_PROVIDERS = {
+        'openid_connect': {
+            'APPS': [
+                {
+                    'provider_id': 'keycloak',
+                    'name': 'Fermilab SSO',
+                    'client_id': OIDC_CLIENT_ID,
+                    'secret': _read_oidc_secret(),
+                    'settings': {
+                        'server_url': _OIDC_SERVER_URL,
+                    },
+                }
+            ]
+        }
+    }
 
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ['127.0.0.1']

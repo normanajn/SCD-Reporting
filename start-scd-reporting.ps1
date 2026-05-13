@@ -4,22 +4,31 @@
 #   .\start-scd-reporting.ps1 [options]
 #
 # Options:
-#   -AdminPassword <pass>   Password for the initial admin account on first run
-#                           (or set $env:SCD_INITIAL_ADMIN_PASSWORD)
-#   -AnthropicKey  <key>    Anthropic API key for the AI Summary feature
-#                           (or set $env:ANTHROPIC_API_KEY)
-#   -Port <port>            Port to listen on (default: 8000)
-#   -NoUpdate               Skip pip/npm update checks
-#   -WithTailwind           Also start the Tailwind CSS watcher
-#   -Tail                   Open the server log in a new window after starting
+#   -AdminPassword    <pass>   Password for the initial admin account on first run
+#                              (or set $env:SCD_INITIAL_ADMIN_PASSWORD)
+#   -AnthropicKey     <key>    Anthropic API key for the AI Summary feature
+#                              (or set $env:ANTHROPIC_API_KEY)
+#   -OidcSecretFile   <path>   Path to a file containing the OIDC client secret
+#                              (or set $env:OIDC_CLIENT_SECRET_FILE)
+#   -OidcProviderUrl  <url>    OIDC discovery URL or base realm URL
+#                              (or set $env:OIDC_PROVIDER_URL)
+#   -OidcClientId     <id>     OIDC client ID
+#                              (or set $env:OIDC_CLIENT_ID)
+#   -Port <port>               Port to listen on (default: 8000)
+#   -NoUpdate                  Skip pip/npm update checks
+#   -WithTailwind              Also start the Tailwind CSS watcher
+#   -Tail                      Open the server log in a new window after starting
 #
 # The script is safe to run repeatedly. It updates packages, applies any pending
 # migrations, and restarts the server if one is already running.
 
 param(
-    [string]$AdminPassword = $env:SCD_INITIAL_ADMIN_PASSWORD,
-    [string]$AnthropicKey  = $env:ANTHROPIC_API_KEY,
-    [int]   $Port          = 8000,
+    [string]$AdminPassword   = $env:SCD_INITIAL_ADMIN_PASSWORD,
+    [string]$AnthropicKey    = $env:ANTHROPIC_API_KEY,
+    [string]$OidcSecretFile  = $env:OIDC_CLIENT_SECRET_FILE,
+    [string]$OidcProviderUrl = $env:OIDC_PROVIDER_URL,
+    [string]$OidcClientId    = $env:OIDC_CLIENT_ID,
+    [int]   $Port            = 8000,
     [switch]$NoUpdate,
     [switch]$WithTailwind,
     [switch]$Tail
@@ -151,6 +160,14 @@ Write-Info "Starting server on port $Port..."
 if (-not [string]::IsNullOrEmpty($AnthropicKey)) {
     $env:ANTHROPIC_API_KEY = $AnthropicKey
     Write-Ok "AI Summary enabled (Anthropic API key set)"
+}
+
+if (-not [string]::IsNullOrEmpty($OidcSecretFile) -or -not [string]::IsNullOrEmpty($OidcProviderUrl)) {
+    $env:OIDC_CLIENT_SECRET_FILE = $OidcSecretFile
+    $env:OIDC_PROVIDER_URL       = $OidcProviderUrl
+    $env:OIDC_CLIENT_ID          = $OidcClientId
+    Write-Ok "OIDC SSO enabled"
+    if (-not [string]::IsNullOrEmpty($OidcSecretFile)) { Write-Ok "  Secret file: $OidcSecretFile" }
 }
 
 $serverProc = Start-Process -FilePath (Join-Path $ScriptDir ".venv\Scripts\python.exe") `

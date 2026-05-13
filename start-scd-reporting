@@ -5,14 +5,20 @@
 #   ./start-scd-reporting [options]
 #
 # Options:
-#   --admin-password <pass>   Password for the initial admin account on first run
-#                             (or set SCD_INITIAL_ADMIN_PASSWORD env var)
-#   --anthropic-key  <key>    Anthropic API key for the AI Summary feature
-#                             (or set ANTHROPIC_API_KEY env var)
-#   --port <port>             Port to listen on (default: 8000)
-#   --no-update               Skip pip/npm update checks
-#   --with-tailwind           Also start the Tailwind CSS watcher
-#   --tail                    Tail the server log after starting
+#   --admin-password <pass>        Password for the initial admin account on first run
+#                                  (or set SCD_INITIAL_ADMIN_PASSWORD env var)
+#   --anthropic-key  <key>         Anthropic API key for the AI Summary feature
+#                                  (or set ANTHROPIC_API_KEY env var)
+#   --oidc-secret-file <path>      Path to a file containing the OIDC client secret
+#                                  (or set OIDC_CLIENT_SECRET_FILE env var)
+#   --oidc-provider-url <url>      OIDC discovery URL or base realm URL
+#                                  (or set OIDC_PROVIDER_URL env var)
+#   --oidc-client-id <id>          OIDC client ID
+#                                  (or set OIDC_CLIENT_ID env var)
+#   --port <port>                  Port to listen on (default: 8000)
+#   --no-update                    Skip pip/npm update checks
+#   --with-tailwind                Also start the Tailwind CSS watcher
+#   --tail                         Tail the server log after starting
 #
 # Subsequent starts:
 #   The script is safe to run repeatedly. It updates packages, runs any pending
@@ -39,6 +45,9 @@ LOG_FILE="$LOG_DIR/scd-reporting.log"
 # ── Argument parsing ──────────────────────────────────────────────────────────
 ADMIN_PASSWORD="${SCD_INITIAL_ADMIN_PASSWORD:-}"
 ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-}"
+OIDC_SECRET_FILE="${OIDC_CLIENT_SECRET_FILE:-}"
+OIDC_PROVIDER_URL="${OIDC_PROVIDER_URL:-}"
+OIDC_CLIENT_ID="${OIDC_CLIENT_ID:-}"
 PORT=8000
 DO_UPDATE=true
 WITH_TAILWIND=false
@@ -46,12 +55,15 @@ TAIL_LOG=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --admin-password) ADMIN_PASSWORD="$2"; shift 2 ;;
-    --anthropic-key)  ANTHROPIC_KEY="$2";  shift 2 ;;
-    --port)           PORT="$2";           shift 2 ;;
-    --no-update)      DO_UPDATE=false;     shift ;;
-    --with-tailwind)  WITH_TAILWIND=true;  shift ;;
-    --tail)           TAIL_LOG=true;       shift ;;
+    --admin-password)    ADMIN_PASSWORD="$2";    shift 2 ;;
+    --anthropic-key)     ANTHROPIC_KEY="$2";     shift 2 ;;
+    --oidc-secret-file)  OIDC_SECRET_FILE="$2";  shift 2 ;;
+    --oidc-provider-url) OIDC_PROVIDER_URL="$2"; shift 2 ;;
+    --oidc-client-id)    OIDC_CLIENT_ID="$2";    shift 2 ;;
+    --port)              PORT="$2";              shift 2 ;;
+    --no-update)         DO_UPDATE=false;        shift ;;
+    --with-tailwind)     WITH_TAILWIND=true;     shift ;;
+    --tail)              TAIL_LOG=true;          shift ;;
     -h|--help)
       sed -n '/^# Usage:/,/^[^#]/{ /^#/{ s/^# \{0,2\}//; p } }' "$0"; exit 0 ;;
     *) error "Unknown option: $1"; exit 1 ;;
@@ -168,7 +180,15 @@ if [[ -n "$ANTHROPIC_KEY" ]]; then
   success "AI Summary enabled (Anthropic API key set)"
 fi
 
+if [[ -n "$OIDC_SECRET_FILE" || -n "$OIDC_PROVIDER_URL" ]]; then
+  success "OIDC SSO enabled"
+  [[ -n "$OIDC_SECRET_FILE" ]] && success "  Secret file: $OIDC_SECRET_FILE"
+fi
+
 export ANTHROPIC_API_KEY="$ANTHROPIC_KEY"
+export OIDC_CLIENT_SECRET_FILE="$OIDC_SECRET_FILE"
+export OIDC_PROVIDER_URL="$OIDC_PROVIDER_URL"
+export OIDC_CLIENT_ID="$OIDC_CLIENT_ID"
 nohup python manage.py runserver "$PORT" >> "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 echo "$SERVER_PID" > "$PID_FILE"

@@ -15,5 +15,27 @@ class AccountAdapter(DefaultAccountAdapter):
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
-        # Future CILogon: map IdP claims → user.role / user.employee_id here
+
+        # Map standard OIDC claims from the IdP (Keycloak / CILogon compatible)
+        extra = sociallogin.account.extra_data
+
+        # Display name: prefer full name, fall back to preferred_username
+        display_name = (
+            extra.get('name')
+            or f"{extra.get('given_name', '')} {extra.get('family_name', '')}".strip()
+            or extra.get('preferred_username', '')
+        )
+        if display_name:
+            user.display_name = display_name
+
+        # Employee ID: some IdPs expose this as employee_number or employeeNumber
+        employee_id = (
+            extra.get('employee_number')
+            or extra.get('employeeNumber')
+            or extra.get('employee_id')
+            or ''
+        )
+        if employee_id:
+            user.employee_id = str(employee_id)
+
         return user
