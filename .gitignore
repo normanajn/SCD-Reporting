@@ -45,3 +45,8 @@ theme/static/css/dist/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Runtime / start-stop scripts
+.scd-reporting.pid
+.scd-tailwind.pid
+logs/
