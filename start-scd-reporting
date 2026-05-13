@@ -46,6 +46,19 @@ TAILWIND_PID_FILE="$SCRIPT_DIR/.scd-tailwind.pid"
 LOG_DIR="$SCRIPT_DIR/logs"
 LOG_FILE="$LOG_DIR/scd-reporting.log"
 
+# ── Load .env ─────────────────────────────────────────────────────────────────
+# Variables already exported in the shell take precedence over .env values.
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  while IFS= read -r _line; do
+    [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
+    _key="${_line%%=*}"; _key="${_key// /}"
+    [[ -z "$_key" || "${!_key+set}" == "set" ]] && continue
+    _val="${_line#*=}"; _val="${_val#[\"\\']}"; _val="${_val%[\"\\']}";
+    export "$_key=$_val"
+  done < "$SCRIPT_DIR/.env"
+  unset _line _key _val
+fi
+
 # ── Argument parsing ──────────────────────────────────────────────────────────
 ADMIN_PASSWORD="${SCD_INITIAL_ADMIN_PASSWORD:-}"
 ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-}"

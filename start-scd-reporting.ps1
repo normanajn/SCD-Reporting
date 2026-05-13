@@ -27,13 +27,13 @@
 # migrations, and restarts the server if one is already running.
 
 param(
-    [string]$AdminPassword      = $env:SCD_INITIAL_ADMIN_PASSWORD,
-    [string]$AnthropicKey       = $env:ANTHROPIC_API_KEY,
-    [string]$OidcSecretFile     = $env:OIDC_CLIENT_SECRET_FILE,
-    [string]$OidcProviderUrl    = $env:OIDC_PROVIDER_URL,
-    [string]$OidcClientId       = $env:OIDC_CLIENT_ID,
-    [string]$GoogleClientId     = $env:GOOGLE_CLIENT_ID,
-    [string]$GoogleClientSecret = $env:GOOGLE_CLIENT_SECRET,
+    [string]$AdminPassword      = '',
+    [string]$AnthropicKey       = '',
+    [string]$OidcSecretFile     = '',
+    [string]$OidcProviderUrl    = '',
+    [string]$OidcClientId       = '',
+    [string]$GoogleClientId     = '',
+    [string]$GoogleClientSecret = '',
     [int]   $Port               = 8000,
     [switch]$NoUpdate,
     [switch]$WithTailwind,
@@ -48,6 +48,31 @@ $PidFile        = Join-Path $ScriptDir '.scd-reporting.pid'
 $TailwindPidFile= Join-Path $ScriptDir '.scd-tailwind.pid'
 $LogDir         = Join-Path $ScriptDir 'logs'
 $LogFile        = Join-Path $LogDir 'scd-reporting.log'
+
+# ── Load .env ─────────────────────────────────────────────────────────────────
+# Variables already set in the session take precedence over .env values.
+$envFile = Join-Path $ScriptDir '.env'
+if (Test-Path $envFile) {
+    foreach ($line in Get-Content $envFile) {
+        if ($line -match '^\s*#' -or $line -match '^\s*$') { continue }
+        $parts = $line -split '=', 2
+        if ($parts.Count -ne 2) { continue }
+        $envKey = $parts[0].Trim()
+        $envVal = $parts[1].Trim().Trim('"').Trim("'")
+        if (-not [System.Environment]::GetEnvironmentVariable($envKey)) {
+            [System.Environment]::SetEnvironmentVariable($envKey, $envVal, 'Process')
+        }
+    }
+}
+
+# Resolve final values: CLI args override .env, which overrides shell env
+if (-not $AdminPassword)      { $AdminPassword      = $env:SCD_INITIAL_ADMIN_PASSWORD }
+if (-not $AnthropicKey)       { $AnthropicKey       = $env:ANTHROPIC_API_KEY }
+if (-not $OidcSecretFile)     { $OidcSecretFile     = $env:OIDC_CLIENT_SECRET_FILE }
+if (-not $OidcProviderUrl)    { $OidcProviderUrl    = $env:OIDC_PROVIDER_URL }
+if (-not $OidcClientId)       { $OidcClientId       = $env:OIDC_CLIENT_ID }
+if (-not $GoogleClientId)     { $GoogleClientId     = $env:GOOGLE_CLIENT_ID }
+if (-not $GoogleClientSecret) { $GoogleClientSecret = $env:GOOGLE_CLIENT_SECRET }
 
 function Write-Header($t) { Write-Host ""; Write-Host $t -ForegroundColor White; Write-Host ("-"*60) -ForegroundColor DarkGray }
 function Write-Info($t)   { Write-Host "==> $t" -ForegroundColor Cyan }
