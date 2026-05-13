@@ -140,6 +140,58 @@ class TaxonomyExportView(AdminRequiredMixin, View):
         return response
 
 
+class TaxonomyImportView(AdminRequiredMixin, View):
+    TABLES = {
+        'projects':   Project,
+        'categories': Category,
+        'groups':     WorkGroup,
+    }
+    FIELDS = ('name', 'short_code', 'is_active', 'sort_order')
+
+    def post(self, request):
+        upload = request.FILES.get('taxonomy_file')
+        if not upload:
+            messages.error(request, 'No file selected.')
+            return redirect('taxonomy:projects')
+
+        try:
+            data = json.loads(upload.read().decode('utf-8'))
+        except (ValueError, UnicodeDecodeError) as e:
+            messages.error(request, f'Invalid JSON file: {e}')
+            return redirect('taxonomy:projects')
+
+        if not isinstance(data, dict) or not any(k in data for k in self.TABLES):
+            messages.error(request, 'File does not look like a taxonomy export.')
+            return redirect('taxonomy:projects')
+
+        totals = {}
+        for key, model in self.TABLES.items():
+            records = data.get(key, [])
+            created = updated = 0
+            for rec in records:
+                slug = rec.get('slug', '').strip()
+                name = rec.get('name', '').strip()
+                if not slug and not name:
+                    continue
+                defaults = {f: rec[f] for f in self.FIELDS if f in rec}
+                if slug:
+                    obj, is_new = model.objects.update_or_create(slug=slug, defaults=defaults)
+                else:
+                    obj, is_new = model.objects.update_or_create(name=name, defaults=defaults)
+                if is_new:
+                    created += 1
+                else:
+                    updated += 1
+            totals[key] = (created, updated)
+
+        parts = [
+            f"{key}: {c} created, {u} updated"
+            for key, (c, u) in totals.items()
+        ]
+        messages.success(request, 'Taxonomy restored — ' + '; '.join(parts) + '.')
+        return redirect('taxonomy:projects')
+
+
 class TagAutocompleteView(LoginRequiredMixin, View):
     def get(self, request):
         q = request.GET.get('q', '').strip()
