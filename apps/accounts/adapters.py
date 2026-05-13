@@ -13,6 +13,11 @@ class AccountAdapter(DefaultAccountAdapter):
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
+    def is_open_for_signup(self, request, sociallogin):
+        # SSO/social logins can always create accounts — only local signup
+        # is gated by SiteSettings.allow_signup / SCD_DISABLE_LOCAL_SIGNUP.
+        return True
+
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
 
