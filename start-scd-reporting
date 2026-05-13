@@ -53,7 +53,13 @@ if [[ -f "$SCRIPT_DIR/.env" ]]; then
     [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
     _key="${_line%%=*}"; _key="${_key// /}"
     [[ -z "$_key" || "${!_key+set}" == "set" ]] && continue
-    _val="${_line#*=}"; _val="${_val#[\"\\']}"; _val="${_val%[\"\\']}";
+    _val="${_line#*=}"
+    # Strip matching surrounding quotes ("..." or '...')
+    if [[ "${_val:0:1}" == '"' && "${_val: -1}" == '"' ]]; then
+      _val="${_val:1:${#_val}-2}"
+    elif [[ "${_val:0:1}" == "'" && "${_val: -1}" == "'" ]]; then
+      _val="${_val:1:${#_val}-2}"
+    fi
     export "$_key=$_val"
   done < "$SCRIPT_DIR/.env"
   unset _line _key _val
