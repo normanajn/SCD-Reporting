@@ -141,8 +141,11 @@ def _read_oidc_secret():
     if path:
         try:
             return Path(path).read_text().strip()
-        except OSError:
-            pass
+        except OSError as exc:
+            from django.core.exceptions import ImproperlyConfigured
+            raise ImproperlyConfigured(
+                f"OIDC_CLIENT_SECRET_FILE={path!r} is set but cannot be read: {exc}"
+            ) from exc
     return os.environ.get('OIDC_CLIENT_SECRET', '')
 
 _OIDC_PROVIDER_URL = os.environ.get('OIDC_PROVIDER_URL', '').strip()
@@ -152,7 +155,8 @@ _OIDC_SERVER_URL = (
     if _OIDC_PROVIDER_URL else ''
 )
 OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', '').strip()
-OIDC_ENABLED = bool(_OIDC_SERVER_URL and OIDC_CLIENT_ID)
+_OIDC_CLIENT_SECRET = _read_oidc_secret()
+OIDC_ENABLED = bool(_OIDC_SERVER_URL and OIDC_CLIENT_ID and _OIDC_CLIENT_SECRET)
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────
 # GOOGLE_CLIENT_ID=<your-client-id>
@@ -184,7 +188,7 @@ if OIDC_ENABLED:
                 'provider_id': 'keycloak',
                 'name': 'Fermilab SSO',
                 'client_id': OIDC_CLIENT_ID,
-                'secret': _read_oidc_secret(),
+                'secret': _OIDC_CLIENT_SECRET,
                 'settings': {
                     'server_url': _OIDC_SERVER_URL,
                 },

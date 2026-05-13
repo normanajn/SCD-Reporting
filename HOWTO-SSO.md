@@ -24,8 +24,8 @@ via an external OpenID Connect (OIDC) identity provider, such as Keycloak or CIL
 
 ## How it works
 
-When the `OIDC_PROVIDER_URL` and `OIDC_CLIENT_ID` environment variables are set,
-the application:
+When `OIDC_PROVIDER_URL`, `OIDC_CLIENT_ID`, **and** a client secret
+(`OIDC_CLIENT_SECRET_FILE` or `OIDC_CLIENT_SECRET`) are all set, the application:
 
 1. Enables the `allauth` OpenID Connect provider at startup
 2. Shows a **"Log in with SSO"** button on the login page
