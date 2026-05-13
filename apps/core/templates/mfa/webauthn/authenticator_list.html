@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n humanize %}
+{% block title %}Passkeys — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-slate-900">Passkeys</h1>
+    <a href="{% url 'mfa_add_webauthn' %}"
+       class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+      Add passkey
+    </a>
+  </div>
+
+  {% if authenticators %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
+    {% for authenticator in authenticators %}
+    <div class="px-5 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="shrink-0 bg-scd-accent-soft rounded-full p-2">
+          <svg class="w-5 h-5 text-scd-primary" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.75">
+            <path d="M15 7a2 2 0 0 1 2 2m4 0a6 6 0 0 1-7.743 5.743L11 17H9v2H7v2H4a1 1 0 0 1-1-1v-2.586a1 1 0 0 1 .293-.707l5.964-5.964A6 6 0 1 1 21 9z"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-slate-800 truncate">{{ authenticator }}</p>
+          <p class="text-xs text-slate-500">
+            Added {{ authenticator.created_at|date:"N j, Y" }}
+            {% if authenticator.last_used_at %}
+              &middot; Last used {{ authenticator.last_used_at|naturaltime }}
+            {% else %}
+              &middot; Never used
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="{% url 'mfa_edit_webauthn' pk=authenticator.pk %}"
+           class="text-xs text-slate-500 hover:text-scd-primary hover:underline">Rename</a>
+        <a href="{% url 'mfa_remove_webauthn' pk=authenticator.pk %}"
+           class="text-xs text-red-500 hover:text-red-700 hover:underline">Remove</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-10 text-center">
+    <div class="flex justify-center mb-3">
+      <div class="bg-slate-100 rounded-full p-3">
+        <svg class="w-7 h-7 text-slate-400" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.75">
+          <path d="M15 7a2 2 0 0 1 2 2m4 0a6 6 0 0 1-7.743 5.743L11 17H9v2H7v2H4a1 1 0 0 1-1-1v-2.586a1 1 0 0 1 .293-.707l5.964-5.964A6 6 0 1 1 21 9z"/>
+        </svg>
+      </div>
+    </div>
+    <p class="text-sm font-medium text-slate-700 mb-1">No passkeys yet</p>
+    <p class="text-sm text-slate-500 mb-4">
+      Passkeys let you sign in with your fingerprint, face, or device PIN.
+    </p>
+    <a href="{% url 'mfa_add_webauthn' %}"
+       class="inline-flex items-center bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+      Add your first passkey
+    </a>
+  </div>
+  {% endif %}
+
+  <p class="mt-4 text-center text-sm">
+    <a href="{% url 'profile' %}" class="text-scd-primary hover:underline">&larr; Back to profile</a>
+  </p>
+</div>
+{% endblock %}

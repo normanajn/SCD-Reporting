@@ -25,6 +25,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.openid_connect',
     'allauth.socialaccount.providers.google',
+    'allauth.mfa',
+    'allauth.mfa.webauthn',
     'django_htmx',
     'django_filters',
     'tailwind',
@@ -207,6 +209,14 @@ if GOOGLE_ENABLED:
 
 if _SOCIALACCOUNT_PROVIDERS:
     SOCIALACCOUNT_PROVIDERS = _SOCIALACCOUNT_PROVIDERS
+
+# ── Passkeys / WebAuthn ───────────────────────────────────────────────────────
+MFA_SUPPORTED_TYPES = ['webauthn']
+MFA_PASSKEY_LOGIN_ENABLED = True
+# Allow localhost (non-HTTPS) during development; set False in production.
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = os.environ.get(
+    'MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN', 'true'
+).lower() == 'true'
 
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ['127.0.0.1']

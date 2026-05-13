@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Remove Passkey — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center">
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+
+      <div class="flex justify-center mb-4">
+        <div class="bg-red-50 rounded-full p-3">
+          <svg class="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.75">
+            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="text-xl font-bold text-slate-900 mb-2">Remove passkey?</h1>
+      <p class="text-sm text-slate-500 mb-6">
+        <strong class="text-slate-700">{{ authenticator }}</strong> will be permanently removed.
+        You won't be able to use it to sign in.
+      </p>
+
+      <form method="post" action="{% url 'mfa_remove_webauthn' pk=authenticator.pk %}">
+        {% csrf_token %}
+        <div class="flex gap-3 justify-center">
+          <button type="submit"
+                  class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-5 py-2 rounded-md transition-colors">
+            Remove
+          </button>
+          <a href="{% url 'mfa_list_webauthn' %}"
+             class="border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium px-5 py-2 rounded-md transition-colors">
+            Cancel
+          </a>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

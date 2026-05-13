@@ -1,5 +1,6 @@
 Django>=5.0,<6.0
 python-dotenv>=1.0.0
+fido2>=1.1.0
 django-allauth>=65.0.0
 django-htmx>=1.17.0
 django-filter>=24.0

@@ -44,6 +44,18 @@
       </div>
     </form>
 
+    <!-- Passkeys -->
+    <div class="px-6 py-4 flex items-center justify-between">
+      <div>
+        <p class="text-sm font-medium text-slate-700">Passkeys</p>
+        <p class="text-xs text-slate-500">Sign in with your fingerprint, face, or device PIN.</p>
+      </div>
+      <a href="{% url 'mfa_list_webauthn' %}"
+         class="text-sm text-scd-primary hover:underline">
+        Manage
+      </a>
+    </div>
+
   </div>
 </div>
 {% endblock %}
