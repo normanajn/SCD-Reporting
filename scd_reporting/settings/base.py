@@ -214,6 +214,7 @@ if _SOCIALACCOUNT_PROVIDERS:
 # ── Passkeys / WebAuthn ───────────────────────────────────────────────────────
 MFA_SUPPORTED_TYPES = ['webauthn']
 MFA_PASSKEY_LOGIN_ENABLED = True
+MFA_ALLOW_UNVERIFIED_EMAIL = True
 # Allow localhost (non-HTTPS) during development; set False in production.
 MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = os.environ.get(
     'MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN', 'true'
