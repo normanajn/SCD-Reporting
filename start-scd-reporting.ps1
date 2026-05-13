@@ -8,12 +8,16 @@
 #                              (or set $env:SCD_INITIAL_ADMIN_PASSWORD)
 #   -AnthropicKey     <key>    Anthropic API key for the AI Summary feature
 #                              (or set $env:ANTHROPIC_API_KEY)
-#   -OidcSecretFile   <path>   Path to a file containing the OIDC client secret
-#                              (or set $env:OIDC_CLIENT_SECRET_FILE)
-#   -OidcProviderUrl  <url>    OIDC discovery URL or base realm URL
-#                              (or set $env:OIDC_PROVIDER_URL)
-#   -OidcClientId     <id>     OIDC client ID
-#                              (or set $env:OIDC_CLIENT_ID)
+#   -OidcSecretFile     <path>   Path to a file containing the OIDC client secret
+#                                (or set $env:OIDC_CLIENT_SECRET_FILE)
+#   -OidcProviderUrl    <url>    OIDC discovery URL or base realm URL
+#                                (or set $env:OIDC_PROVIDER_URL)
+#   -OidcClientId       <id>     OIDC client ID
+#                                (or set $env:OIDC_CLIENT_ID)
+#   -GoogleClientId     <id>     Google OAuth2 client ID
+#                                (or set $env:GOOGLE_CLIENT_ID)
+#   -GoogleClientSecret <sec>    Google OAuth2 client secret
+#                                (or set $env:GOOGLE_CLIENT_SECRET)
 #   -Port <port>               Port to listen on (default: 8000)
 #   -NoUpdate                  Skip pip/npm update checks
 #   -WithTailwind              Also start the Tailwind CSS watcher
@@ -23,12 +27,14 @@
 # migrations, and restarts the server if one is already running.
 
 param(
-    [string]$AdminPassword   = $env:SCD_INITIAL_ADMIN_PASSWORD,
-    [string]$AnthropicKey    = $env:ANTHROPIC_API_KEY,
-    [string]$OidcSecretFile  = $env:OIDC_CLIENT_SECRET_FILE,
-    [string]$OidcProviderUrl = $env:OIDC_PROVIDER_URL,
-    [string]$OidcClientId    = $env:OIDC_CLIENT_ID,
-    [int]   $Port            = 8000,
+    [string]$AdminPassword      = $env:SCD_INITIAL_ADMIN_PASSWORD,
+    [string]$AnthropicKey       = $env:ANTHROPIC_API_KEY,
+    [string]$OidcSecretFile     = $env:OIDC_CLIENT_SECRET_FILE,
+    [string]$OidcProviderUrl    = $env:OIDC_PROVIDER_URL,
+    [string]$OidcClientId       = $env:OIDC_CLIENT_ID,
+    [string]$GoogleClientId     = $env:GOOGLE_CLIENT_ID,
+    [string]$GoogleClientSecret = $env:GOOGLE_CLIENT_SECRET,
+    [int]   $Port               = 8000,
     [switch]$NoUpdate,
     [switch]$WithTailwind,
     [switch]$Tail
@@ -168,6 +174,12 @@ if (-not [string]::IsNullOrEmpty($OidcSecretFile) -or -not [string]::IsNullOrEmp
     $env:OIDC_CLIENT_ID          = $OidcClientId
     Write-Ok "OIDC SSO enabled"
     if (-not [string]::IsNullOrEmpty($OidcSecretFile)) { Write-Ok "  Secret file: $OidcSecretFile" }
+}
+
+if (-not [string]::IsNullOrEmpty($GoogleClientId) -and -not [string]::IsNullOrEmpty($GoogleClientSecret)) {
+    $env:GOOGLE_CLIENT_ID     = $GoogleClientId
+    $env:GOOGLE_CLIENT_SECRET = $GoogleClientSecret
+    Write-Ok "Google OAuth enabled"
 }
 
 $serverProc = Start-Process -FilePath (Join-Path $ScriptDir ".venv\Scripts\python.exe") `

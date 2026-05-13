@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.openid_connect',
+    'allauth.socialaccount.providers.google',
     'django_htmx',
     'django_filters',
     'tailwind',
@@ -150,26 +151,62 @@ _OIDC_SERVER_URL = (
 OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', '').strip()
 OIDC_ENABLED = bool(_OIDC_SERVER_URL and OIDC_CLIENT_ID)
 
+# ── Google OAuth ──────────────────────────────────────────────────────────────
+# GOOGLE_CLIENT_ID=<your-client-id>
+# GOOGLE_CLIENT_SECRET=<your-client-secret>  (or GOOGLE_CLIENT_SECRET_FILE=<path>)
+
+def _read_google_secret():
+    path = os.environ.get('GOOGLE_CLIENT_SECRET_FILE', '').strip()
+    if path:
+        try:
+            return Path(path).read_text().strip()
+        except OSError:
+            pass
+    return os.environ.get('GOOGLE_CLIENT_SECRET', '')
+
+_GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '').strip()
+_GOOGLE_CLIENT_SECRET = _read_google_secret()
+GOOGLE_ENABLED = bool(_GOOGLE_CLIENT_ID and _GOOGLE_CLIENT_SECRET)
+
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
+_SOCIALACCOUNT_PROVIDERS: dict = {}
+
 if OIDC_ENABLED:
-    SOCIALACCOUNT_PROVIDERS = {
-        'openid_connect': {
-            'APPS': [
-                {
-                    'provider_id': 'keycloak',
-                    'name': 'Fermilab SSO',
-                    'client_id': OIDC_CLIENT_ID,
-                    'secret': _read_oidc_secret(),
-                    'settings': {
-                        'server_url': _OIDC_SERVER_URL,
-                    },
-                }
-            ]
-        }
+    _SOCIALACCOUNT_PROVIDERS['openid_connect'] = {
+        'APPS': [
+            {
+                'provider_id': 'keycloak',
+                'name': 'Fermilab SSO',
+                'client_id': OIDC_CLIENT_ID,
+                'secret': _read_oidc_secret(),
+                'settings': {
+                    'server_url': _OIDC_SERVER_URL,
+                },
+            }
+        ]
     }
+
+if GOOGLE_ENABLED:
+    _SOCIALACCOUNT_PROVIDERS['google'] = {
+        'APPS': [
+            {
+                'provider_id': 'google',
+                'name': 'Google',
+                'client_id': _GOOGLE_CLIENT_ID,
+                'secret': _GOOGLE_CLIENT_SECRET,
+                'settings': {
+                    'scope': ['profile', 'email'],
+                    'auth_params': {'access_type': 'online'},
+                },
+            }
+        ]
+    }
+
+if _SOCIALACCOUNT_PROVIDERS:
+    SOCIALACCOUNT_PROVIDERS = _SOCIALACCOUNT_PROVIDERS
 
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ['127.0.0.1']

@@ -8,4 +8,5 @@ def site_settings(request):
     return {
         'ACCOUNT_ALLOW_SIGNUPS': s.allow_signup,
         'OIDC_ENABLED': getattr(django_settings, 'OIDC_ENABLED', False),
+        'GOOGLE_ENABLED': getattr(django_settings, 'GOOGLE_ENABLED', False),
     }

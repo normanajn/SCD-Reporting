@@ -15,6 +15,10 @@
 #                                  (or set OIDC_PROVIDER_URL env var)
 #   --oidc-client-id <id>          OIDC client ID
 #                                  (or set OIDC_CLIENT_ID env var)
+#   --google-client-id <id>        Google OAuth2 client ID
+#                                  (or set GOOGLE_CLIENT_ID env var)
+#   --google-client-secret <sec>   Google OAuth2 client secret
+#                                  (or set GOOGLE_CLIENT_SECRET env var)
 #   --port <port>                  Port to listen on (default: 8000)
 #   --no-update                    Skip pip/npm update checks
 #   --with-tailwind                Also start the Tailwind CSS watcher
@@ -48,6 +52,8 @@ ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-}"
 OIDC_SECRET_FILE="${OIDC_CLIENT_SECRET_FILE:-}"
 OIDC_PROVIDER_URL="${OIDC_PROVIDER_URL:-}"
 OIDC_CLIENT_ID="${OIDC_CLIENT_ID:-}"
+GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
+GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 PORT=8000
 DO_UPDATE=true
 WITH_TAILWIND=false
@@ -55,11 +61,13 @@ TAIL_LOG=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --admin-password)    ADMIN_PASSWORD="$2";    shift 2 ;;
-    --anthropic-key)     ANTHROPIC_KEY="$2";     shift 2 ;;
-    --oidc-secret-file)  OIDC_SECRET_FILE="$2";  shift 2 ;;
-    --oidc-provider-url) OIDC_PROVIDER_URL="$2"; shift 2 ;;
-    --oidc-client-id)    OIDC_CLIENT_ID="$2";    shift 2 ;;
+    --admin-password)       ADMIN_PASSWORD="$2";       shift 2 ;;
+    --anthropic-key)        ANTHROPIC_KEY="$2";        shift 2 ;;
+    --oidc-secret-file)     OIDC_SECRET_FILE="$2";     shift 2 ;;
+    --oidc-provider-url)    OIDC_PROVIDER_URL="$2";    shift 2 ;;
+    --oidc-client-id)       OIDC_CLIENT_ID="$2";       shift 2 ;;
+    --google-client-id)     GOOGLE_CLIENT_ID="$2";     shift 2 ;;
+    --google-client-secret) GOOGLE_CLIENT_SECRET="$2"; shift 2 ;;
     --port)              PORT="$2";              shift 2 ;;
     --no-update)         DO_UPDATE=false;        shift ;;
     --with-tailwind)     WITH_TAILWIND=true;     shift ;;
@@ -185,10 +193,16 @@ if [[ -n "$OIDC_SECRET_FILE" || -n "$OIDC_PROVIDER_URL" ]]; then
   [[ -n "$OIDC_SECRET_FILE" ]] && success "  Secret file: $OIDC_SECRET_FILE"
 fi
 
+if [[ -n "$GOOGLE_CLIENT_ID" && -n "$GOOGLE_CLIENT_SECRET" ]]; then
+  success "Google OAuth enabled"
+fi
+
 export ANTHROPIC_API_KEY="$ANTHROPIC_KEY"
 export OIDC_CLIENT_SECRET_FILE="$OIDC_SECRET_FILE"
 export OIDC_PROVIDER_URL="$OIDC_PROVIDER_URL"
 export OIDC_CLIENT_ID="$OIDC_CLIENT_ID"
+export GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+export GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
 nohup python manage.py runserver "$PORT" >> "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 echo "$SERVER_PID" > "$PID_FILE"
