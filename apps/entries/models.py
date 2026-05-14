@@ -5,6 +5,7 @@ from django.db import models
 
 class WorkItem(models.Model):
     class PeriodKind(models.TextChoices):
+        TODAY      = 'today',      'Today'
         WEEK       = 'week',       'Week'
         FORTNIGHT  = 'fortnight',  '2 Weeks'
         MONTH      = 'month',      'Month'

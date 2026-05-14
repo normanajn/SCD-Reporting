@@ -132,7 +132,9 @@ class PeriodPrefillView(LoginRequiredMixin, View):
     def get(self, request):
         kind  = request.GET.get('kind', 'week')
         today = date.today()
-        if kind == 'week':
+        if kind == 'today':
+            start = end = today
+        elif kind == 'week':
             start = today - timedelta(days=today.weekday())
             end   = start + timedelta(days=6)
         elif kind == 'fortnight':
