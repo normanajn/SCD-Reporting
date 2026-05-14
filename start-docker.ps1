@@ -88,8 +88,17 @@ if ($Quick) {
 
     $adminPass = if ($env:SCD_INITIAL_ADMIN_PASSWORD) { $env:SCD_INITIAL_ADMIN_PASSWORD } else { 'admin' }
 
+    # Mount the local db.sqlite3 if it exists so the container starts with existing data
+    $dbPath = Join-Path $ScriptDir 'db.sqlite3'
+    $dbMount = @()
+    if (Test-Path $dbPath) {
+        $dbMount = @('-v', "${dbPath}:/app/db.sqlite3")
+        Write-Info 'Mounting existing db.sqlite3'
+    }
+
     docker run -d `
         --name $QuickName `
+        @dbMount `
         -e DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev `
         -e SCD_INITIAL_ADMIN_PASSWORD=$adminPass `
         -p "${Port}:8000" `

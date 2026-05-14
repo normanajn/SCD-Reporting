@@ -108,8 +108,16 @@ if [[ "$QUICK" == true ]]; then
 
   ADMIN_PASS="${SCD_INITIAL_ADMIN_PASSWORD:-admin}"
 
+  # Mount the local db.sqlite3 if it exists so the container starts with existing data
+  DB_MOUNT=()
+  if [[ -f "$SCRIPT_DIR/db.sqlite3" ]]; then
+    DB_MOUNT=(-v "$SCRIPT_DIR/db.sqlite3:/app/db.sqlite3")
+    info "Mounting existing db.sqlite3"
+  fi
+
   docker run -d \
     --name "$QUICK_CONTAINER" \
+    "${DB_MOUNT[@]+"${DB_MOUNT[@]}"}" \
     -e DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev \
     -e SCD_INITIAL_ADMIN_PASSWORD="$ADMIN_PASS" \
     -p "${PORT}:8000" \
