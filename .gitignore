@@ -33,6 +33,7 @@ theme/static/css/dist/
 
 # Docker
 .docker/
+.scd-docker.mode
 
 # IDE
 .vscode/
