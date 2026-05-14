@@ -24,6 +24,8 @@ class WorkItemForm(forms.ModelForm):
             'highlight_stars': forms.HiddenInput(),
         }
 
+    DESCRIPTION_TEMPLATE = "Project Milestone:\nPerformance Goal: \nUpdate:\n\n<Repeat as needed>"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['project'].queryset  = Project.objects.filter(is_active=True).order_by('sort_order', 'name')
@@ -35,6 +37,8 @@ class WorkItemForm(forms.ModelForm):
             self.fields['tags_input'].initial = ','.join(
                 self.instance.tags.values_list('name', flat=True)
             )
+        else:
+            self.fields['description'].initial = self.DESCRIPTION_TEMPLATE
 
     def clean_highlight_stars(self):
         val = self.cleaned_data.get('highlight_stars')
