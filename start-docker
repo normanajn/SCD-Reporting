@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# start-docker — build and start SCD Reporting in Docker
+#
+# Usage:
+#   ./start-docker [options]
+#
+# Modes:
+#   (default)   Full stack — Postgres + Caddy via docker compose (reads .env)
+#   --quick     Smoke test — single container, SQLite, no compose needed
+#
+# Options:
+#   --build         Force image rebuild before starting
+#   --port <n>      Host port (default: 8000; quick mode only)
+#   --quick         Smoke test: SQLite, no Postgres, no compose required
+#   --tail          Tail logs after starting
+#   -h, --help      Show this help
+#
+# Full stack requires docker compose v2 (docker compose version).
+# Quick mode requires only docker — useful for one-off testing.
+
+set -euo pipefail
+
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
+RED='\033[0;31m'; BOLD='\033[1m'; RESET='\033[0m'
+info()    { printf "${CYAN}==> %s${RESET}\n" "$*"; }
+success() { printf "${GREEN}✓  %s${RESET}\n" "$*"; }
+warn()    { printf "${YELLOW}!  %s${RESET}\n" "$*"; }
+error()   { printf "${RED}✗  %s${RESET}\n" "$*" >&2; }
+header()  { printf "\n${BOLD}%s${RESET}\n%s\n" "$*" "$(printf '─%.0s' {1..60})"; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+IMAGE_NAME="scd-reporting-web"
+QUICK_CONTAINER="scd-quick"
+MODE_FILE="$SCRIPT_DIR/.scd-docker.mode"
+
+# ── Load .env ─────────────────────────────────────────────────────────────────
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  while IFS= read -r _line; do
+    [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
+    _key="${_line%%=*}"; _key="${_key// /}"
+    [[ -z "$_key" || "${!_key+set}" == "set" ]] && continue
+    _val="${_line#*=}"
+    if [[ "${_val:0:1}" == '"' && "${_val: -1}" == '"' ]]; then
+      _val="${_val:1:${#_val}-2}"
+    elif [[ "${_val:0:1}" == "'" && "${_val: -1}" == "'" ]]; then
+      _val="${_val:1:${#_val}-2}"
+    fi
+    export "$_key=$_val"
+  done < "$SCRIPT_DIR/.env"
+  unset _line _key _val
+fi
+
+# ── Argument parsing ──────────────────────────────────────────────────────────
+QUICK=false
+BUILD=false
+PORT=8000
+TAIL_LOG=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --quick)   QUICK=true;      shift ;;
+    --build)   BUILD=true;      shift ;;
+    --port)    PORT="$2";       shift 2 ;;
+    --tail)    TAIL_LOG=true;   shift ;;
+    -h|--help)
+      sed -n '/^# Usage:/,/^[^#]/{ /^#/{ s/^# \{0,2\}//; p } }' "$0"; exit 0 ;;
+    *) error "Unknown option: $1"; exit 1 ;;
+  esac
+done
+
+cd "$SCRIPT_DIR"
+
+# ── Check Docker ──────────────────────────────────────────────────────────────
+if ! command -v docker &>/dev/null; then
+  error "Docker is not installed or not on PATH."
+  echo "  Install: https://docs.docker.com/get-docker/"
+  exit 1
+fi
+
+# ── Build image ───────────────────────────────────────────────────────────────
+_needs_build=false
+if [[ "$BUILD" == true ]]; then
+  _needs_build=true
+elif ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
+  _needs_build=true
+fi
+
+if [[ "$_needs_build" == true ]]; then
+  header "Building image"
+  info "Building $IMAGE_NAME (this takes ~2 min on first run)..."
+  docker build -f docker/web/Dockerfile -t "$IMAGE_NAME" .
+  success "Image built: $IMAGE_NAME"
+else
+  info "Image $IMAGE_NAME already exists — skipping build (use --build to force)"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# QUICK MODE — SQLite, single container, no compose
+# ══════════════════════════════════════════════════════════════════════════════
+if [[ "$QUICK" == true ]]; then
+  header "SCD Reporting — Quick (SQLite)"
+
+  # Stop any existing quick container
+  if docker container inspect "$QUICK_CONTAINER" &>/dev/null; then
+    info "Stopping existing quick container..."
+    docker rm -f "$QUICK_CONTAINER" &>/dev/null || true
+  fi
+
+  ADMIN_PASS="${SCD_INITIAL_ADMIN_PASSWORD:-admin}"
+
+  docker run -d \
+    --name "$QUICK_CONTAINER" \
+    -e DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev \
+    -e SCD_INITIAL_ADMIN_PASSWORD="$ADMIN_PASS" \
+    -p "${PORT}:8000" \
+    "$IMAGE_NAME"
+
+  # Wait for container to be healthy (up to 60 s)
+  info "Waiting for server to be ready..."
+  for i in $(seq 1 30); do
+    if docker exec "$QUICK_CONTAINER" python -c \
+        "import urllib.request; urllib.request.urlopen('http://localhost:8000/accounts/login/')" \
+        &>/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+
+  echo "$QUICK_CONTAINER" > "$MODE_FILE"
+  success "Container started: $QUICK_CONTAINER"
+  success "URL:              http://localhost:$PORT"
+  success "Login:            scd-admin / $ADMIN_PASS"
+  echo ""
+  printf "${CYAN}Logs:${RESET}  docker logs -f %s\n" "$QUICK_CONTAINER"
+  printf "${CYAN}Stop:${RESET}  ./stop-docker\n"
+
+  if [[ "$TAIL_LOG" == true ]]; then
+    echo ""
+    info "Tailing logs (Ctrl-C stops tailing — container keeps running)..."
+    docker logs -f "$QUICK_CONTAINER"
+  fi
+  exit 0
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FULL STACK MODE — docker compose
+# ══════════════════════════════════════════════════════════════════════════════
+header "SCD Reporting — Full Stack (docker compose)"
+
+if ! docker compose version &>/dev/null; then
+  error "docker compose (v2 plugin) is not available."
+  echo ""
+  echo "  Install on macOS:"
+  echo "    brew install docker-compose"
+  echo "    mkdir -p ~/.docker/cli-plugins"
+  echo "    ln -sfn \$(brew --prefix)/opt/docker-compose/bin/docker-compose \\"
+  echo "       ~/.docker/cli-plugins/docker-compose"
+  echo ""
+  echo "  Or install Docker Desktop, which includes Compose:"
+  echo "    https://docs.docker.com/desktop/"
+  echo ""
+  echo "  To test without Compose, use: ./start-docker --quick"
+  exit 1
+fi
+
+# Validate required env vars for full stack
+_missing=()
+[[ -z "${DJANGO_SECRET_KEY:-}" ]]     && _missing+=("DJANGO_SECRET_KEY")
+[[ -z "${POSTGRES_PASSWORD:-}" ]]     && _missing+=("POSTGRES_PASSWORD")
+[[ -z "${SCD_INITIAL_ADMIN_PASSWORD:-}" ]] && _missing+=("SCD_INITIAL_ADMIN_PASSWORD (optional but recommended)")
+
+if [[ ${#_missing[@]} -gt 0 && -z "${DJANGO_SECRET_KEY:-}" ]]; then
+  error "Required variables are not set in .env or the environment:"
+  for v in "${_missing[@]}"; do printf "  - %s\n" "$v"; done
+  echo ""
+  echo "  Copy .env.example to .env and fill in the values."
+  exit 1
+fi
+
+_compose_args=()
+[[ "$BUILD" == true ]] && _compose_args+=("--build")
+
+info "Starting services (db, web, caddy)..."
+docker compose up -d "${_compose_args[@]}"
+
+# Wait for web container to report healthy
+info "Waiting for web container to be healthy..."
+_deadline=$(( $(date +%s) + 120 ))
+_healthy=false
+while [[ $(date +%s) -lt $_deadline ]]; do
+  _status=$(docker compose ps --format json web 2>/dev/null \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('Health',''))" 2>/dev/null || echo "")
+  if [[ "$_status" == "healthy" ]]; then
+    _healthy=true; break
+  fi
+  sleep 3
+done
+
+echo "compose" > "$MODE_FILE"
+
+if [[ "$_healthy" == true ]]; then
+  success "All services are up and healthy"
+else
+  warn "Containers started but health check timed out — check logs:"
+  echo "  docker compose logs web"
+fi
+
+_hostname="${SCD_HOSTNAME:-localhost}"
+_scheme="http"; [[ "$_hostname" != "localhost" ]] && _scheme="https"
+success "URL:    ${_scheme}://${_hostname}"
+[[ -n "${SCD_INITIAL_ADMIN_PASSWORD:-}" ]] && \
+  success "Login:  scd-admin / ${SCD_INITIAL_ADMIN_PASSWORD}"
+echo ""
+printf "${CYAN}Logs:${RESET}  docker compose logs -f web\n"
+printf "${CYAN}Stop:${RESET}  ./stop-docker\n"
+
+if [[ "$TAIL_LOG" == true ]]; then
+  echo ""
+  info "Tailing web logs (Ctrl-C stops tailing — containers keep running)..."
+  docker compose logs -f web
+fi

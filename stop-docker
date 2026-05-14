@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# stop-docker — stop SCD Reporting Docker containers
+#
+# Usage:
+#   ./stop-docker [--volumes]
+#
+# Options:
+#   --volumes    Also remove data volumes (wipes the database — use with care)
+
+set -euo pipefail
+
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
+RED='\033[0;31m'; RESET='\033[0m'
+success() { printf "${GREEN}✓  %s${RESET}\n" "$*"; }
+warn()    { printf "${YELLOW}!  %s${RESET}\n" "$*"; }
+info()    { printf "${CYAN}==> %s${RESET}\n" "$*"; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODE_FILE="$SCRIPT_DIR/.scd-docker.mode"
+QUICK_CONTAINER="scd-quick"
+REMOVE_VOLUMES=false
+
+[[ "${1:-}" == "--volumes" ]] && REMOVE_VOLUMES=true
+
+cd "$SCRIPT_DIR"
+
+MODE=""
+[[ -f "$MODE_FILE" ]] && MODE=$(cat "$MODE_FILE")
+
+# ── Compose full stack ────────────────────────────────────────────────────────
+if [[ "$MODE" == "compose" ]] || (docker compose version &>/dev/null && docker compose ps -q 2>/dev/null | grep -q .); then
+  info "Stopping compose stack..."
+  if [[ "$REMOVE_VOLUMES" == true ]]; then
+    warn "Removing volumes (database will be wiped)..."
+    docker compose down -v
+  else
+    docker compose down
+  fi
+  [[ "$REMOVE_VOLUMES" == true ]] && success "Stack stopped and volumes removed" \
+                                  || success "Stack stopped (volumes preserved)"
+  rm -f "$MODE_FILE"
+  exit 0
+fi
+
+# ── Quick container ───────────────────────────────────────────────────────────
+if [[ "$MODE" == "$QUICK_CONTAINER" ]] || docker container inspect "$QUICK_CONTAINER" &>/dev/null; then
+  info "Stopping quick container ($QUICK_CONTAINER)..."
+  docker rm -f "$QUICK_CONTAINER"
+  success "Container stopped"
+  rm -f "$MODE_FILE"
+  exit 0
+fi
+
+warn "No running SCD Docker containers found."
