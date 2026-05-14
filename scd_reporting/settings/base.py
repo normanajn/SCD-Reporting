@@ -11,6 +11,14 @@ DEBUG = False
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')]
 
+# CSRF trusted origins — required when Django is behind an HTTPS reverse proxy.
+# Set CSRF_TRUSTED_ORIGINS explicitly, or derive from SCD_HOSTNAME.
+_csrf_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '').strip()
+if _csrf_env:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_env.split(',')]
+elif os.environ.get('SCD_HOSTNAME', '').strip():
+    CSRF_TRUSTED_ORIGINS = [f"https://{os.environ['SCD_HOSTNAME'].strip()}"]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

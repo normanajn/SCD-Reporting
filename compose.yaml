@@ -1,9 +1,10 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-scd}
-      POSTGRES_USER: ${POSTGRES_USER:-scd}
+      POSTGRES_DB:       ${POSTGRES_DB:-scd}
+      POSTGRES_USER:     ${POSTGRES_USER:-scd}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -17,10 +18,12 @@ services:
     build:
       context: .
       dockerfile: docker/web/Dockerfile
+    restart: unless-stopped
     env_file: .env
     environment:
       DJANGO_SETTINGS_MODULE: scd_reporting.settings.prod
       DATABASE_URL: postgres://${POSTGRES_USER:-scd}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-scd}
+      CSRF_TRUSTED_ORIGINS: https://${SCD_HOSTNAME:-localhost}
     depends_on:
       db:
         condition: service_healthy
@@ -32,9 +35,11 @@ services:
 
   caddy:
     image: caddy:2-alpine
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     environment:
       SCD_HOSTNAME: ${SCD_HOSTNAME:-localhost}
     volumes:
@@ -44,7 +49,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - web
+      web:
+        condition: service_healthy
 
 volumes:
   pgdata:
