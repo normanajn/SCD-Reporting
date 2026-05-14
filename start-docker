@@ -115,11 +115,30 @@ if [[ "$QUICK" == true ]]; then
     info "Mounting existing db.sqlite3"
   fi
 
+  # Forward settings from the already-parsed environment (populated from .env above).
+  # Passing vars individually avoids Docker --env-file quote-handling quirks and
+  # host-path issues (e.g. OIDC_CLIENT_SECRET_FILE points to a path on this machine,
+  # not inside the container).
+  # Force dev settings and SQLite regardless of what .env says.
+  ENV_ARGS=(
+    -e DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev
+    -e SCD_INITIAL_ADMIN_PASSWORD="$ADMIN_PASS"
+  )
+  for _var in DJANGO_SECRET_KEY ANTHROPIC_API_KEY \
+              OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET \
+              GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET; do
+    [[ -n "${!_var:-}" ]] && ENV_ARGS+=(-e "$_var=${!_var}")
+  done
+  # If OIDC secret lives in a file, read it and pass the value directly.
+  if [[ -n "${OIDC_CLIENT_SECRET_FILE:-}" && -f "${OIDC_CLIENT_SECRET_FILE}" ]]; then
+    ENV_ARGS+=(-e "OIDC_CLIENT_SECRET=$(cat "${OIDC_CLIENT_SECRET_FILE}")")
+  fi
+  unset _var
+
   docker run -d \
     --name "$QUICK_CONTAINER" \
     "${DB_MOUNT[@]+"${DB_MOUNT[@]}"}" \
-    -e DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev \
-    -e SCD_INITIAL_ADMIN_PASSWORD="$ADMIN_PASS" \
+    "${ENV_ARGS[@]}" \
     -p "${PORT}:8000" \
     "$IMAGE_NAME"
 

@@ -96,11 +96,31 @@ if ($Quick) {
         Write-Info 'Mounting existing db.sqlite3'
     }
 
+    # Forward settings from the already-parsed environment (populated from .env above).
+    # Passing vars individually avoids Docker --env-file quote-handling quirks and
+    # host-path issues (e.g. OIDC_CLIENT_SECRET_FILE points to a path on this machine,
+    # not inside the container).
+    # Force dev settings and SQLite regardless of what .env says.
+    $envArgs = @(
+        '-e', 'DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev',
+        '-e', "SCD_INITIAL_ADMIN_PASSWORD=$adminPass"
+    )
+    foreach ($v in @('DJANGO_SECRET_KEY','ANTHROPIC_API_KEY',
+                     'OIDC_PROVIDER_URL','OIDC_CLIENT_ID','OIDC_CLIENT_SECRET',
+                     'GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET')) {
+        $val = [System.Environment]::GetEnvironmentVariable($v, 'Process')
+        if ($val) { $envArgs += @('-e', "$v=$val") }
+    }
+    # If OIDC secret lives in a file, read it and pass the value directly.
+    $oidcFile = [System.Environment]::GetEnvironmentVariable('OIDC_CLIENT_SECRET_FILE', 'Process')
+    if ($oidcFile -and (Test-Path $oidcFile)) {
+        $envArgs += @('-e', "OIDC_CLIENT_SECRET=$(Get-Content $oidcFile -Raw)".TrimEnd())
+    }
+
     docker run -d `
         --name $QuickName `
         @dbMount `
-        -e DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev `
-        -e SCD_INITIAL_ADMIN_PASSWORD=$adminPass `
+        @envArgs `
         -p "${Port}:8000" `
         $ImageName | Out-Null
 
