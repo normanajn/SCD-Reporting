@@ -1,12 +1,15 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Sign In — SCD Activity Reporting{% endblock %}
 
 {% block content %}
 <div class="min-h-[60vh] flex items-center justify-center">
-  <div class="w-full max-w-md">
+  <div class="flex flex-col md:flex-row items-center gap-10 w-full max-w-2xl">
+
+  <div class="w-full max-w-md md:flex-1">
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
       <h1 class="text-2xl font-bold text-slate-900 mb-1">Sign in</h1>
-      <p class="text-sm text-slate-500 mb-6">SCD Activity Reporting System</p>
+      <p class="text-sm text-slate-500 mb-6">SCD Activity Reporting</p>
 
       <form method="post" action="{% url 'account_login' %}">
         {% csrf_token %}
@@ -87,6 +90,13 @@
         {% endif %}
       </div>
     </div>
+  </div>
+
+  <!-- Logo panel (hidden on mobile) -->
+  <div class="hidden md:flex flex-col items-center justify-center shrink-0">
+    <img src="{% static 'images/scd-logo.png' %}" alt="SCD Reporting" class="w-56 h-auto">
+  </div>
+
   </div>
 </div>
 {% endblock %}

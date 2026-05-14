@@ -232,6 +232,78 @@ MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = os.environ.get(
     'MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN', 'true'
 ).lower() == 'true'
 
+# ── Email ─────────────────────────────────────────────────────────────────────
+# Set EMAIL_HOST to enable SMTP sending.  All settings read from env vars:
+#   EMAIL_HOST          smtp host (required to enable SMTP)
+#   EMAIL_PORT          587 = STARTTLS (default), 465 = implicit SSL
+#   EMAIL_HOST_USER     SMTP username
+#   EMAIL_HOST_PASSWORD SMTP password
+#   DEFAULT_FROM_EMAIL  sender address shown to recipients
+_email_host = os.environ.get('EMAIL_HOST', '').strip()
+if _email_host:
+    EMAIL_BACKEND = 'apps.core.mail.DebugEmailBackend'
+    EMAIL_HOST = _email_host
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    # Port 465 = implicit SSL; anything else = STARTTLS
+    if EMAIL_PORT == 465:
+        EMAIL_USE_SSL = True
+        EMAIL_USE_TLS = False
+    else:
+        EMAIL_USE_SSL = False
+        EMAIL_USE_TLS = True
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@localhost')
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+_LOG_DIR = BASE_DIR / 'logs'
+_LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(_LOG_DIR / 'scd_reporting.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'django.core.mail': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Capture our own app logs
+        'apps': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ['127.0.0.1']
 

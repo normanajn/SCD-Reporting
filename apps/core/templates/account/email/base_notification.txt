@@ -1,0 +1,14 @@
+{% extends "account/email/base_message.txt" %}
+{% load account %}
+
+{% block content %}{% autoescape off %}A change was made to your SCD Activity Reporting account:
+
+{% block notification_message %}{% endblock %}
+
+If you did not make this change, please contact your system administrator immediately.
+
+This action originated from:
+  IP address : {{ ip }}
+  Browser    : {{ user_agent }}
+  Date/time  : {{ timestamp }}
+{% endautoescape %}{% endblock %}

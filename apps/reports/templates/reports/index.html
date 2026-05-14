@@ -27,6 +27,24 @@
         {# Group #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Group</label>
+          {% if user.is_group_leader %}
+          {# Locked to the single group #}
+          <input type="hidden" name="group" value="{{ group_scope.first.pk }}">
+          <div class="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {{ group_scope.first.name }}
+          </div>
+          {% elif user.is_division_head %}
+          {# Dropdown limited to managed groups #}
+          <select name="group"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All my groups</option>
+            {% for g in group_scope %}
+            <option value="{{ g.pk }}" {% if filter.form.group.value|stringformat:"s" == g.pk|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          {# Full dropdown for auditors/admins #}
           <select name="group"
                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
@@ -37,6 +55,7 @@
             {% endif %}
             {% endfor %}
           </select>
+          {% endif %}
         </div>
 
         {# Project #}

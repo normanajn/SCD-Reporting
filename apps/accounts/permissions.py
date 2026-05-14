@@ -14,7 +14,8 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 class AuditorOrAdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
-        return self.request.user.is_auditor
+        u = self.request.user
+        return u.is_auditor or u.is_group_leader or u.is_division_head
 
     def handle_no_permission(self):
         if not self.request.user.is_authenticated:

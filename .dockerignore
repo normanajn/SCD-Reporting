@@ -23,3 +23,8 @@ tests/
 # Dev start scripts
 start-scd-reporting
 start-scd-reporting.ps1
+# Dev Deployment scripts
+start-docker
+start-docker.ps1
+stop-docker
+stop-docker.ps1

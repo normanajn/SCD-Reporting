@@ -1,0 +1,15 @@
+{% extends "account/email/base_message.txt" %}
+{% load account %}
+
+{% block content %}{% autoescape off %}Please confirm your email address for the SCD Activity Reporting System.
+
+{% if code %}Your verification code is:
+
+  {{ code }}
+
+Enter this code in the browser window where you were prompted.
+{% else %}Click the link below to confirm your address:
+
+  {{ activate_url }}
+{% endif %}
+{% endautoescape %}{% endblock %}

@@ -147,7 +147,15 @@
             <div class="text-slate-400 text-xs">{{ u.email }}</div>
           </td>
           <td class="px-6 py-3 text-slate-500">{{ u.employee_id|default:"—" }}</td>
-          <td class="px-6 py-3 text-slate-500">{{ u.group.name|default:"—" }}</td>
+          <td class="px-6 py-3 text-slate-500">
+            <div id="group-cell-{{ u.pk }}">
+              {% if u.is_division_head %}
+                {% include "accounts/partials/_managed_groups_cell.html" with editing=False managed_group_ids=None %}
+              {% else %}
+                {{ u.group.name|default:"—" }}
+              {% endif %}
+            </div>
+          </td>
           <td class="px-6 py-3">
             {% include "accounts/partials/_role_select.html" with u=u role_choices=role_choices %}
           </td>

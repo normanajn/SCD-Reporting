@@ -32,17 +32,19 @@
       <div class="flex items-center justify-between h-16">
 
         <div class="flex items-center gap-8">
-          <a href="/" class="text-lg font-semibold tracking-tight whitespace-nowrap">SCD Reporting</a>
+          <a href="/" class="text-lg font-semibold tracking-tight whitespace-nowrap">SCD Activity Reporting System</a>
           {% if user.is_authenticated %}
           <div class="hidden sm:flex items-center gap-5 text-sm">
             <a href="{% url 'dashboard' %}" class="opacity-90 hover:opacity-100 hover:underline">Dashboard</a>
             {% url 'entries:list' as entries_url %}{% if entries_url %}
             <a href="{{ entries_url }}" class="opacity-90 hover:opacity-100 hover:underline">My Entries</a>
             {% endif %}
-            {% if user.is_auditor %}
+            {% if user.is_auditor or user.is_group_leader or user.is_division_head %}
             {% url 'reports:index' as reports_url %}{% if reports_url %}
             <a href="{{ reports_url }}" class="opacity-90 hover:opacity-100 hover:underline">Reports</a>
             {% endif %}
+            {% endif %}
+            {% if user.is_auditor %}
             {% url 'audit:index' as audit_url %}{% if audit_url %}
             <a href="{{ audit_url }}" class="opacity-90 hover:opacity-100 hover:underline">Audit Log</a>
             {% endif %}
@@ -66,6 +68,10 @@
           <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Admin</span>
           {% elif user.is_auditor %}
           <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Auditor</span>
+          {% elif user.is_group_leader %}
+          <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Group Leader</span>
+          {% elif user.is_division_head %}
+          <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Division Head</span>
           {% endif %}
           <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}

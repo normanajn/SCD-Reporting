@@ -1,0 +1,8 @@
+{% include "accounts/partials/_role_select.html" %}
+<div id="group-cell-{{ u.pk }}" hx-swap-oob="true">
+  {% if u.is_division_head %}
+    {% include "accounts/partials/_managed_groups_cell.html" with editing=False managed_group_ids=managed_group_ids %}
+  {% else %}
+    {{ u.group.name|default:"—" }}
+  {% endif %}
+</div>

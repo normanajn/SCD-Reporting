@@ -1,0 +1,43 @@
+<div id="managed-groups-{{ u.pk }}">
+{% if editing %}
+  <form hx-post="{% url 'user-managed-groups' u.pk %}"
+        hx-target="#managed-groups-{{ u.pk }}"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+    <div class="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1 mb-2">
+      {% for group in all_groups %}
+      <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+        <input type="checkbox" name="managed_groups" value="{{ group.pk }}"
+               {% if group.pk in managed_group_ids %}checked{% endif %}
+               class="h-3 w-3 rounded border-slate-300 text-scd-primary focus:ring-scd-primary">
+        {{ group.name }}
+      </label>
+      {% endfor %}
+    </div>
+    <div class="flex gap-3">
+      <button type="submit"
+              class="text-xs font-medium text-scd-primary hover:underline">Save</button>
+      <button type="button"
+              hx-get="{% url 'user-managed-groups' u.pk %}"
+              hx-target="#managed-groups-{{ u.pk }}"
+              hx-swap="outerHTML"
+              class="text-xs text-slate-400 hover:text-slate-600">Cancel</button>
+    </div>
+  </form>
+{% else %}
+  <div class="flex flex-col gap-0.5">
+    {% for group in u.managed_groups.all %}
+    <span class="text-xs text-slate-600">{{ group.name }}</span>
+    {% empty %}
+    <span class="text-slate-400">—</span>
+    {% endfor %}
+  </div>
+  <button type="button"
+          hx-get="{% url 'user-managed-groups' u.pk %}?edit=1"
+          hx-target="#managed-groups-{{ u.pk }}"
+          hx-swap="outerHTML"
+          class="text-xs text-scd-primary hover:underline mt-1">
+    Edit groups
+  </button>
+{% endif %}
+</div>

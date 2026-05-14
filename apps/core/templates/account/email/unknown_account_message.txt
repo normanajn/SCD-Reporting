@@ -1,0 +1,8 @@
+{% extends "account/email/base_message.txt" %}
+
+{% block content %}{% autoescape off %}We received a password reset request for {{ email }}, but no account with that address exists in the SCD Activity Reporting System.
+
+If you have an account under a different email address, request a reset using that address instead.
+
+If you believe this is an error, please contact your system administrator.
+{% endautoescape %}{% endblock %}

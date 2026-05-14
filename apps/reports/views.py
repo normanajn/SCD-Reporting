@@ -15,8 +15,20 @@ from .models import AIPromptConfig
 PREVIEW_LIMIT = 50
 
 
-def _filtered_qs(data):
+def _get_group_scope(user):
+    """Return a WorkGroup queryset to restrict reports to, or None for no restriction."""
+    from apps.taxonomy.models import WorkGroup
+    if user.is_group_leader:
+        return WorkGroup.objects.filter(pk=user.group_id) if user.group_id else WorkGroup.objects.none()
+    if user.is_division_head:
+        return user.managed_groups.all()
+    return None
+
+
+def _filtered_qs(data, group_scope=None):
     qs = WorkItem.objects.select_related('author', 'project', 'category').prefetch_related('tags')
+    if group_scope is not None:
+        qs = qs.filter(author__group__in=group_scope)
     f = WorkItemFilter(data, queryset=qs)
     return f, f.qs.order_by('-period_end', 'author__email')
 
@@ -28,12 +40,14 @@ class ReportIndexView(AuditorOrAdminRequiredMixin, View):
             'filter': f,
             'formats': exporters.available(),
             'prompt_form': AIPromptConfigForm(instance=AIPromptConfig.get_solo()),
+            'group_scope': _get_group_scope(request.user),
         })
 
 
 class ReportPreviewView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
-        f, qs = _filtered_qs(request.POST)
+        group_scope = _get_group_scope(request.user)
+        f, qs = _filtered_qs(request.POST, group_scope=group_scope)
         total = qs.count()
         rows  = qs[:PREVIEW_LIMIT]
         return render(request, 'reports/partials/_preview.html', {
@@ -50,7 +64,8 @@ class ReportDownloadView(AuditorOrAdminRequiredMixin, View):
         if not exporter:
             from django.http import HttpResponseBadRequest
             return HttpResponseBadRequest(f'Unknown format: {fmt}')
-        _, qs = _filtered_qs(request.POST)
+        group_scope = _get_group_scope(request.user)
+        _, qs = _filtered_qs(request.POST, group_scope=group_scope)
         selected_ids = request.POST.getlist('selected_ids')
         if selected_ids:
             qs = qs.filter(pk__in=selected_ids)
@@ -65,7 +80,8 @@ class ReportDownloadView(AuditorOrAdminRequiredMixin, View):
 
 class ReportSummaryView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
-        _, qs = _filtered_qs(request.POST)
+        group_scope = _get_group_scope(request.user)
+        _, qs = _filtered_qs(request.POST, group_scope=group_scope)
         selected_ids = request.POST.getlist('selected_ids')
         if selected_ids:
             qs = qs.filter(pk__in=selected_ids)

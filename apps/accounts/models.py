@@ -7,6 +7,8 @@ class User(AbstractUser):
         USER = 'user', 'User'
         ADMIN = 'admin', 'Administrator'
         AUDITOR = 'auditor', 'Auditor'
+        GROUP_LEADER = 'group_leader', 'Group Leader'
+        DIVISION_HEAD = 'division_head', 'Division Head'
 
     role = models.CharField(
         max_length=16,
@@ -22,6 +24,11 @@ class User(AbstractUser):
         on_delete=models.SET_NULL,
         related_name='members',
     )
+    managed_groups = models.ManyToManyField(
+        'taxonomy.WorkGroup',
+        blank=True,
+        related_name='division_heads',
+    )
 
     def __str__(self):
         return self.display_name or self.email or self.username
@@ -33,6 +40,14 @@ class User(AbstractUser):
     @property
     def is_auditor(self):
         return self.role in (self.Role.ADMIN, self.Role.AUDITOR)
+
+    @property
+    def is_group_leader(self):
+        return self.role == self.Role.GROUP_LEADER
+
+    @property
+    def is_division_head(self):
+        return self.role == self.Role.DIVISION_HEAD
 
 
 class SiteSettings(models.Model):

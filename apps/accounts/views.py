@@ -54,9 +54,10 @@ class UserRoleUpdateView(AdminRequiredMixin, View):
         if role in User.Role.values:
             user.role = role
             user.save(update_fields=['role'])
-        return render(request, 'accounts/partials/_role_select.html', {
+        return render(request, 'accounts/partials/_role_update_response.html', {
             'u': user,
             'role_choices': User.Role.choices,
+            'managed_group_ids': list(user.managed_groups.values_list('pk', flat=True)),
         })
 
 
@@ -120,6 +121,27 @@ class UserDeleteView(AdminRequiredMixin, View):
                 'Remove or reassign their entries first.',
             )
         return redirect('admin-users')
+
+
+class UserManagedGroupsView(AdminRequiredMixin, View):
+    def _context(self, user, editing=False):
+        from apps.taxonomy.models import WorkGroup
+        return {
+            'u': user,
+            'all_groups': WorkGroup.objects.order_by('name'),
+            'managed_group_ids': list(user.managed_groups.values_list('pk', flat=True)),
+            'editing': editing,
+        }
+
+    def get(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        editing = request.GET.get('edit') == '1'
+        return render(request, 'accounts/partials/_managed_groups_cell.html', self._context(user, editing))
+
+    def post(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        user.managed_groups.set(request.POST.getlist('managed_groups'))
+        return render(request, 'accounts/partials/_managed_groups_cell.html', self._context(user))
 
 
 class SignupToggleView(AdminRequiredMixin, View):

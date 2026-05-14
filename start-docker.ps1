@@ -107,7 +107,9 @@ if ($Quick) {
     )
     foreach ($v in @('DJANGO_SECRET_KEY','ANTHROPIC_API_KEY',
                      'OIDC_PROVIDER_URL','OIDC_CLIENT_ID','OIDC_CLIENT_SECRET',
-                     'GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET')) {
+                     'GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET',
+                     'EMAIL_HOST','EMAIL_PORT','EMAIL_HOST_USER','EMAIL_HOST_PASSWORD',
+                     'DEFAULT_FROM_EMAIL')) {
         $val = [System.Environment]::GetEnvironmentVariable($v, 'Process')
         if ($val) { $envArgs += @('-e', "$v=$val") }
     }

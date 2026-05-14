@@ -1,0 +1,8 @@
+{% autoescape off %}SCD Activity Reporting System
+
+{% block content %}{% endblock %}
+
+---
+This is an automated message from the Fermilab SCD Activity Reporting System.
+Please do not reply to this email.
+{% endautoescape %}

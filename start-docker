@@ -126,7 +126,9 @@ if [[ "$QUICK" == true ]]; then
   )
   for _var in DJANGO_SECRET_KEY ANTHROPIC_API_KEY \
               OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET \
-              GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET; do
+              GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET \
+              EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD \
+              DEFAULT_FROM_EMAIL; do
     [[ -n "${!_var:-}" ]] && ENV_ARGS+=(-e "$_var=${!_var}")
   done
   # If OIDC secret lives in a file, read it and pass the value directly.
