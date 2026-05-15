@@ -31,7 +31,7 @@ def _format_entries(qs) -> str:
     return '\n'.join(parts) if parts else '(no entries)'
 
 
-def generate(qs) -> str:
+def generate(qs, user=None) -> str:
     """Call the Anthropic API and return the summary as a Markdown string."""
     import anthropic
     from .models import AIPromptConfig
@@ -43,7 +43,7 @@ def generate(qs) -> str:
             'Set it as an environment variable or in Django settings.'
         )
 
-    config = AIPromptConfig.get_solo()
+    config = AIPromptConfig.for_user(user) if user is not None else AIPromptConfig.get_solo()
     model = getattr(settings, 'ANTHROPIC_SUMMARY_MODEL', 'claude-sonnet-4-6')
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(

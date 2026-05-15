@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 DEFAULT_SYSTEM = (
@@ -21,6 +22,12 @@ Please write a concise narrative summary that includes:
 
 
 class AIPromptConfig(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.CASCADE,
+        related_name='ai_prompt_config',
+    )
     system_prompt = models.TextField(default=DEFAULT_SYSTEM)
     user_template = models.TextField(default=DEFAULT_USER_TMPL)
 
@@ -32,8 +39,28 @@ class AIPromptConfig(models.Model):
         obj, _ = cls.objects.get_or_create(
             pk=1,
             defaults={
+                'user': None,
                 'system_prompt': DEFAULT_SYSTEM,
                 'user_template': DEFAULT_USER_TMPL,
+            },
+        )
+        return obj
+
+    @classmethod
+    def for_user(cls, user):
+        try:
+            return user.ai_prompt_config
+        except cls.DoesNotExist:
+            return cls.get_solo()
+
+    @classmethod
+    def get_or_create_for_user(cls, user):
+        global_config = cls.get_solo()
+        obj, _ = cls.objects.get_or_create(
+            user=user,
+            defaults={
+                'system_prompt': global_config.system_prompt,
+                'user_template': global_config.user_template,
             },
         )
         return obj

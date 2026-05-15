@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}About — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl space-y-6">
+
+  <h1 class="text-2xl font-bold text-slate-900">About</h1>
+
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+
+    <div class="flex items-center gap-5 px-6 py-5 border-b border-slate-100">
+      <img src="{% static 'images/scd-logo.png' %}" alt="SCD" class="h-14 w-auto shrink-0">
+      <div>
+        <h2 class="text-lg font-semibold text-slate-900">SCD Activity Reporting System</h2>
+        <p class="text-sm text-slate-500 mt-0.5">
+          Fermilab Scientific Computing Division
+        </p>
+      </div>
+    </div>
+
+    <div class="px-6 py-5 space-y-4 text-sm text-slate-700">
+      <p>
+        SCD Activity Reporting is an internal tool for tracking and summarizing
+        effort across SCD projects, milestones, and performance goals. It supports
+        individual work-item logging, group-level reporting, AI-assisted summaries,
+        and data export.
+      </p>
+
+      <div class="grid grid-cols-2 gap-x-8 gap-y-2 pt-2 text-sm">
+        <div class="text-slate-500 font-medium">Build</div>
+        <div class="font-mono text-slate-700">{{ git.commit }} &mdash; {{ git.date }}</div>
+
+        <div class="text-slate-500 font-medium">Source</div>
+        <div>
+          <a href="https://github.com/normanajn/SCD-Reporting"
+             class="text-scd-primary hover:underline" target="_blank" rel="noopener">
+            github.com/normanajn/SCD-Reporting
+          </a>
+        </div>
+
+        <div class="text-slate-500 font-medium">Stack</div>
+        <div class="text-slate-700">Django · HTMX · Tailwind CSS · SQLite</div>
+
+        <div class="text-slate-500 font-medium">Contact</div>
+        <div>
+          <a href="mailto:anorman@fnal.gov" class="text-scd-primary hover:underline">
+            anorman@fnal.gov
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-4 text-sm">
+      <a href="{% url 'dashboard' %}" class="text-slate-400 hover:text-slate-600">
+        &larr; Back to dashboard
+      </a>
+      <a href="{% url 'bug-report' %}" class="text-scd-primary hover:underline">
+        Report a bug
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
