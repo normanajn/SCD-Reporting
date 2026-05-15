@@ -109,9 +109,6 @@ class DashboardSummaryDownloadPdfView(LoginRequiredMixin, View):
 
 class DashboardPromptConfigView(LoginRequiredMixin, View):
     def post(self, request):
-        if not request.user.is_scd_admin:
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden()
         from apps.reports.forms import AIPromptConfigForm
         from apps.reports.models import AIPromptConfig
         form = AIPromptConfigForm(request.POST, instance=AIPromptConfig.get_or_create_for_user(request.user))
