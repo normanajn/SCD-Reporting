@@ -20,6 +20,7 @@
 #   --google-client-secret <sec>   Google OAuth2 client secret
 #                                  (or set GOOGLE_CLIENT_SECRET env var)
 #   --port <port>                  Port to listen on (default: 8000)
+#   --prod                         Bind to 0.0.0.0 and use production settings
 #   --no-update                    Skip pip/npm update checks
 #   --with-tailwind                Also start the Tailwind CSS watcher
 #   --tail                         Tail the server log after starting
@@ -73,6 +74,7 @@ OIDC_PROVIDER_URL="${OIDC_PROVIDER_URL:-}"
 OIDC_CLIENT_ID="${OIDC_CLIENT_ID:-}"
 GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
 GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
+HOST="127.0.0.1"
 PORT=8000
 DO_UPDATE=true
 WITH_TAILWIND=false
@@ -88,6 +90,7 @@ while [[ $# -gt 0 ]]; do
     --google-client-id)     GOOGLE_CLIENT_ID="$2";     shift 2 ;;
     --google-client-secret) GOOGLE_CLIENT_SECRET="$2"; shift 2 ;;
     --port)              PORT="$2";              shift 2 ;;
+    --prod)              HOST="0.0.0.0"; export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-scd_reporting.settings.prod}"; shift ;;
     --no-update)         DO_UPDATE=false;        shift ;;
     --with-tailwind)     WITH_TAILWIND=true;     shift ;;
     --tail)              TAIL_LOG=true;          shift ;;
@@ -201,7 +204,7 @@ header "Server"
 
 mkdir -p "$LOG_DIR"
 
-info "Starting server on port $PORT..."
+info "Starting server on $HOST:$PORT..."
 
 if [[ -n "$ANTHROPIC_KEY" ]]; then
   success "AI Summary enabled (Anthropic API key set)"
@@ -222,7 +225,7 @@ export OIDC_PROVIDER_URL="$OIDC_PROVIDER_URL"
 export OIDC_CLIENT_ID="$OIDC_CLIENT_ID"
 export GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
 export GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
-nohup python manage.py runserver "$PORT" >> "$LOG_FILE" 2>&1 &
+nohup python manage.py runserver "$HOST:$PORT" >> "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 echo "$SERVER_PID" > "$PID_FILE"
 
@@ -236,7 +239,7 @@ if ! kill -0 "$SERVER_PID" 2>/dev/null; then
 fi
 
 success "Server started   (PID $SERVER_PID)"
-success "URL:             http://localhost:$PORT"
+success "URL:             http://$HOST:$PORT"
 success "Log:             $LOG_FILE"
 [[ -n "$ADMIN_PASSWORD" ]] && success "Login:           scd-admin@fnal.gov / $ADMIN_PASSWORD"
 echo ""
