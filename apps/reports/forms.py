@@ -18,3 +18,19 @@ class AIPromptConfigForm(forms.ModelForm):
         help_texts = {
             'user_template': 'Use {entries} as the placeholder where entry data is inserted.',
         }
+
+    def clean_user_template(self):
+        template = self.cleaned_data.get('user_template', '')
+        if '{entries}' not in template:
+            raise forms.ValidationError(
+                'The template must contain {entries} as a placeholder.'
+            )
+        try:
+            template.format(entries='')
+        except KeyError as exc:
+            raise forms.ValidationError(
+                f'Unknown placeholder {{{exc.args[0]}}} — only {{entries}} is supported.'
+            ) from exc
+        except ValueError as exc:
+            raise forms.ValidationError(f'Invalid template syntax: {exc}') from exc
+        return template
