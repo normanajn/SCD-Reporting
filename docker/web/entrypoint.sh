@@ -12,7 +12,7 @@ python manage.py seed_admin
 
 echo "[entrypoint] Starting gunicorn..."
 exec gunicorn scd_reporting.wsgi:application \
-    --bind 0.0.0.0:8000 \
+    --bind 0.0.0.0:8001 \
     --workers "${GUNICORN_WORKERS:-3}" \
     --worker-tmp-dir /dev/shm \
     --log-level "${GUNICORN_LOG_LEVEL:-info}" \

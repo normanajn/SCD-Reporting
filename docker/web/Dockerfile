@@ -47,9 +47,9 @@ RUN useradd --uid 1001 --no-create-home --shell /bin/false appuser \
     && chmod +x /app/docker/web/entrypoint.sh
 
 USER appuser
-EXPOSE 8000
+EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/accounts/login/')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/accounts/login/')" || exit 1
 
 ENTRYPOINT ["/app/docker/web/entrypoint.sh"]
