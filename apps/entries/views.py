@@ -57,6 +57,10 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
         }
         if self.request.user.group_id:
             initial['group'] = self.request.user.group_id
+        prefill_desc = self.request.session.pop('prefill_description', None)
+        if prefill_desc is not None:
+            initial['description'] = prefill_desc
+            initial.setdefault('title', 'AI Summary')
         return initial
 
     def form_valid(self, form):
@@ -124,6 +128,14 @@ class EntryDeleteView(LoginRequiredMixin, DeleteView):
             Tag.objects.filter(id__in=tag_ids).update(use_count=F('use_count') - 1)
         messages.success(self.request, f'Entry "{title}" deleted.')
         return response
+
+
+# ── Create from AI summary ────────────────────────────────────────────────────
+
+class EntryCreateFromSummaryView(LoginRequiredMixin, View):
+    def post(self, request):
+        request.session['prefill_description'] = request.POST.get('summary_text', '')
+        return redirect(reverse('entries:create'))
 
 
 # ── HTMX: period prefill ──────────────────────────────────────────────────────

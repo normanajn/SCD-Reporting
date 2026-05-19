@@ -25,10 +25,19 @@ def _get_group_scope(user):
     return None
 
 
-def _filtered_qs(data, group_scope=None):
+def _get_project_scope(user):
+    """Return a Project queryset to restrict reports to, or None for no restriction."""
+    if user.is_functional_lead:
+        return user.managed_projects.all()
+    return None
+
+
+def _filtered_qs(data, group_scope=None, project_scope=None):
     qs = WorkItem.objects.select_related('author', 'project', 'category').prefetch_related('tags')
     if group_scope is not None:
         qs = qs.filter(author__group__in=group_scope)
+    if project_scope is not None:
+        qs = qs.filter(project__in=project_scope)
     f = WorkItemFilter(data, queryset=qs)
     return f, f.qs.order_by('-period_end', 'author__email')
 
@@ -41,13 +50,15 @@ class ReportIndexView(AuditorOrAdminRequiredMixin, View):
             'formats': exporters.available(),
             'prompt_form': AIPromptConfigForm(instance=AIPromptConfig.get_solo()),
             'group_scope': _get_group_scope(request.user),
+            'project_scope': _get_project_scope(request.user),
         })
 
 
 class ReportPreviewView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
-        group_scope = _get_group_scope(request.user)
-        f, qs = _filtered_qs(request.POST, group_scope=group_scope)
+        group_scope   = _get_group_scope(request.user)
+        project_scope = _get_project_scope(request.user)
+        f, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope)
         total = qs.count()
         rows  = qs[:PREVIEW_LIMIT]
         return render(request, 'reports/partials/_preview.html', {
@@ -64,8 +75,9 @@ class ReportDownloadView(AuditorOrAdminRequiredMixin, View):
         if not exporter:
             from django.http import HttpResponseBadRequest
             return HttpResponseBadRequest(f'Unknown format: {fmt}')
-        group_scope = _get_group_scope(request.user)
-        _, qs = _filtered_qs(request.POST, group_scope=group_scope)
+        group_scope   = _get_group_scope(request.user)
+        project_scope = _get_project_scope(request.user)
+        _, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope)
         selected_ids = request.POST.getlist('selected_ids')
         if selected_ids:
             qs = qs.filter(pk__in=selected_ids)
@@ -80,8 +92,9 @@ class ReportDownloadView(AuditorOrAdminRequiredMixin, View):
 
 class ReportSummaryView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
-        group_scope = _get_group_scope(request.user)
-        _, qs = _filtered_qs(request.POST, group_scope=group_scope)
+        group_scope   = _get_group_scope(request.user)
+        project_scope = _get_project_scope(request.user)
+        _, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope)
         selected_ids = request.POST.getlist('selected_ids')
         if selected_ids:
             qs = qs.filter(pk__in=selected_ids)

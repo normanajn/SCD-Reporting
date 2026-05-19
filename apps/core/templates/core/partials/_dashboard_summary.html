@@ -35,6 +35,14 @@
           ↓ PDF
         </button>
       </form>
+      <form method="post" action="{% url 'entries:create-from-summary' %}">
+        {% csrf_token %}
+        <textarea name="summary_text" class="hidden">{{ summary_text }}</textarea>
+        <button type="submit"
+                class="text-xs font-medium px-3 py-1.5 rounded border border-scd-primary text-scd-primary hover:bg-scd-primary hover:text-white transition-colors uppercase tracking-wide">
+          + New Entry
+        </button>
+      </form>
     </div>
   </div>
   <div class="px-6 py-5 text-sm text-slate-800 leading-relaxed space-y-3

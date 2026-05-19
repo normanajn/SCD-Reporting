@@ -11,8 +11,8 @@ from django.views.generic import UpdateView
 
 from apps.accounts.permissions import AdminRequiredMixin
 
-from .forms import CategoryForm, ProjectForm, WorkGroupForm
-from .models import Category, Project, Tag, WorkGroup
+from .forms import CategoryForm, LabPriorityForm, ProjectForm, WorkGroupForm
+from .models import Category, LabPriority, Project, Tag, WorkGroup
 
 
 class ProjectManageView(AdminRequiredMixin, View):
@@ -111,6 +111,38 @@ class WorkGroupEditView(AdminRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
+class LabPriorityManageView(AdminRequiredMixin, View):
+    template_name = 'taxonomy/lab_priorities.html'
+
+    def _ctx(self, form=None):
+        return {
+            'lab_priorities': LabPriority.objects.order_by('sort_order', 'name'),
+            'form': form or LabPriorityForm(),
+        }
+
+    def get(self, request):
+        return render(request, self.template_name, self._ctx())
+
+    def post(self, request):
+        form = LabPriorityForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            messages.success(request, f'Lab Priority "{obj.name}" added.')
+            return redirect('taxonomy:lab-priorities')
+        return render(request, self.template_name, self._ctx(form))
+
+
+class LabPriorityEditView(AdminRequiredMixin, UpdateView):
+    model = LabPriority
+    form_class = LabPriorityForm
+    template_name = 'taxonomy/lab_priority_form.html'
+    success_url = reverse_lazy('taxonomy:lab-priorities')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Lab Priority "{form.instance.name}" saved.')
+        return super().form_valid(form)
+
+
 class TaxonomyExportView(AdminRequiredMixin, View):
     def get(self, request):
         def rows(qs):
@@ -126,10 +158,11 @@ class TaxonomyExportView(AdminRequiredMixin, View):
             ]
 
         payload = {
-            'exported_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-            'projects':    rows(Project.objects.order_by('sort_order', 'name')),
-            'categories':  rows(Category.objects.order_by('sort_order', 'name')),
-            'groups':      rows(WorkGroup.objects.order_by('sort_order', 'name')),
+            'exported_at':   datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'projects':      rows(Project.objects.order_by('sort_order', 'name')),
+            'categories':    rows(Category.objects.order_by('sort_order', 'name')),
+            'groups':        rows(WorkGroup.objects.order_by('sort_order', 'name')),
+            'lab_priorities': rows(LabPriority.objects.order_by('sort_order', 'name')),
         }
         filename = f"taxonomy-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.json"
         response = HttpResponse(
@@ -142,9 +175,10 @@ class TaxonomyExportView(AdminRequiredMixin, View):
 
 class TaxonomyImportView(AdminRequiredMixin, View):
     TABLES = {
-        'projects':   Project,
-        'categories': Category,
-        'groups':     WorkGroup,
+        'projects':       Project,
+        'categories':     Category,
+        'groups':         WorkGroup,
+        'lab_priorities': LabPriority,
     }
     FIELDS = ('name', 'short_code', 'is_active', 'sort_order')
 

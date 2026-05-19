@@ -6,7 +6,8 @@ app_name = 'entries'
 
 urlpatterns = [
     path('',              views.EntryListView.as_view(),   name='list'),
-    path('new/',          views.EntryCreateView.as_view(), name='create'),
+    path('new/',                views.EntryCreateView.as_view(),            name='create'),
+    path('new/from-summary/',   views.EntryCreateFromSummaryView.as_view(), name='create-from-summary'),
     path('<int:pk>/',     views.EntryDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/',   views.EntryUpdateView.as_view(), name='edit'),
     path('<int:pk>/delete/', views.EntryDeleteView.as_view(), name='delete'),

@@ -33,6 +33,12 @@ class WorkItem(models.Model):
         on_delete=models.PROTECT,
         related_name='work_items',
     )
+    lab_priority = models.ForeignKey(
+        'taxonomy.LabPriority',
+        null=True, blank=True,
+        on_delete=models.PROTECT,
+        related_name='work_items',
+    )
     tags      = models.ManyToManyField('taxonomy.Tag', blank=True)
     description  = models.TextField()
     period_kind  = models.CharField(

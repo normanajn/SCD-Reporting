@@ -5,10 +5,11 @@ from django.db import models
 class User(AbstractUser):
     class Role(models.TextChoices):
         USER = 'user', 'User'
-        ADMIN = 'admin', 'Administrator'
-        AUDITOR = 'auditor', 'Auditor'
+        FUNCTIONAL_LEAD = 'functional_lead', 'Functional Lead'
         GROUP_LEADER = 'group_leader', 'Group Leader'
         DIVISION_HEAD = 'division_head', 'Division Head'
+        AUDITOR = 'auditor', 'Auditor'
+        ADMIN = 'admin', 'Administrator'
 
     role = models.CharField(
         max_length=16,
@@ -29,6 +30,11 @@ class User(AbstractUser):
         blank=True,
         related_name='division_heads',
     )
+    managed_projects = models.ManyToManyField(
+        'taxonomy.Project',
+        blank=True,
+        related_name='functional_leads',
+    )
 
     def __str__(self):
         return self.display_name or self.email or self.username
@@ -48,6 +54,10 @@ class User(AbstractUser):
     @property
     def is_division_head(self):
         return self.role == self.Role.DIVISION_HEAD
+
+    @property
+    def is_functional_lead(self):
+        return self.role == self.Role.FUNCTIONAL_LEAD
 
 
 class SiteSettings(models.Model):

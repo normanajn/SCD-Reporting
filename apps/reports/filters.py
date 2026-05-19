@@ -1,7 +1,7 @@
 import django_filters
 
 from apps.entries.models import WorkItem
-from apps.taxonomy.models import Category, Project, WorkGroup
+from apps.taxonomy.models import Category, LabPriority, Project, WorkGroup
 
 
 class WorkItemFilter(django_filters.FilterSet):
@@ -24,6 +24,11 @@ class WorkItemFilter(django_filters.FilterSet):
         queryset=Category.objects.filter(is_active=True).order_by('sort_order', 'name'),
         label='Category',
         empty_label='All categories',
+    )
+    lab_priority = django_filters.ModelChoiceFilter(
+        queryset=LabPriority.objects.filter(is_active=True).order_by('sort_order', 'name'),
+        label='Lab Priority',
+        empty_label='All lab priorities',
     )
     period_after = django_filters.DateFilter(
         field_name='period_start',

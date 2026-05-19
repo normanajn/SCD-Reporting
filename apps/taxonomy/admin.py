@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Project, Tag, WorkGroup
+from .models import Category, LabPriority, Project, Tag, WorkGroup
 
 
 @admin.register(Project)
@@ -28,6 +28,14 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(WorkGroup)
 class WorkGroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'short_code', 'slug', 'is_active', 'sort_order')
+    list_editable = ('is_active', 'sort_order')
+    prepopulated_fields = {'slug': ('name',)}
+    search_fields = ('name', 'short_code')
+
+
+@admin.register(LabPriority)
+class LabPriorityAdmin(admin.ModelAdmin):
     list_display = ('name', 'short_code', 'slug', 'is_active', 'sort_order')
     list_editable = ('is_active', 'sort_order')
     prepopulated_fields = {'slug': ('name',)}

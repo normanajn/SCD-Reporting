@@ -88,6 +88,21 @@
           </select>
         </div>
 
+        {# Lab Priority #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Lab Priority</label>
+          <select name="lab_priority"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All lab priorities</option>
+            {% for pk, label in filter.filters.lab_priority.field.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if filter.form.lab_priority.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
         {# Period quick-select + date range #}
         <div class="sm:col-span-2 lg:col-span-2 grid grid-cols-2 gap-4">
           <div>

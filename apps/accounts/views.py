@@ -57,7 +57,8 @@ class UserRoleUpdateView(AdminRequiredMixin, View):
         return render(request, 'accounts/partials/_role_update_response.html', {
             'u': user,
             'role_choices': User.Role.choices,
-            'managed_group_ids': list(user.managed_groups.values_list('pk', flat=True)),
+            'managed_group_ids':   list(user.managed_groups.values_list('pk', flat=True)),
+            'managed_project_ids': list(user.managed_projects.values_list('pk', flat=True)),
         })
 
 
@@ -142,6 +143,27 @@ class UserManagedGroupsView(AdminRequiredMixin, View):
         user = get_object_or_404(User, pk=pk)
         user.managed_groups.set(request.POST.getlist('managed_groups'))
         return render(request, 'accounts/partials/_managed_groups_cell.html', self._context(user))
+
+
+class UserManagedProjectsView(AdminRequiredMixin, View):
+    def _context(self, user, editing=False):
+        from apps.taxonomy.models import Project
+        return {
+            'u': user,
+            'all_projects': Project.objects.order_by('sort_order', 'name'),
+            'managed_project_ids': list(user.managed_projects.values_list('pk', flat=True)),
+            'editing': editing,
+        }
+
+    def get(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        editing = request.GET.get('edit') == '1'
+        return render(request, 'accounts/partials/_managed_projects_cell.html', self._context(user, editing))
+
+    def post(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        user.managed_projects.set(request.POST.getlist('managed_projects'))
+        return render(request, 'accounts/partials/_managed_projects_cell.html', self._context(user))
 
 
 class SignupToggleView(AdminRequiredMixin, View):

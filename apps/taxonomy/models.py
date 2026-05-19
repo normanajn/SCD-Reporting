@@ -38,6 +38,12 @@ class WorkGroup(TaxonomyBase):
         verbose_name_plural = 'Groups'
 
 
+class LabPriority(TaxonomyBase):
+    class Meta(TaxonomyBase.Meta):
+        verbose_name = 'Lab Priority'
+        verbose_name_plural = 'Lab Priorities'
+
+
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
     use_count = models.PositiveIntegerField(default=0, db_index=True)

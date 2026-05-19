@@ -93,45 +93,6 @@
   {# AI Summary pane – outside form #}
   <div id="dashboard-summary-pane"></div>
 
-  {# ── Admin quick links ───────────────────────────────────────────────────── #}
-  {% if user.is_scd_admin %}
-  <div>
-    <h2 class="font-semibold text-slate-800 mb-3">Administration</h2>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <a href="{% url 'admin-users' %}"
-         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
-        <div class="text-2xl mb-1">👥</div>
-        <div class="text-sm font-medium text-slate-700">Users</div>
-      </a>
-      {% url 'taxonomy:projects' as tax_url %}
-      {% if tax_url %}
-      <a href="{{ tax_url }}"
-         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
-        <div class="text-2xl mb-1">🏷️</div>
-        <div class="text-sm font-medium text-slate-700">Taxonomy</div>
-      </a>
-      {% endif %}
-      {% url 'reports:index' as reports_url %}
-      {% if reports_url %}
-      <a href="{{ reports_url }}"
-         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
-        <div class="text-2xl mb-1">📊</div>
-        <div class="text-sm font-medium text-slate-700">Reports</div>
-      </a>
-      {% endif %}
-      {% url 'audit:index' as audit_url %}
-      {% if audit_url %}
-      <a href="{{ audit_url }}"
-         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
-        <div class="text-2xl mb-1">🔍</div>
-        <div class="text-sm font-medium text-slate-700">Audit Log</div>
-      </a>
-      {% endif %}
-    </div>
-  </div>
-
-  {% endif %}
-
   {# ── AI Prompt configuration – all users ─────────────────────────────────── #}
   <details class="group mt-2">
     <summary class="cursor-pointer text-xs text-slate-400 hover:text-slate-600 select-none list-none flex items-center gap-1">
@@ -178,6 +139,44 @@
       </form>
     </div>
   </details>
+
+  {# ── Admin quick links ───────────────────────────────────────────────────── #}
+  {% if user.is_scd_admin %}
+  <div>
+    <h2 class="font-semibold text-slate-800 mb-3">Administration</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <a href="{% url 'admin-users' %}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">👥</div>
+        <div class="text-sm font-medium text-slate-700">Users</div>
+      </a>
+      {% url 'taxonomy:projects' as tax_url %}
+      {% if tax_url %}
+      <a href="{{ tax_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">🏷️</div>
+        <div class="text-sm font-medium text-slate-700">Taxonomy</div>
+      </a>
+      {% endif %}
+      {% url 'reports:index' as reports_url %}
+      {% if reports_url %}
+      <a href="{{ reports_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">📊</div>
+        <div class="text-sm font-medium text-slate-700">Reports</div>
+      </a>
+      {% endif %}
+      {% url 'audit:index' as audit_url %}
+      {% if audit_url %}
+      <a href="{{ audit_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">🔍</div>
+        <div class="text-sm font-medium text-slate-700">Audit Log</div>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 

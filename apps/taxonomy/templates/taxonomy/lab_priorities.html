@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Projects — SCD Reporting{% endblock %}
+{% block title %}Lab Priorities — SCD Reporting{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -12,13 +12,13 @@
   <div class="flex items-end justify-between border-b border-slate-200">
     <div class="flex gap-1">
       <a href="{% url 'taxonomy:projects' %}"
-         class="px-4 py-2 text-sm font-medium text-scd-primary border-b-2 border-scd-primary -mb-px">Projects</a>
+         class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Projects</a>
       <a href="{% url 'taxonomy:categories' %}"
          class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Categories</a>
       <a href="{% url 'taxonomy:groups' %}"
          class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Groups</a>
       <a href="{% url 'taxonomy:lab-priorities' %}"
-         class="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent -mb-px">Lab Priorities</a>
+         class="px-4 py-2 text-sm font-medium text-scd-primary border-b-2 border-scd-primary -mb-px">Lab Priorities</a>
     </div>
     <div class="flex items-center gap-2 mb-1">
       <a href="{% url 'taxonomy:export' %}"
@@ -53,7 +53,6 @@
     </form>
   </div>
 
-  <!-- Existing projects -->
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
     <table class="min-w-full divide-y divide-slate-200 text-sm">
       <thead class="bg-slate-50">
@@ -66,27 +65,27 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
-        {% for p in projects %}
+        {% for lp in lab_priorities %}
         <tr class="hover:bg-slate-50">
-          <td class="px-6 py-3 text-slate-400 tabular-nums">{{ p.sort_order }}</td>
-          <td class="px-6 py-3 font-medium text-slate-800">{{ p.name }}</td>
-          <td class="px-6 py-3 text-slate-500 font-mono text-xs">{{ p.short_code|default:"—" }}</td>
+          <td class="px-6 py-3 text-slate-400 tabular-nums">{{ lp.sort_order }}</td>
+          <td class="px-6 py-3 font-medium text-slate-800">{{ lp.name }}</td>
+          <td class="px-6 py-3 text-slate-500 font-mono text-xs">{{ lp.short_code|default:"—" }}</td>
           <td class="px-6 py-3">
-            {% if p.is_active %}
+            {% if lp.is_active %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
             {% else %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Inactive</span>
             {% endif %}
           </td>
           <td class="px-6 py-3 text-right">
-            <a href="{% url 'taxonomy:project-edit' p.pk %}"
+            <a href="{% url 'taxonomy:lab-priority-edit' lp.pk %}"
                class="text-sm text-scd-primary hover:underline">Edit</a>
           </td>
         </tr>
         {% empty %}
         <tr>
           <td colspan="5" class="px-6 py-8 text-center text-slate-400">
-            No projects yet. Add one below.
+            No lab priorities yet. Add one below.
           </td>
         </tr>
         {% endfor %}
@@ -94,10 +93,9 @@
     </table>
   </div>
 
-  <!-- Add project form -->
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
     <div class="px-6 py-4 border-b border-slate-100">
-      <h2 class="font-semibold text-slate-800">Add project</h2>
+      <h2 class="font-semibold text-slate-800">Add lab priority</h2>
     </div>
     <form method="post" class="px-6 py-5">
       {% csrf_token %}
@@ -108,7 +106,7 @@
       </div>
       <button type="submit"
               class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
-        Add project
+        Add lab priority
       </button>
     </form>
   </div>

@@ -41,8 +41,8 @@
         {% endfor %}
       </div>
 
-      {# ── Project / Category / Group ───────────────────────────────────────── #}
-      <div class="px-6 py-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {# ── Project / Category / Group / Lab Priority ────────────────────────── #}
+      <div class="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label for="{{ form.project.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
             Project <span class="text-red-500">*</span>
@@ -94,6 +94,24 @@
             {% endfor %}
           </select>
           {% for error in form.group.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ error }}</p>
+          {% endfor %}
+        </div>
+        <div>
+          <label for="{{ form.lab_priority.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            Lab Priority
+          </label>
+          <select name="lab_priority" id="{{ form.lab_priority.id_for_label }}"
+                  class="w-full rounded-md border {% if form.lab_priority.errors %}border-red-400{% else %}border-slate-300{% endif %} px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">— none —</option>
+            {% for pk, label in form.fields.lab_priority.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if form.lab_priority.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          {% for error in form.lab_priority.errors %}
           <p class="mt-1 text-xs text-red-600">{{ error }}</p>
           {% endfor %}
         </div>
