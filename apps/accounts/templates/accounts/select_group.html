@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Select Your Group — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-8">
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+
+    <div class="px-6 py-5 border-b border-slate-100">
+      <h1 class="text-xl font-bold text-slate-900">Welcome to SCD Reporting</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Please select the group you belong to. This sets your default group on new entries
+        and helps managers view reports by group.
+      </p>
+    </div>
+
+    <form method="post" class="px-6 py-5 space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <label for="id_group" class="block text-sm font-medium text-slate-700 mb-1">
+          Your group
+        </label>
+        {% if groups %}
+        <select id="id_group" name="group"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                       focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+          <option value="">— Select a group —</option>
+          {% for g in groups %}
+          <option value="{{ g.pk }}">{{ g.name }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        <p class="text-sm text-slate-400 italic">No groups have been configured yet. An administrator can add groups from the Taxonomy page.</p>
+        {% endif %}
+      </div>
+
+      <div class="flex gap-3 pt-1">
+        {% if groups %}
+        <button type="submit"
+                class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
+          Save &amp; Continue
+        </button>
+        {% endif %}
+        <button type="submit" name="group" value=""
+                class="text-sm text-slate-500 hover:text-slate-700 hover:underline self-center">
+          Skip for now
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

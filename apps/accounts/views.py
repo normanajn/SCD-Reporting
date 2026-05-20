@@ -8,6 +8,8 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import ListView, UpdateView
 
+from apps.taxonomy.models import WorkGroup
+
 from .forms import AdminCreateUserForm, ProfileForm
 from .models import SiteSettings
 from .permissions import AdminRequiredMixin
@@ -174,6 +176,39 @@ class SignupToggleView(AdminRequiredMixin, View):
         state = 'enabled' if s.allow_signup else 'disabled'
         messages.success(request, f'Self-serve signup {state}.')
         return redirect('admin-users')
+
+
+class GroupSelectionView(View):
+    """First-login group selection — shown to authenticated users with no group set."""
+
+    def dispatch(self, request, *args, **kwargs):
+        from django.contrib.auth.mixins import LoginRequiredMixin
+        if not request.user.is_authenticated:
+            from django.conf import settings
+            return redirect(settings.LOGIN_URL)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        groups = WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
+        return render(request, 'accounts/select_group.html', {'groups': groups})
+
+    def post(self, request):
+        group_id = request.POST.get('group', '').strip()
+        if group_id:
+            try:
+                group = WorkGroup.objects.get(pk=group_id, is_active=True)
+                request.user.group = group
+                request.user.save(update_fields=['group'])
+                messages.success(request, f'Welcome! Your group has been set to "{group.name}".')
+            except WorkGroup.DoesNotExist:
+                messages.error(request, 'Invalid group selection.')
+                return redirect('select-group')
+        else:
+            # User explicitly chose to skip — mark done for this session
+            request.session['_group_selection_done'] = True
+            messages.info(request, 'You can set your group at any time from your profile.')
+
+        return redirect('dashboard')
 
 
 class AdminCreateUserView(AdminRequiredMixin, View):

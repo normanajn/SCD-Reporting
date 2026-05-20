@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
     'apps.audit.middleware.AuditRequestMiddleware',
+    'apps.accounts.middleware.GroupSelectionMiddleware',
 ]
 
 ROOT_URLCONF = 'scd_reporting.urls'

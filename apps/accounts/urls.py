@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('select-group/', views.GroupSelectionView.as_view(), name='select-group'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('admin-users/', views.AdminUsersView.as_view(), name='admin-users'),
     path('admin-users/create/',                  views.AdminCreateUserView.as_view(), name='user-create'),
