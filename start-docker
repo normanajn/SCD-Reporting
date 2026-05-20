@@ -107,6 +107,7 @@ if [[ "$QUICK" == true ]]; then
   fi
 
   ADMIN_PASS="${SCD_INITIAL_ADMIN_PASSWORD:-admin}"
+  ADMIN_EMAIL="${SCD_INITIAL_ADMIN_EMAIL:-scd-admin@fnal.gov}"
 
   # Mount the local db.sqlite3 if it exists so the container starts with existing data
   DB_MOUNT=()
@@ -123,6 +124,7 @@ if [[ "$QUICK" == true ]]; then
   ENV_ARGS=(
     -e DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev
     -e SCD_INITIAL_ADMIN_PASSWORD="$ADMIN_PASS"
+    -e SCD_INITIAL_ADMIN_EMAIL="$ADMIN_EMAIL"
   )
   for _var in DJANGO_SECRET_KEY ANTHROPIC_API_KEY \
               OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET \
@@ -158,7 +160,7 @@ if [[ "$QUICK" == true ]]; then
   echo "$QUICK_CONTAINER" > "$MODE_FILE"
   success "Container started: $QUICK_CONTAINER"
   success "URL:              http://localhost:$PORT"
-  success "Login:            scd-admin / $ADMIN_PASS"
+  success "Login:            $ADMIN_EMAIL / $ADMIN_PASS"
   echo ""
   printf "${CYAN}Logs:${RESET}  docker logs -f %s\n" "$QUICK_CONTAINER"
   printf "${CYAN}Stop:${RESET}  ./stop-docker\n"
@@ -236,9 +238,10 @@ fi
 
 _hostname="${SCD_HOSTNAME:-localhost}"
 _scheme="http"; [[ "$_hostname" != "localhost" ]] && _scheme="https"
+_admin_email="${SCD_INITIAL_ADMIN_EMAIL:-scd-admin@fnal.gov}"
 success "URL:    ${_scheme}://${_hostname}"
 [[ -n "${SCD_INITIAL_ADMIN_PASSWORD:-}" ]] && \
-  success "Login:  scd-admin / ${SCD_INITIAL_ADMIN_PASSWORD}"
+  success "Login:  ${_admin_email} / ${SCD_INITIAL_ADMIN_PASSWORD}"
 echo ""
 printf "${CYAN}Logs:${RESET}  docker compose logs -f web\n"
 printf "${CYAN}Stop:${RESET}  ./stop-docker\n"

@@ -86,7 +86,8 @@ if ($Quick) {
         docker rm -f $QuickName | Out-Null
     }
 
-    $adminPass = if ($env:SCD_INITIAL_ADMIN_PASSWORD) { $env:SCD_INITIAL_ADMIN_PASSWORD } else { 'admin' }
+    $adminPass  = if ($env:SCD_INITIAL_ADMIN_PASSWORD) { $env:SCD_INITIAL_ADMIN_PASSWORD } else { 'admin' }
+    $adminEmail = if ($env:SCD_INITIAL_ADMIN_EMAIL)    { $env:SCD_INITIAL_ADMIN_EMAIL }    else { 'scd-admin@fnal.gov' }
 
     # Mount the local db.sqlite3 if it exists so the container starts with existing data
     $dbPath = Join-Path $ScriptDir 'db.sqlite3'
@@ -103,7 +104,8 @@ if ($Quick) {
     # Force dev settings and SQLite regardless of what .env says.
     $envArgs = @(
         '-e', 'DJANGO_SETTINGS_MODULE=scd_reporting.settings.dev',
-        '-e', "SCD_INITIAL_ADMIN_PASSWORD=$adminPass"
+        '-e', "SCD_INITIAL_ADMIN_PASSWORD=$adminPass",
+        '-e', "SCD_INITIAL_ADMIN_EMAIL=$adminEmail"
     )
     foreach ($v in @('DJANGO_SECRET_KEY','ANTHROPIC_API_KEY',
                      'OIDC_PROVIDER_URL','OIDC_CLIENT_ID','OIDC_CLIENT_SECRET',
@@ -139,7 +141,7 @@ if ($Quick) {
     $QuickName | Set-Content $ModeFile
     Write-Ok "Container started: $QuickName"
     Write-Ok "URL:              http://localhost:$Port"
-    Write-Ok "Login:            scd-admin / $adminPass"
+    Write-Ok "Login:            $adminEmail / $adminPass"
     Write-Host ''
     Write-Host "Logs: docker logs -f $QuickName" -ForegroundColor Cyan
     Write-Host 'Stop: .\stop-docker.ps1'         -ForegroundColor Cyan
@@ -209,11 +211,12 @@ if ($healthy) {
     Write-Host '  docker compose logs web'
 }
 
-$hostname = if ($env:SCD_HOSTNAME) { $env:SCD_HOSTNAME } else { 'localhost' }
-$scheme   = if ($hostname -ne 'localhost') { 'https' } else { 'http' }
+$hostname   = if ($env:SCD_HOSTNAME) { $env:SCD_HOSTNAME } else { 'localhost' }
+$scheme     = if ($hostname -ne 'localhost') { 'https' } else { 'http' }
+$adminEmail = if ($env:SCD_INITIAL_ADMIN_EMAIL) { $env:SCD_INITIAL_ADMIN_EMAIL } else { 'scd-admin@fnal.gov' }
 Write-Ok "URL:    ${scheme}://${hostname}"
 if ($env:SCD_INITIAL_ADMIN_PASSWORD) {
-    Write-Ok "Login:  scd-admin / $($env:SCD_INITIAL_ADMIN_PASSWORD)"
+    Write-Ok "Login:  $adminEmail / $($env:SCD_INITIAL_ADMIN_PASSWORD)"
 }
 Write-Host ''
 Write-Host 'Logs: docker compose logs -f web' -ForegroundColor Cyan
