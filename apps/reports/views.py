@@ -17,6 +17,10 @@ PREVIEW_LIMIT = 50
 
 def _get_group_scope(user):
     """Return a WorkGroup queryset to restrict reports to, or None for no restriction."""
+    # Admins previewing another role have no real managed groups/projects assigned,
+    # so skip scope restrictions and show all data.
+    if getattr(user, '_is_previewing', False):
+        return None
     from apps.taxonomy.models import WorkGroup
     if user.is_group_leader:
         return WorkGroup.objects.filter(pk=user.group_id) if user.group_id else WorkGroup.objects.none()
@@ -27,6 +31,8 @@ def _get_group_scope(user):
 
 def _get_project_scope(user):
     """Return a Project queryset to restrict reports to, or None for no restriction."""
+    if getattr(user, '_is_previewing', False):
+        return None
     if user.is_functional_lead:
         return user.managed_projects.all()
     return None
