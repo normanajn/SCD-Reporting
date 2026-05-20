@@ -19,9 +19,15 @@ def _git_info():
         date = subprocess.check_output(
             ['git', 'log', '-1', '--format=%ad', '--date=short'], stderr=subprocess.DEVNULL
         ).decode().strip()
-        return {'commit': commit, 'date': date}
+        try:
+            tag = subprocess.check_output(
+                ['git', 'describe', '--tags', '--exact-match', 'HEAD'], stderr=subprocess.DEVNULL
+            ).decode().strip()
+        except subprocess.CalledProcessError:
+            tag = ''
+        return {'commit': commit, 'date': date, 'tag': tag}
     except Exception:
-        return {'commit': 'unknown', 'date': 'unknown'}
+        return {'commit': 'unknown', 'date': 'unknown', 'tag': ''}
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):

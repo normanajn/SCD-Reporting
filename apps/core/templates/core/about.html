@@ -28,6 +28,11 @@
       </p>
 
       <div class="grid grid-cols-2 gap-x-8 gap-y-2 pt-2 text-sm">
+        {% if git.tag %}
+        <div class="text-slate-500 font-medium">Version</div>
+        <div class="font-mono text-slate-700">{{ git.tag }}</div>
+        {% endif %}
+
         <div class="text-slate-500 font-medium">Build</div>
         <div class="font-mono text-slate-700">{{ git.commit }} &mdash; {{ git.date }}</div>
 
