@@ -69,8 +69,23 @@
           <a href="{% url 'profile' %}" class="opacity-90 hover:opacity-100 hover:underline truncate max-w-[160px]">
             {{ user.display_name|default:user.email }}
           </a>
-          {% if user.is_scd_admin %}
+          {% if is_previewing %}
+          <span class="bg-amber-400 text-amber-900 text-xs px-2 py-0.5 rounded-full font-medium">
+            Previewing: {{ preview_label }}
+          </span>
+          {% elif user.is_scd_admin %}
           <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Admin</span>
+          <form method="post" action="{% url 'preview-role' %}" class="flex items-center">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <select name="role" onchange="this.form.submit()" title="Preview as role"
+                    class="bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1 rounded border border-white/20 cursor-pointer focus:outline-none">
+              <option value="" class="text-slate-900">Preview as…</option>
+              {% for val, label in role_choices %}{% if val != 'admin' %}
+              <option value="{{ val }}" class="text-slate-900">{{ label }}</option>
+              {% endif %}{% endfor %}
+            </select>
+          </form>
           {% elif user.is_auditor %}
           <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full font-medium">Auditor</span>
           {% elif user.is_group_leader %}
@@ -91,6 +106,26 @@
       </div>
     </div>
   </nav>
+
+  {% if is_previewing %}
+  <div class="bg-amber-50 border-b border-amber-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-4 text-sm">
+      <span class="text-amber-800 font-medium">
+        Role preview active — viewing as <strong>{{ preview_label }}</strong>.
+        Your actual role and data are unchanged.
+      </span>
+      <form method="post" action="{% url 'preview-role' %}">
+        {% csrf_token %}
+        <input type="hidden" name="role" value="exit">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit"
+                class="bg-amber-200 hover:bg-amber-300 text-amber-900 text-xs font-medium px-3 py-1 rounded transition-colors whitespace-nowrap">
+          Exit preview
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 
   {% if messages %}
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-2">

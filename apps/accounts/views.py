@@ -203,6 +203,29 @@ class SignupToggleView(AdminRequiredMixin, View):
         return redirect('admin-users')
 
 
+class RolePreviewView(View):
+    """Activate or exit role preview mode for admins."""
+
+    def post(self, request):
+        if not request.user.is_authenticated:
+            from django.conf import settings as django_settings
+            return redirect(django_settings.LOGIN_URL)
+
+        # Re-query the DB so we check the real role even if middleware already overrode it
+        real_user = User.objects.get(pk=request.user.pk)
+        if real_user.role != User.Role.ADMIN:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+
+        role = request.POST.get('role', '').strip()
+        if not role or role == 'exit':
+            request.session.pop('_preview_role', None)
+        elif role in User.Role.values and role != User.Role.ADMIN:
+            request.session['_preview_role'] = role
+
+        return redirect(request.POST.get('next', '/'))
+
+
 class GroupSelectionView(View):
     """First-login group selection — shown to authenticated users with no group set."""
 

@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
     'apps.audit.middleware.AuditRequestMiddleware',
+    'apps.accounts.middleware.RolePreviewMiddleware',
     'apps.accounts.middleware.GroupSelectionMiddleware',
 ]
 
