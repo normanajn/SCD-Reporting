@@ -141,6 +141,50 @@ class AboutView(LoginRequiredMixin, TemplateView):
         return ctx
 
 
+def _github_app_installation_token(app_id, private_key_pem, installation_id):
+    """Exchange GitHub App credentials for a short-lived installation access token."""
+    import time
+
+    import jwt as pyjwt
+    import requests as http_requests
+
+    now = int(time.time())
+    app_jwt = pyjwt.encode(
+        {'iat': now - 60, 'exp': now + 600, 'iss': str(app_id)},
+        private_key_pem,
+        algorithm='RS256',
+    )
+    resp = http_requests.post(
+        f'https://api.github.com/app/installations/{installation_id}/access_tokens',
+        headers={
+            'Authorization': f'Bearer {app_jwt}',
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+        },
+        timeout=15,
+    )
+    resp.raise_for_status()
+    return resp.json()['token']
+
+
+def _resolve_github_token():
+    """
+    Return a GitHub API token using the best available credentials.
+    Priority: GitHub App installation token > personal access token (GITHUB_TOKEN).
+    Returns None if neither is configured.
+    """
+    from django.conf import settings as django_settings
+
+    app_id      = getattr(django_settings, 'GITHUB_APP_ID', '')
+    install_id  = getattr(django_settings, 'GITHUB_APP_INSTALLATION_ID', '')
+    private_key = getattr(django_settings, 'GITHUB_APP_PRIVATE_KEY', '')
+
+    if app_id and install_id and private_key:
+        return _github_app_installation_token(app_id, private_key, install_id)
+
+    return getattr(django_settings, 'GITHUB_TOKEN', '') or None
+
+
 class BugReportView(LoginRequiredMixin, TemplateView):
     template_name = 'core/bug_report.html'
 
@@ -152,7 +196,6 @@ class BugReportSubmitView(LoginRequiredMixin, View):
         import urllib.parse
 
         import requests as http_requests
-        from django.conf import settings as django_settings
 
         title = request.POST.get('title', '').strip()
         body = request.POST.get('body', '').strip()
@@ -169,7 +212,12 @@ class BugReportSubmitView(LoginRequiredMixin, View):
             f"**Build:** {git['commit']} ({git['date']})"
         )
 
-        token = getattr(django_settings, 'GITHUB_TOKEN', '') or os.environ.get('GITHUB_TOKEN', '')
+        try:
+            token = _resolve_github_token()
+        except Exception as exc:
+            messages.error(request, f'Could not obtain GitHub token: {exc}')
+            return redirect('about')
+
         if token:
             try:
                 resp = http_requests.post(
@@ -190,12 +238,12 @@ class BugReportSubmitView(LoginRequiredMixin, View):
             except Exception as exc:
                 messages.error(request, f'Could not submit issue: {exc}')
         else:
-            # No token — give the user a pre-filled GitHub URL to open manually
+            # No credentials — give the user a pre-filled GitHub URL to open manually
             params = urllib.parse.urlencode({'title': title, 'body': full_body, 'labels': 'bug'})
             gh_url = f'https://github.com/{self.REPO}/issues/new?{params}'
             messages.warning(
                 request,
-                f'GitHub token not configured. Open this URL to file the issue manually: {gh_url}',
+                f'GitHub credentials not configured. Open this URL to file the issue manually: {gh_url}',
             )
 
         return redirect('about')

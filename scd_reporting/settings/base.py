@@ -7,9 +7,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-only-change-in-production')
 
-# GitHub personal access token for submitting bug reports via the API.
-# Requires the 'repo' or 'public_repo' scope on the target repository.
-GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '')
+# GitHub credentials for bug report submission.
+# Preferred: GitHub App installation auth (all three vars required).
+#   GITHUB_APP_ID            — numeric App ID from the App's settings page
+#   GITHUB_APP_INSTALLATION_ID — installation ID for the target repo
+#   GITHUB_APP_PRIVATE_KEY   — PEM private key content (newlines as \n or literal)
+# Fallback: personal access token with 'public_repo' scope.
+GITHUB_APP_ID             = os.environ.get('GITHUB_APP_ID', '')
+GITHUB_APP_INSTALLATION_ID = os.environ.get('GITHUB_APP_INSTALLATION_ID', '')
+_raw_pem = os.environ.get('GITHUB_APP_PRIVATE_KEY', '')
+GITHUB_APP_PRIVATE_KEY    = _raw_pem.replace('\\n', '\n') if _raw_pem else ''
+GITHUB_TOKEN              = os.environ.get('GITHUB_TOKEN', '')
 
 DEBUG = False
 
