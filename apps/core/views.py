@@ -143,6 +143,11 @@ class BugReportSubmitView(LoginRequiredMixin, View):
     REPO = 'normanajn/SCD-Reporting'
 
     def post(self, request):
+        import urllib.parse
+
+        import requests as http_requests
+        from django.conf import settings as django_settings
+
         title = request.POST.get('title', '').strip()
         body = request.POST.get('body', '').strip()
         if not title or not body:
@@ -157,21 +162,34 @@ class BugReportSubmitView(LoginRequiredMixin, View):
             f"**Reported by:** {reporter}  \n"
             f"**Build:** {git['commit']} ({git['date']})"
         )
-        try:
-            result = subprocess.run(
-                ['gh', 'issue', 'create',
-                 '--repo', self.REPO,
-                 '--title', title,
-                 '--body', full_body,
-                 '--label', 'bug'],
-                capture_output=True, text=True, timeout=15,
+
+        token = getattr(django_settings, 'GITHUB_TOKEN', '') or os.environ.get('GITHUB_TOKEN', '')
+        if token:
+            try:
+                resp = http_requests.post(
+                    f'https://api.github.com/repos/{self.REPO}/issues',
+                    json={'title': title, 'body': full_body, 'labels': ['bug']},
+                    headers={
+                        'Authorization': f'Bearer {token}',
+                        'Accept': 'application/vnd.github+json',
+                        'X-GitHub-Api-Version': '2022-11-28',
+                    },
+                    timeout=15,
+                )
+                if resp.status_code == 201:
+                    issue_url = resp.json().get('html_url', '')
+                    messages.success(request, f'Bug report submitted. {issue_url}')
+                else:
+                    messages.error(request, f'GitHub error {resp.status_code}: {resp.json().get("message", "")}')
+            except Exception as exc:
+                messages.error(request, f'Could not submit issue: {exc}')
+        else:
+            # No token — give the user a pre-filled GitHub URL to open manually
+            params = urllib.parse.urlencode({'title': title, 'body': full_body, 'labels': 'bug'})
+            gh_url = f'https://github.com/{self.REPO}/issues/new?{params}'
+            messages.warning(
+                request,
+                f'GitHub token not configured. Open this URL to file the issue manually: {gh_url}',
             )
-            if result.returncode == 0:
-                issue_url = result.stdout.strip()
-                messages.success(request, f'Bug report submitted. {issue_url}')
-            else:
-                messages.error(request, f'GitHub error: {result.stderr.strip()}')
-        except Exception as exc:
-            messages.error(request, f'Could not submit issue: {exc}')
 
         return redirect('about')

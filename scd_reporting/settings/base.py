@@ -7,6 +7,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-only-change-in-production')
 
+# GitHub personal access token for submitting bug reports via the API.
+# Requires the 'repo' or 'public_repo' scope on the target repository.
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '')
+
 DEBUG = False
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')]
