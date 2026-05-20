@@ -2,6 +2,8 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = True
 
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = True
+
 SECRET_KEY = 'django-insecure-dev-only-do-not-use-in-production-abc123xyz789'
 
 ALLOWED_HOSTS = ['*']
