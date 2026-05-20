@@ -61,6 +61,28 @@
         {# Project #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Project</label>
+          {% if user.is_functional_lead %}
+          {% with first_project=project_scope.first %}
+          {% if project_scope.count == 1 %}
+          {# Locked to the single managed project #}
+          <input type="hidden" name="project" value="{{ first_project.pk }}">
+          <div class="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {{ first_project.name }}
+          </div>
+          {% else %}
+          {# Dropdown limited to managed projects #}
+          <select name="project"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All my projects</option>
+            {% for p in project_scope %}
+            <option value="{{ p.pk }}" {% if filter.form.project.value|stringformat:"s" == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+          {% endif %}
+          {% endwith %}
+          {% else %}
+          {# Full dropdown for auditors/admins/division heads/group leaders #}
           <select name="project"
                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
@@ -71,6 +93,7 @@
             {% endif %}
             {% endfor %}
           </select>
+          {% endif %}
         </div>
 
         {# Category #}
