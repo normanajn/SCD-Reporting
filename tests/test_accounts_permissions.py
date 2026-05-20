@@ -220,6 +220,37 @@ def test_set_password_accepts_strong_password(client, make_user):
 
 
 @pytest.mark.django_db
+def test_create_user_duplicate_email_shows_error(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm_dup1', email='adm_dup1@example.com')
+    make_user(role=User.Role.USER, username='existing@example.com', email='existing@example.com')
+    client.force_login(admin)
+    resp = client.post('/admin-users/create/', {
+        'email': 'existing@example.com',
+        'role': 'user',
+        'password': 'Str0ng!Passw0rd#99',
+        'password2': 'Str0ng!Passw0rd#99',
+    })
+    assert resp.status_code == 200
+    assert User.objects.filter(email='existing@example.com').count() == 1
+
+
+@pytest.mark.django_db
+def test_create_user_duplicate_username_shows_error(client, make_user):
+    admin = make_user(role=User.Role.ADMIN, username='adm_dup2', email='adm_dup2@example.com')
+    # Create a user whose username is an email address (the normal case for local accounts)
+    User.objects.create_user(username='taken@example.com', email='other@example.com', password='pass')
+    client.force_login(admin)
+    resp = client.post('/admin-users/create/', {
+        'email': 'taken@example.com',
+        'role': 'user',
+        'password': 'Str0ng!Passw0rd#99',
+        'password2': 'Str0ng!Passw0rd#99',
+    })
+    assert resp.status_code == 200
+    assert User.objects.filter(email='taken@example.com').count() == 0
+
+
+@pytest.mark.django_db
 def test_seed_admin_creates_user(db):
     from django.core.management import call_command
     import os

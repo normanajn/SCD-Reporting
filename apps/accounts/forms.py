@@ -35,6 +35,12 @@ class AdminCreateUserForm(forms.ModelForm):
         self.fields['display_name'].required = False
         self.fields['employee_id'].required = False
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip()
+        if User.objects.filter(username=email).exists() or User.objects.filter(email=email).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
+
     def clean(self):
         cleaned = super().clean()
         p1 = cleaned.get('password')
