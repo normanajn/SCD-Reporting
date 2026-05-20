@@ -239,9 +239,16 @@ MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = os.environ.get(
 #   EMAIL_HOST_USER     SMTP username
 #   EMAIL_HOST_PASSWORD SMTP password
 #   DEFAULT_FROM_EMAIL  sender address shown to recipients
+#   SMTP_DEBUG          set to "1" to enable full SMTP protocol tracing
+#                       (development/diagnostics only — do not use in production)
 _email_host = os.environ.get('EMAIL_HOST', '').strip()
 if _email_host:
-    EMAIL_BACKEND = 'apps.core.mail.DebugEmailBackend'
+    _smtp_debug = os.environ.get('SMTP_DEBUG', '').strip() == '1'
+    EMAIL_BACKEND = (
+        'apps.core.mail.DebugEmailBackend'
+        if _smtp_debug
+        else 'apps.core.mail.LoggingEmailBackend'
+    )
     EMAIL_HOST = _email_host
     EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
@@ -292,7 +299,7 @@ LOGGING = {
         },
         'django.core.mail': {
             'handlers': ['console', 'file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': False,
         },
         # Capture our own app logs

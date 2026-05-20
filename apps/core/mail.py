@@ -1,8 +1,14 @@
 """
-SMTP email backend with debug-level logging of the full SMTP conversation.
+SMTP email backends.
 
-smtplib writes debug output to sys.stderr via print(); this backend redirects
-that stream to a logger so every SMTP command and response lands in the log file.
+LoggingEmailBackend  — default production backend.  Logs send attempts and
+                       errors at INFO/ERROR level.  No SMTP protocol tracing.
+
+DebugEmailBackend    — development/diagnostic opt-in (SMTP_DEBUG=1).  Enables
+                       smtplib debug level 2 and captures the full SMTP
+                       conversation via the django.core.mail logger.
+                       Do NOT use in production: AUTH exchanges and message
+                       content will appear in logs.
 """
 import io
 import logging
@@ -11,6 +17,25 @@ import sys
 from django.core.mail.backends.smtp import EmailBackend
 
 logger = logging.getLogger('django.core.mail')
+
+
+class LoggingEmailBackend(EmailBackend):
+    """Standard SMTP backend with high-level send/error logging only."""
+
+    def send_messages(self, email_messages):
+        logger.info(
+            'Sending %d message(s) via %s:%s',
+            len(email_messages),
+            self.host,
+            self.port,
+        )
+        try:
+            count = super().send_messages(email_messages)
+            logger.info('Email sent successfully (%d accepted)', count)
+            return count
+        except Exception as exc:
+            logger.error('Email send failed: %s', exc, exc_info=True)
+            raise
 
 
 class _LoggerWriter(io.RawIOBase):
@@ -36,15 +61,19 @@ class _LoggerWriter(io.RawIOBase):
         return True
 
 
-class DebugEmailBackend(EmailBackend):
-    """Extends the standard SMTP backend to log the full SMTP conversation."""
+class DebugEmailBackend(LoggingEmailBackend):
+    """
+    Extends LoggingEmailBackend with full SMTP protocol tracing.
+
+    Opt-in only — set SMTP_DEBUG=1 in the environment.
+    Redirects global sys.stderr while the SMTP connection is open, which
+    captures smtplib's debug output into the django.core.mail logger.
+    """
 
     def open(self):
         result = super().open()
         if self.connection:
-            # smtplib debug output goes to sys.stderr — redirect to logger
             self.connection.set_debuglevel(2)
-            self.connection.debuglevel = 2
             self._smtp_stderr = sys.stderr
             sys.stderr = _LoggerWriter(lambda msg: logger.debug('SMTP | %s', msg))
         return result
@@ -54,26 +83,3 @@ class DebugEmailBackend(EmailBackend):
             sys.stderr = self._smtp_stderr
             del self._smtp_stderr
         super().close()
-
-    def send_messages(self, email_messages):
-        logger.info(
-            'Sending %d message(s) via %s:%s (user=%s)',
-            len(email_messages),
-            self.host,
-            self.port,
-            self.username,
-        )
-        for msg in email_messages:
-            logger.debug(
-                'Email | to=%s subject=%r from=%s',
-                msg.to,
-                msg.subject,
-                msg.from_email,
-            )
-        try:
-            count = super().send_messages(email_messages)
-            logger.info('Email sent successfully (%d accepted)', count)
-            return count
-        except Exception as exc:
-            logger.error('Email send failed: %s', exc, exc_info=True)
-            raise
