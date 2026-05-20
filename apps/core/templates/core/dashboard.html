@@ -140,11 +140,41 @@
     </div>
   </details>
 
-  {# ── Admin quick links ───────────────────────────────────────────────────── #}
-  {% if user.is_scd_admin %}
+  {# ── Quick links ─────────────────────────────────────────────────────────── #}
+  {% if user.is_auditor or user.is_group_leader or user.is_division_head or user.is_functional_lead %}
   <div>
-    <h2 class="font-semibold text-slate-800 mb-3">Administration</h2>
+    <h2 class="font-semibold text-slate-800 mb-3">Quick Links</h2>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+
+      {% if user.is_scd_admin or user.is_division_head or user.is_group_leader %}
+      <a href="{% url 'entries:manage' %}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">📋</div>
+        <div class="text-sm font-medium text-slate-700">Manage Entries</div>
+      </a>
+      {% endif %}
+
+      {% url 'reports:index' as reports_url %}
+      {% if reports_url %}
+      <a href="{{ reports_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">📊</div>
+        <div class="text-sm font-medium text-slate-700">Reports</div>
+      </a>
+      {% endif %}
+
+      {% if user.is_auditor %}
+      {% url 'audit:index' as audit_url %}
+      {% if audit_url %}
+      <a href="{{ audit_url }}"
+         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
+        <div class="text-2xl mb-1">🔍</div>
+        <div class="text-sm font-medium text-slate-700">Audit Log</div>
+      </a>
+      {% endif %}
+      {% endif %}
+
+      {% if user.is_scd_admin %}
       <a href="{% url 'admin-users' %}"
          class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
         <div class="text-2xl mb-1">👥</div>
@@ -158,22 +188,8 @@
         <div class="text-sm font-medium text-slate-700">Taxonomy</div>
       </a>
       {% endif %}
-      {% url 'reports:index' as reports_url %}
-      {% if reports_url %}
-      <a href="{{ reports_url }}"
-         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
-        <div class="text-2xl mb-1">📊</div>
-        <div class="text-sm font-medium text-slate-700">Reports</div>
-      </a>
       {% endif %}
-      {% url 'audit:index' as audit_url %}
-      {% if audit_url %}
-      <a href="{{ audit_url }}"
-         class="bg-white border border-slate-200 rounded-lg p-4 hover:border-scd-accent hover:shadow-sm transition text-center">
-        <div class="text-2xl mb-1">🔍</div>
-        <div class="text-sm font-medium text-slate-700">Audit Log</div>
-      </a>
-      {% endif %}
+
     </div>
   </div>
   {% endif %}
