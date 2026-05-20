@@ -34,3 +34,16 @@ class EntryManagerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         if not self.request.user.is_authenticated:
             return super().handle_no_permission()
         raise PermissionDenied
+
+
+class UserPageRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Admin, Division Head, or Group Leader — may view the Users page and edit primary groups."""
+
+    def test_func(self):
+        u = self.request.user
+        return u.is_scd_admin or u.is_division_head or u.is_group_leader
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        raise PermissionDenied

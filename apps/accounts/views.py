@@ -12,7 +12,7 @@ from apps.taxonomy.models import WorkGroup
 
 from .forms import AdminCreateUserForm, ProfileForm
 from .models import SiteSettings
-from .permissions import AdminRequiredMixin
+from .permissions import AdminRequiredMixin, UserPageRequiredMixin
 
 User = get_user_model()
 
@@ -35,7 +35,7 @@ class ProfileView(AdminRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class AdminUsersView(AdminRequiredMixin, ListView):
+class AdminUsersView(UserPageRequiredMixin, ListView):
     model = User
     template_name = 'accounts/admin_users.html'
     context_object_name = 'users'
@@ -46,6 +46,7 @@ class AdminUsersView(AdminRequiredMixin, ListView):
         ctx['role_choices'] = User.Role.choices
         ctx['site_settings'] = SiteSettings.get_solo()
         ctx['create_form'] = AdminCreateUserForm()
+        ctx['all_groups'] = WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
         return ctx
 
 
@@ -124,6 +125,30 @@ class UserDeleteView(AdminRequiredMixin, View):
                 'Remove or reassign their entries first.',
             )
         return redirect('admin-users')
+
+
+class UserPrimaryGroupView(UserPageRequiredMixin, View):
+    def _context(self, user, editing=False):
+        return {
+            'u': user,
+            'all_groups': WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name'),
+            'editing': editing,
+        }
+
+    def get(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        editing = request.GET.get('edit') == '1'
+        return render(request, 'accounts/partials/_primary_group_cell.html', self._context(user, editing))
+
+    def post(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        group_id = request.POST.get('group', '').strip()
+        if group_id:
+            user.group = get_object_or_404(WorkGroup, pk=group_id, is_active=True)
+        else:
+            user.group = None
+        user.save(update_fields=['group'])
+        return render(request, 'accounts/partials/_primary_group_cell.html', self._context(user))
 
 
 class UserManagedGroupsView(AdminRequiredMixin, View):

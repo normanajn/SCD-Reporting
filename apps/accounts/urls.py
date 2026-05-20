@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin-users/create/',                  views.AdminCreateUserView.as_view(), name='user-create'),
     path('admin-users/signup-toggle/',           views.SignupToggleView.as_view(),    name='signup-toggle'),
     path('admin-users/<int:pk>/role/',           views.UserRoleUpdateView.as_view(),          name='user-role-update'),
+    path('admin-users/<int:pk>/primary-group/',    views.UserPrimaryGroupView.as_view(),    name='user-primary-group'),
     path('admin-users/<int:pk>/managed-groups/',   views.UserManagedGroupsView.as_view(),   name='user-managed-groups'),
     path('admin-users/<int:pk>/managed-projects/', views.UserManagedProjectsView.as_view(), name='user-managed-projects'),
     path('admin-users/<int:pk>/set-password/',   views.UserSetPasswordView.as_view(), name='user-set-password'),

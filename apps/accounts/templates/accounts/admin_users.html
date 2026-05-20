@@ -9,6 +9,7 @@
     <span class="text-sm text-slate-500">{{ users.count }} total</span>
   </div>
 
+  {% if request.user.is_scd_admin %}
   {# ── Site settings strip ──────────────────────────────────────────────────── #}
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm px-6 py-4 flex flex-wrap items-center gap-4">
     <div class="flex-1 min-w-0">
@@ -33,18 +34,23 @@
     </form>
   </div>
 
+  {% endif %}{# /admin-only site settings #}
+
   {# ── Users table ──────────────────────────────────────────────────────────── #}
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
       <p class="text-sm font-semibold text-slate-700">All users</p>
+      {% if request.user.is_scd_admin %}
       <button type="button"
               id="toggle-create-form"
               class="text-sm font-medium text-scd-primary hover:underline">
         + Create user
       </button>
+      {% endif %}
     </div>
 
-    {# Create user form (hidden by default) #}
+    {# Create user form — admin only #}
+    {% if request.user.is_scd_admin %}
     <div id="create-user-form"
          class="{% if not show_create_form %}hidden{% endif %} px-6 py-5 border-b border-slate-100 bg-slate-50">
       <h3 class="text-sm font-semibold text-slate-700 mb-4">Create new user</h3>
@@ -127,6 +133,7 @@
         </div>
       </form>
     </div>
+    {% endif %}{# /admin-only create form #}
 
     <table class="min-w-full divide-y divide-slate-200 text-sm">
       <thead class="bg-slate-50">
@@ -134,9 +141,13 @@
           <th class="px-6 py-3 text-left font-semibold text-slate-600">User</th>
           <th class="px-6 py-3 text-left font-semibold text-slate-600">Employee ID</th>
           <th class="px-6 py-3 text-left font-semibold text-slate-600">Group</th>
+          {% if request.user.is_scd_admin %}
           <th class="px-6 py-3 text-left font-semibold text-slate-600">Role</th>
+          {% endif %}
           <th class="px-6 py-3 text-left font-semibold text-slate-600">Joined</th>
+          {% if request.user.is_scd_admin %}
           <th class="px-6 py-3 text-right font-semibold text-slate-600">Actions</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
@@ -154,14 +165,17 @@
               {% elif u.is_functional_lead %}
                 {% include "accounts/partials/_managed_projects_cell.html" with editing=False managed_project_ids=None %}
               {% else %}
-                {{ u.group.name|default:"—" }}
+                {% include "accounts/partials/_primary_group_cell.html" with editing=False %}
               {% endif %}
             </div>
           </td>
+          {% if request.user.is_scd_admin %}
           <td class="px-6 py-3">
             {% include "accounts/partials/_role_select.html" with u=u role_choices=role_choices %}
           </td>
+          {% endif %}
           <td class="px-6 py-3 text-slate-400">{{ u.date_joined|date:"Y-m-d" }}</td>
+          {% if request.user.is_scd_admin %}
           <td class="px-6 py-3 text-right whitespace-nowrap">
             <a href="{% url 'user-set-password' u.pk %}"
                class="text-xs text-scd-primary hover:underline mr-3">Reset password</a>
@@ -172,6 +186,7 @@
             <span class="text-xs text-slate-300">Delete</span>
             {% endif %}
           </td>
+          {% endif %}
         </tr>
         {% empty %}
         <tr>
