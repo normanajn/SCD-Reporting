@@ -39,7 +39,7 @@
             {% url 'entries:list' as entries_url %}{% if entries_url %}
             <a href="{{ entries_url }}" class="opacity-90 hover:opacity-100 hover:underline">My Entries</a>
             {% endif %}
-            {% if user.is_auditor or user.is_group_leader or user.is_division_head %}
+            {% if user.is_auditor or user.is_group_leader or user.is_division_head or user.is_functional_lead %}
             {% url 'reports:index' as reports_url %}{% if reports_url %}
             <a href="{{ reports_url }}" class="opacity-90 hover:opacity-100 hover:underline">Reports</a>
             {% endif %}
