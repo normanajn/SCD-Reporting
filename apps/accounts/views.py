@@ -53,6 +53,9 @@ class AdminUsersView(UserPageRequiredMixin, ListView):
 class UserRoleUpdateView(AdminRequiredMixin, View):
     def post(self, request, pk):
         user = get_object_or_404(User, pk=pk)
+        if user == request.user:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden('You cannot change your own role.')
         role = request.POST.get('role', '')
         if role in User.Role.values:
             user.role = role

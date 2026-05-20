@@ -205,9 +205,11 @@
   var cancelBtn  = document.getElementById('cancel-create-form');
   var formDiv    = document.getElementById('create-user-form');
 
-  toggleBtn.addEventListener('click', function () {
-    formDiv.classList.toggle('hidden');
-  });
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function () {
+      formDiv.classList.toggle('hidden');
+    });
+  }
   if (cancelBtn) {
     cancelBtn.addEventListener('click', function () {
       formDiv.classList.add('hidden');

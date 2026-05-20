@@ -5,6 +5,6 @@
   {% elif u.is_functional_lead %}
     {% include "accounts/partials/_managed_projects_cell.html" with editing=False managed_project_ids=managed_project_ids %}
   {% else %}
-    {{ u.group.name|default:"—" }}
+    {% include "accounts/partials/_primary_group_cell.html" with editing=False %}
   {% endif %}
 </div>
