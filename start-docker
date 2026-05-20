@@ -143,14 +143,14 @@ if [[ "$QUICK" == true ]]; then
     --name "$QUICK_CONTAINER" \
     "${DB_MOUNT[@]+"${DB_MOUNT[@]}"}" \
     "${ENV_ARGS[@]}" \
-    -p "${PORT}:8001" \
+    -p "${PORT}:8000" \
     "$IMAGE_NAME"
 
   # Wait for container to be healthy (up to 60 s)
   info "Waiting for server to be ready..."
   for i in $(seq 1 30); do
     if docker exec "$QUICK_CONTAINER" python -c \
-        "import urllib.request; urllib.request.urlopen('http://localhost:8001/accounts/login/')" \
+        "import urllib.request; urllib.request.urlopen('http://localhost:8000/accounts/login/')" \
         &>/dev/null 2>&1; then
       break
     fi

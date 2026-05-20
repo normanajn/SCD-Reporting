@@ -5,5 +5,5 @@
     file_server /media/* {
         root /srv
     }
-    reverse_proxy web:8001
+    reverse_proxy web:8000
 }
