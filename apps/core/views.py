@@ -28,7 +28,12 @@ def _git_info():
             tag = ''
         return {'commit': commit, 'date': date, 'tag': tag}
     except Exception:
-        return {'commit': 'unknown', 'date': 'unknown', 'tag': ''}
+        # Fall back to values baked in at image build time via Docker build args.
+        return {
+            'commit': os.environ.get('GIT_COMMIT', 'unknown'),
+            'date':   os.environ.get('GIT_DATE',   'unknown'),
+            'tag':    os.environ.get('GIT_TAG',     ''),
+        }
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):

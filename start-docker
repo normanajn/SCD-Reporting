@@ -88,7 +88,14 @@ fi
 if [[ "$_needs_build" == true ]]; then
   header "Building image"
   info "Building $IMAGE_NAME (this takes ~2 min on first run)..."
-  docker build -f docker/web/Dockerfile -t "$IMAGE_NAME" .
+  _git_commit=$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')
+  _git_date=$(git log -1 --format=%ad --date=short 2>/dev/null || echo 'unknown')
+  _git_tag=$(git describe --tags --exact-match HEAD 2>/dev/null || echo '')
+  docker build -f docker/web/Dockerfile -t "$IMAGE_NAME" \
+    --build-arg GIT_COMMIT="$_git_commit" \
+    --build-arg GIT_DATE="$_git_date" \
+    --build-arg GIT_TAG="$_git_tag" \
+    .
   success "Image built: $IMAGE_NAME"
 else
   info "Image $IMAGE_NAME already exists — skipping build (use --build to force)"
@@ -126,7 +133,7 @@ if [[ "$QUICK" == true ]]; then
     -e SCD_INITIAL_ADMIN_PASSWORD="$ADMIN_PASS"
     -e SCD_INITIAL_ADMIN_EMAIL="$ADMIN_EMAIL"
   )
-  for _var in DJANGO_SECRET_KEY ANTHROPIC_API_KEY \
+  for _var in DJANGO_SECRET_KEY ANTHROPIC_API_KEY GITHUB_TOKEN \
               OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET \
               GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET \
               EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD \

@@ -24,9 +24,16 @@ RUN mkdir -p theme/static/css/dist && \
 # ── Stage 2: Python application ───────────────────────────────────────────────
 FROM python:3.12-slim
 
+ARG GIT_COMMIT=unknown
+ARG GIT_DATE=unknown
+ARG GIT_TAG=
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    HOME=/tmp
+    HOME=/tmp \
+    GIT_COMMIT=${GIT_COMMIT} \
+    GIT_DATE=${GIT_DATE} \
+    GIT_TAG=${GIT_TAG}
 
 WORKDIR /app
 
