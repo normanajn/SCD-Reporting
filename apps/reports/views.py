@@ -38,6 +38,11 @@ def _filtered_qs(data, group_scope=None, project_scope=None):
         qs = qs.filter(author__group__in=group_scope)
     if project_scope is not None:
         qs = qs.filter(project__in=project_scope)
+    show_archived = data.get('show_archived') == '1'
+    if show_archived:
+        qs = qs.filter(is_archived=True)
+    else:
+        qs = qs.filter(is_archived=False)
     f = WorkItemFilter(data, queryset=qs)
     return f, f.qs.order_by('-period_end', 'author__email')
 

@@ -8,6 +8,7 @@ from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
+from apps.accounts.permissions import EntryManagerRequiredMixin
 from apps.core.markdown import render_markdown
 from apps.taxonomy.models import Project, Tag
 
@@ -25,7 +26,7 @@ class EntryListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = (WorkItem.objects
-              .filter(author=self.request.user)
+              .filter(author=self.request.user, is_archived=False)
               .select_related('project', 'category')
               .prefetch_related('tags'))
         project_id = self.request.GET.get('project')
@@ -171,3 +172,80 @@ class MarkdownPreviewView(LoginRequiredMixin, View):
         return render(request, 'entries/partials/_markdown_preview.html', {
             'html': render_markdown(text),
         })
+
+
+# ── Entry management (admin / division head / group leader) ───────────────────
+
+class EntryManageView(EntryManagerRequiredMixin, ListView):
+    model = WorkItem
+    template_name = 'entries/manage.html'
+    context_object_name = 'entries'
+    paginate_by = 50
+
+    def get_queryset(self):
+        from apps.accounts.models import User
+        qs = (WorkItem.objects
+              .select_related('author', 'project', 'category')
+              .prefetch_related('tags'))
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(title__icontains=q)
+        author = self.request.GET.get('author', '').strip()
+        if author:
+            qs = qs.filter(author__email__icontains=author)
+        project = self.request.GET.get('project', '').strip()
+        if project:
+            qs = qs.filter(project_id=project)
+        show_archived = self.request.GET.get('archived') == '1'
+        if show_archived:
+            qs = qs.filter(is_archived=True)
+        else:
+            qs = qs.filter(is_archived=False)
+        return qs.order_by('-period_end', 'author__email')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['projects'] = Project.objects.filter(is_active=True).order_by('sort_order', 'name')
+        ctx['show_archived'] = self.request.GET.get('archived') == '1'
+        from apps.accounts.models import User
+        ctx['all_users'] = User.objects.order_by('email')
+        return ctx
+
+
+class EntryReassignView(EntryManagerRequiredMixin, View):
+    def post(self, request, pk):
+        from apps.accounts.models import User
+        entry = WorkItem.objects.get(pk=pk)
+        new_author_id = request.POST.get('author_id')
+        try:
+            new_author = User.objects.get(pk=new_author_id)
+        except User.DoesNotExist:
+            messages.error(request, 'User not found.')
+            return redirect('entries:manage')
+        old_email = entry.author.email
+        entry.author = new_author
+        entry.save(update_fields=['author', 'updated_at'])
+        messages.success(request, f'Entry "{entry.title}" reassigned from {old_email} to {new_author.email}.')
+        return redirect(request.POST.get('next', reverse('entries:manage')))
+
+
+class EntryArchiveView(EntryManagerRequiredMixin, View):
+    def post(self, request, pk):
+        entry = WorkItem.objects.get(pk=pk)
+        entry.is_archived = not entry.is_archived
+        entry.save(update_fields=['is_archived', 'updated_at'])
+        action = 'archived' if entry.is_archived else 'unarchived'
+        messages.success(request, f'Entry "{entry.title}" {action}.')
+        return redirect(request.POST.get('next', reverse('entries:manage')))
+
+
+class EntryManagerDeleteView(EntryManagerRequiredMixin, View):
+    def post(self, request, pk):
+        entry = WorkItem.objects.get(pk=pk)
+        tag_ids = list(entry.tags.values_list('id', flat=True))
+        title = entry.title
+        entry.delete()
+        if tag_ids:
+            Tag.objects.filter(id__in=tag_ids).update(use_count=F('use_count') - 1)
+        messages.success(request, f'Entry "{title}" permanently deleted.')
+        return redirect(request.POST.get('next', reverse('entries:manage')))

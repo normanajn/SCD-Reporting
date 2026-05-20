@@ -13,8 +13,8 @@
       {% endif %}
       <h1 class="text-2xl font-bold text-slate-900 mt-1">{{ object.title }}</h1>
     </div>
-    {% if object.author == request.user %}
-    <div class="flex gap-2 shrink-0">
+    <div class="flex gap-2 shrink-0 flex-wrap">
+      {% if object.author == request.user %}
       <a href="{% url 'entries:edit' object.pk %}"
          class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors">
         Edit
@@ -23,8 +23,21 @@
          class="border border-red-300 text-red-600 hover:bg-red-50 text-sm font-medium px-3 py-1.5 rounded-md transition-colors">
         Delete
       </a>
+      {% endif %}
+      {% if request.user.is_scd_admin or request.user.is_division_head or request.user.is_group_leader %}
+      <form method="post" action="{% url 'entries:archive' object.pk %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="border border-amber-300 text-amber-700 hover:bg-amber-50 text-sm font-medium px-3 py-1.5 rounded-md transition-colors">
+          {% if object.is_archived %}Unarchive{% else %}Archive{% endif %}
+        </button>
+      </form>
+      <a href="{% url 'entries:manage' %}"
+         class="border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-3 py-1.5 rounded-md transition-colors">
+        Manage Entries
+      </a>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
 
   <!-- Meta card -->

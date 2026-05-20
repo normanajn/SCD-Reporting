@@ -139,7 +139,7 @@
           </div>
         </div>
 
-        {# Private filters #}
+        {# Private / archive filters #}
         <div class="flex flex-col gap-2 justify-end pb-1">
           <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-slate-700">
             <input type="checkbox" name="is_private" value="true"
@@ -153,6 +153,14 @@
                    class="h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary">
             Exclude private entries
           </label>
+          {% if user.is_scd_admin or user.is_division_head or user.is_group_leader %}
+          <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-slate-700">
+            <input type="checkbox" name="show_archived" value="1"
+                   {% if request.POST.show_archived == "1" %}checked{% endif %}
+                   class="h-4 w-4 rounded border-slate-300 text-scd-primary focus:ring-scd-primary">
+            Show archived entries only
+          </label>
+          {% endif %}
         </div>
 
       </div>{# /grid #}

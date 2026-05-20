@@ -49,6 +49,9 @@
             <a href="{{ audit_url }}" class="opacity-90 hover:opacity-100 hover:underline">Audit Log</a>
             {% endif %}
             {% endif %}
+            {% if user.is_scd_admin or user.is_division_head or user.is_group_leader %}
+            <a href="{% url 'entries:manage' %}" class="opacity-90 hover:opacity-100 hover:underline">Manage Entries</a>
+            {% endif %}
             {% if user.is_scd_admin %}
             {% url 'taxonomy:projects' as tax_url %}{% if tax_url %}
             <a href="{{ tax_url }}" class="opacity-90 hover:opacity-100 hover:underline">Taxonomy</a>

@@ -51,6 +51,7 @@ class WorkItem(models.Model):
     is_private   = models.BooleanField(default=False, db_index=True)
     is_critical  = models.BooleanField(default=False, db_index=True)
     is_highlight = models.BooleanField(default=False, db_index=True)
+    is_archived  = models.BooleanField(default=False, db_index=True)
     highlight_stars = models.PositiveSmallIntegerField(
         default=0,
         validators=[MaxValueValidator(5)],
