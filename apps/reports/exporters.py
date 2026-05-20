@@ -91,6 +91,32 @@ def export_txt(qs) -> HttpResponse:
     return resp
 
 
+# ── Markdown ──────────────────────────────────────────────────────────────────
+
+@register('md')
+def export_md(qs) -> HttpResponse:
+    sections = []
+    for r in _rows(qs):
+        flags = ' '.join(f'`{f}`' for f in ['PRIVATE', 'CRITICAL', 'HIGHLIGHT']
+                         if r[f.lower()] == 'yes')
+        header = (
+            f"## {r['title']}\n\n"
+            f"**Author:** {r['author']}  \n"
+            f"**Project:** {r['project']}  \n"
+            f"**Category:** {r['category']}"
+            + (f"  \n**Group:** {r['group']}" if r['group'] else '')
+            + (f"  \n**Tags:** {r['tags']}" if r['tags'] else '')
+            + f"  \n**Period:** {r['period_start']} – {r['period_end']}"
+            + (f"  \n**Flags:** {flags}" if flags else '')
+        )
+        body = f"\n\n{r['description']}" if r['description'] else ''
+        sections.append(header + body)
+    body = '\n\n---\n\n'.join(sections) or '_(no entries matched)_'
+    resp = HttpResponse(body, content_type='text/markdown; charset=utf-8')
+    resp['Content-Disposition'] = f'attachment; filename="{_filename("md")}"'
+    return resp
+
+
 # ── CSV ───────────────────────────────────────────────────────────────────────
 
 @register('csv')
