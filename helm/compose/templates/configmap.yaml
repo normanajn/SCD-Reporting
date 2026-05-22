@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "scd-reporting.labels" . | nindent 4 }}
+data:
+  DJANGO_SETTINGS_MODULE: {{ .Values.django.settingsModule | quote }}
+  DJANGO_ALLOWED_HOSTS: {{ .Values.django.allowedHosts | quote }}
+  CSRF_TRUSTED_ORIGINS: {{ printf "https://%s" .Values.caddy.hostname | quote }}
+  ACCOUNT_EMAIL_VERIFICATION: {{ .Values.django.emailVerification | quote }}
+  SCD_DISABLE_LOCAL_SIGNUP: {{ .Values.django.disableLocalSignup | quote }}
+  SCD_INITIAL_ADMIN_USERNAME: {{ .Values.django.initialAdminUsername | quote }}
+  SCD_INITIAL_ADMIN_EMAIL: {{ .Values.django.initialAdminEmail | quote }}
+  DATABASE_URL: {{ include "scd-reporting.databaseUrl" . | quote }}
+  POSTGRES_DB: {{ .Values.db.name | quote }}
+  POSTGRES_USER: {{ .Values.db.user | quote }}
+  GUNICORN_WORKERS: {{ .Values.gunicorn.workers | quote }}
+  GUNICORN_LOG_LEVEL: {{ .Values.gunicorn.logLevel | quote }}
+  ANTHROPIC_SUMMARY_MODEL: {{ .Values.anthropic.summaryModel | quote }}
+  EMAIL_HOST: {{ .Values.email.host | quote }}
+  EMAIL_PORT: {{ .Values.email.port | quote }}
+  EMAIL_HOST_USER: {{ .Values.email.user | quote }}
+  DEFAULT_FROM_EMAIL: {{ .Values.email.defaultFrom | quote }}
+  GOOGLE_CLIENT_ID: {{ .Values.google.clientId | quote }}
+  OIDC_PROVIDER_URL: {{ .Values.oidc.providerUrl | quote }}
+  OIDC_CLIENT_ID: {{ .Values.oidc.clientId | quote }}

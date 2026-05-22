@@ -1,0 +1,30 @@
+# Simple single-container setup for local use and quick evaluation.
+#
+# Differences from compose.yaml:
+#   - No Caddy reverse proxy — Gunicorn is exposed directly on port 8000
+#   - No PostgreSQL — uses SQLite (db.sqlite3 stored in the sqlite_data volume)
+#   - Uses dev settings (DEBUG=True, ALLOWED_HOSTS=*, static files served by Django)
+#
+# Usage:
+#   cp .env.example .env        # edit at minimum DJANGO_SECRET_KEY and SCD_INITIAL_ADMIN_PASSWORD
+#   docker compose -f compose-simple.yaml up --build
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: scd_reporting.settings.dev
+      DATABASE_URL: sqlite:////app/data/db.sqlite3
+    ports:
+      - "8000:8000"
+    volumes:
+      - sqlite_data:/app/data
+      - media:/app/media
+
+volumes:
+  sqlite_data:
+  media:

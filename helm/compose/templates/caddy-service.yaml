@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "scd-reporting.labels" . | nindent 4 }}
+spec:
+  # LoadBalancer exposes ports 80/443 to the outside world.
+  # Change to NodePort if your cluster does not support LoadBalancer.
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 443
+      protocol: TCP
+    - name: https-udp
+      port: 443
+      targetPort: 443
+      protocol: UDP
+  selector:
+    {{- include "scd-reporting.selectorLabels" (dict "root" . "component" "caddy") | nindent 4 }}

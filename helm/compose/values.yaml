@@ -1,0 +1,89 @@
+# Default values for scd-reporting (full stack: PostgreSQL + Caddy).
+# Override with:  helm install ... -f my-values.yaml  or  --set key=value
+
+# ── Web (Django + Gunicorn) ────────────────────────────────────────────────────
+web:
+  image:
+    repository: scd-reporting
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+
+# ── Caddy reverse proxy ────────────────────────────────────────────────────────
+caddy:
+  image:
+    repository: caddy
+    tag: 2-alpine
+    pullPolicy: IfNotPresent
+  # Public hostname Caddy serves and obtains a TLS cert for
+  hostname: localhost
+
+# ── PostgreSQL ─────────────────────────────────────────────────────────────────
+db:
+  image:
+    repository: postgres
+    tag: 16-alpine
+    pullPolicy: IfNotPresent
+  name: scd
+  user: scd
+  # REQUIRED – change before deploy
+  password: "change-me"
+
+# ── Persistent volume claim sizes ─────────────────────────────────────────────
+pvc:
+  staticfiles:
+    # ReadWriteMany required when web and caddy run on different nodes.
+    # Use ReadWriteOnce for single-node clusters (most storage classes).
+    accessMode: ReadWriteOnce
+    size: 1Gi
+  media:
+    accessMode: ReadWriteOnce
+    size: 1Gi
+  pgdata:
+    size: 10Gi
+  caddyData:
+    size: 1Gi
+  caddyConfig:
+    size: 256Mi
+
+# ── Django core ────────────────────────────────────────────────────────────────
+django:
+  settingsModule: scd_reporting.settings.prod
+  # REQUIRED – set to a long random string in production
+  secretKey: "change-me-50-chars-minimum-random-string-here"
+  allowedHosts: "localhost"
+  emailVerification: optional   # none | optional | mandatory
+  disableLocalSignup: "0"
+  initialAdminUsername: scd-admin
+  initialAdminEmail: admin@example.com
+  # REQUIRED – change before first deploy
+  initialAdminPassword: "change-me"
+
+# ── Gunicorn ───────────────────────────────────────────────────────────────────
+gunicorn:
+  workers: 3
+  logLevel: info
+
+# ── AI summaries ───────────────────────────────────────────────────────────────
+anthropic:
+  apiKey: ""
+  summaryModel: "claude-sonnet-4-6"
+
+# ── Email (SMTP) ───────────────────────────────────────────────────────────────
+email:
+  host: ""
+  port: "587"
+  user: ""
+  password: ""
+  defaultFrom: "noreply@localhost"
+
+# ── Google OAuth (optional) ────────────────────────────────────────────────────
+google:
+  clientId: ""
+  clientSecret: ""
+
+# ── OIDC / Fermilab SSO (optional) ────────────────────────────────────────────
+oidc:
+  providerUrl: ""
+  clientId: ""
+  clientSecret: ""

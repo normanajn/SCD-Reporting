@@ -1,0 +1,65 @@
+# Default values for scd-reporting-simple.
+# Override with:  helm install ... -f my-values.yaml  or  --set key=value
+
+image:
+  repository: scd-reporting
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8000
+
+pvc:
+  sqliteData:
+    size: 1Gi
+  media:
+    size: 1Gi
+
+# ── Django core ────────────────────────────────────────────────────────────────
+django:
+  settingsModule: scd_reporting.settings.dev
+  # REQUIRED – set to a long random string in production
+  secretKey: "change-me-50-chars-minimum-random-string-here"
+  allowedHosts: "localhost,127.0.0.1"
+  emailVerification: optional   # none | optional | mandatory
+  disableLocalSignup: "0"
+  initialAdminUsername: scd-admin
+  initialAdminEmail: admin@example.com
+  # REQUIRED – change before first deploy
+  initialAdminPassword: "change-me"
+
+# ── Database ───────────────────────────────────────────────────────────────────
+database:
+  url: "sqlite:////app/data/db.sqlite3"
+
+# ── Gunicorn ───────────────────────────────────────────────────────────────────
+gunicorn:
+  workers: 3
+  logLevel: info
+
+# ── AI summaries ───────────────────────────────────────────────────────────────
+anthropic:
+  apiKey: ""
+  summaryModel: "claude-sonnet-4-6"
+
+# ── Email (SMTP) ───────────────────────────────────────────────────────────────
+email:
+  host: ""
+  port: "587"
+  user: ""
+  password: ""
+  defaultFrom: "noreply@localhost"
+
+# ── Google OAuth (optional) ────────────────────────────────────────────────────
+google:
+  clientId: ""
+  clientSecret: ""
+
+# ── OIDC / Fermilab SSO (optional) ────────────────────────────────────────────
+oidc:
+  providerUrl: ""
+  clientId: ""
+  clientSecret: ""
