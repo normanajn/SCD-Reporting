@@ -6,13 +6,6 @@ metadata:
   labels:
     {{- include "scd-reporting-simple.labels" . | nindent 4 }}
 spec:
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 250m
-      memory: 256Mi
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
