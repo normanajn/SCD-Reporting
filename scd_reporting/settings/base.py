@@ -23,6 +23,10 @@ DEBUG = False
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')]
 
+# Trust X-Forwarded-Proto from the TLS-terminating reverse proxy (OKD router, Caddy, etc.)
+# Safe in all environments — only activates when the header is present.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # CSRF trusted origins — required when Django is behind an HTTPS reverse proxy.
 # Set CSRF_TRUSTED_ORIGINS explicitly, or derive from SCD_HOSTNAME.
 _csrf_env = os.environ.get('CSRF_TRUSTED_ORIGINS', '').strip()

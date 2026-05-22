@@ -10,6 +10,8 @@ class Command(BaseCommand):
     help = 'Create the initial SCD admin user if one does not already exist'
 
     def handle(self, *args, **options):
+        from allauth.account.models import EmailAddress
+
         username = os.environ.get('SCD_INITIAL_ADMIN_USERNAME', 'scd-admin')
         email = os.environ.get('SCD_INITIAL_ADMIN_EMAIL', 'scd-admin@fnal.gov')
         password = os.environ.get('SCD_INITIAL_ADMIN_PASSWORD', '')
@@ -21,13 +23,19 @@ class Command(BaseCommand):
             return
 
         if User.objects.filter(username=username).exists():
+            user = User.objects.get(username=username)
             self.stdout.write(f'Admin user "{username}" already exists — skipping.')
-            return
+        else:
+            user = User.objects.create_superuser(
+                username=username,
+                email=email,
+                password=password,
+                role=User.Role.ADMIN,
+            )
+            self.stdout.write(self.style.SUCCESS(f'Created admin user: {username} ({email})'))
 
-        User.objects.create_superuser(
-            username=username,
-            email=email,
-            password=password,
-            role=User.Role.ADMIN,
+        EmailAddress.objects.get_or_create(
+            user=user,
+            email=user.email,
+            defaults={'primary': True, 'verified': True},
         )
-        self.stdout.write(self.style.SUCCESS(f'Created admin user: {username} ({email})'))
