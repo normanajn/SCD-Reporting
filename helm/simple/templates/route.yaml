@@ -17,4 +17,8 @@ spec:
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
+    {{- if and .Values.certManager.enabled .Values.certManager.secretName }}
+    externalCertificate:
+      name: {{ .Values.certManager.secretName }}
+    {{- end }}
 {{- end }}
