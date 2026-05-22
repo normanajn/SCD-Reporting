@@ -1,0 +1,99 @@
+.TH BOOTSTRAP 1 "2026-05-22" "SCD Reporting v0.1.0" "SCD Reporting"
+.SH NAME
+bootstrap \- first-time setup and development server launcher for SCD Reporting
+.SH SYNOPSIS
+.B ./bootstrap.sh
+[\fB\-\-admin\-password\fR \fIPASS\fR]
+[\fB\-\-anthropic\-key\fR \fIKEY\fR]
+[\fB\-\-no\-server\fR]
+[\fB\-\-skip\-npm\fR]
+.SH DESCRIPTION
+.B bootstrap.sh
+prepares the local development environment for SCD Reporting.
+It creates a Python virtual environment, installs all Python and Node
+dependencies, applies Django database migrations, seeds the taxonomy
+and initial admin account, and then starts the Django development server.
+.PP
+The script must be run from the repository root.
+It requires Python 3.12 or newer on the system PATH.
+.SH OPTIONS
+.TP
+.BI \-\-admin\-password " PASS"
+Password for the initial admin account created by
+.BR seed_admin .
+If omitted the seed step is skipped.
+May also be supplied via the
+.B SCD_INITIAL_ADMIN_PASSWORD
+environment variable.
+.TP
+.BI \-\-anthropic\-key " KEY"
+Anthropic API key used by the AI report summary feature.
+May also be supplied via the
+.B ANTHROPIC_API_KEY
+environment variable.
+.TP
+.B \-\-no\-server
+Perform all setup steps but do not start the development server.
+Useful for CI or container initialization.
+.TP
+.B \-\-skip\-npm
+Skip the
+.B npm install
+step for Tailwind CSS.
+Use this when Node.js is not available; Tailwind will fall back to the
+Play CDN in development mode.
+.TP
+.B \-h
+Display usage information and exit.
+.SH ENVIRONMENT
+.TP
+.B SCD_INITIAL_ADMIN_PASSWORD
+Provides the admin password without a command-line argument.
+.TP
+.B ANTHROPIC_API_KEY
+Provides the Anthropic API key without a command-line argument.
+.SH FILES
+.TP
+.I .venv/
+Python virtual environment created (or reused) by this script.
+.TP
+.I requirements-dev.txt
+Python development dependencies installed into the virtual environment.
+.TP
+.I theme/static_src/package.json
+Node dependencies installed by
+.BR npm\ install .
+.TP
+.I db.sqlite3
+SQLite database created by
+.B manage.py migrate
+during setup.
+.SH EXAMPLES
+Basic setup with an admin password:
+.PP
+.RS
+.EX
+./bootstrap.sh --admin-password secret
+.EE
+.RE
+.PP
+Full setup with an Anthropic key, then exit without starting the server:
+.PP
+.RS
+.EX
+./bootstrap.sh --admin-password secret --anthropic-key sk-ant-... --no-server
+.EE
+.RE
+.PP
+Using environment variables:
+.PP
+.RS
+.EX
+export SCD_INITIAL_ADMIN_PASSWORD=secret
+export ANTHROPIC_API_KEY=sk-ant-...
+./bootstrap.sh
+.EE
+.RE
+.SH SEE ALSO
+.BR build-docker (1),
+.BR generate-helm-chart (1)

@@ -1,0 +1,65 @@
+.TH UPDATE-OKD-PERMISSIONS 1 "2026-05-22" "SCD Reporting v0.1.0" "SCD Reporting"
+.SH NAME
+update-okd-permissions \- patch the Dockerfile with OpenShift/OKD-compatible file permissions
+.SH SYNOPSIS
+.B ./scripts/update-okd-permissions.sh
+[\fIDOCKERFILE\fR]
+.SH DESCRIPTION
+.B update-okd-permissions.sh
+modifies the web container Dockerfile so that the image runs correctly
+on OpenShift / OKD clusters, which execute containers with an arbitrary
+UID assigned by the platform rather than the UID specified in the
+.B USER
+instruction.
+.PP
+OpenShift requires that files inside the image are group-writable by
+GID 0 (root group) rather than owned by a specific UID.
+The script applies two changes:
+.PP
+.RS
+.IP \(bu 2
+Adds
+.B \-\-gid 0
+to the
+.B useradd
+call so the runtime user belongs to the root group.
+.IP \(bu 2
+Replaces
+.B "chown -R appuser:appuser /app"
+with
+.B "chgrp -R 0 /app && chmod -R g=u /app"
+so every file is group-readable/writable for any UID the platform assigns.
+.RE
+.PP
+The script is idempotent: if the OKD-compatible pattern is already
+present it exits without making changes.
+A timestamped backup of the original Dockerfile is written to
+.B $TMPDIR
+before any modifications are made.
+.SH ARGUMENTS
+.TP
+.I DOCKERFILE
+Path to the Dockerfile to patch.
+.br
+Default:
+.B docker/web/Dockerfile
+(relative to the repository root).
+.SH EXAMPLES
+Patch the default Dockerfile:
+.PP
+.RS
+.EX
+./scripts/update-okd-permissions.sh
+.EE
+.RE
+.PP
+Patch an alternative Dockerfile:
+.PP
+.RS
+.EX
+./scripts/update-okd-permissions.sh docker/web/Dockerfile.prod
+.EE
+.RE
+.SH SEE ALSO
+.BR revert-okd-permissions (1),
+.BR build-docker (1)

@@ -1,0 +1,95 @@
+.TH REGISTER-EC2-ROUTE53 1 "2026-05-22" "SCD Reporting v0.1.0" "SCD Reporting"
+.SH NAME
+register-ec2-route53 \- attach an Elastic IP to an EC2 instance and register it in Route 53
+.SH SYNOPSIS
+.B ./scripts/register-ec2-route53.sh
+.SH DESCRIPTION
+.B register-ec2-route53.sh
+automates the three-step process of making an EC2 instance reachable at
+a stable public DNS name:
+.PP
+.RS
+.IP 1. 3
+Allocate a new AWS Elastic IP address (or reuse an existing allocation).
+.IP 2.
+Associate the Elastic IP with the target EC2 instance.
+.IP 3.
+Upsert an A record in the specified Route 53 hosted zone pointing the
+DNS name to the Elastic IP.
+.RE
+.PP
+The script blocks until the Route 53 change has propagated (via
+.BR "aws route53 wait resource-record-sets-changed" ).
+.PP
+Configuration is provided by editing variables at the top of the script
+before running.
+All required variables are validated at startup; the script exits with
+an error if any still contain placeholder values.
+.SH CONFIGURATION
+Edit the following variables at the top of the script:
+.TP
+.B AWS_REGION
+AWS region containing the EC2 instance.
+.br
+Example:
+.B us-east-1
+.TP
+.B INSTANCE_ID
+EC2 instance ID to attach the Elastic IP to.
+.br
+Example:
+.B i-0123456789abcdef0
+.TP
+.B HOSTED_ZONE_ID
+Route 53 hosted zone ID for the target domain.
+.br
+Example:
+.B Z1234567890ABCDEFGHIJ
+.TP
+.B RECORD_NAME
+Fully-qualified DNS name to register (trailing dot optional).
+.br
+Example:
+.B scd-reporting.fnal.gov
+.TP
+.B TTL
+DNS record time-to-live in seconds.
+.br
+Default:
+.B 300
+.TP
+.B EXISTING_ALLOCATION_ID
+Set to an existing Elastic IP allocation ID to reuse it instead of
+allocating a new address.
+Leave empty to allocate a new Elastic IP.
+.TP
+.B ALLOW_REASSOCIATION
+Set to
+.B true
+to allow moving an Elastic IP that is already associated with another
+resource.
+Default:
+.B false
+.SH DEPENDENCIES
+.TP
+.BR aws (1)
+AWS CLI v2, configured with credentials that have
+.BR ec2:AllocateAddress ,
+.BR ec2:AssociateAddress ,
+.BR ec2:DescribeAddresses ,
+.BR ec2:DescribeInstances ,
+.BR route53:ChangeResourceRecordSets ,
+and
+.B route53:GetChange
+permissions.
+.SH EXAMPLES
+After filling in all variables, run:
+.PP
+.RS
+.EX
+./scripts/register-ec2-route53.sh
+.EE
+.RE
+.SH SEE ALSO
+.BR aws (1),
+.BR update-okd-permissions (1)

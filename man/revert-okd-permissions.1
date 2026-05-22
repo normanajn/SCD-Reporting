@@ -1,0 +1,53 @@
+.TH REVERT-OKD-PERMISSIONS 1 "2026-05-22" "SCD Reporting v0.1.0" "SCD Reporting"
+.SH NAME
+revert-okd-permissions \- restore standard file permissions in the Dockerfile after OKD patching
+.SH SYNOPSIS
+.B ./scripts/revert-okd-permissions.sh
+[\fIDOCKERFILE\fR]
+.SH DESCRIPTION
+.B revert-okd-permissions.sh
+is the inverse of
+.BR update-okd-permissions (1).
+It restores the Dockerfile to the standard (non-OpenShift) permission
+pattern where the runtime user owns
+.I /app
+outright:
+.PP
+.RS
+.IP \(bu 2
+Removes
+.B \-\-gid 0
+from the
+.B useradd
+call.
+.IP \(bu 2
+Replaces
+.B "chgrp -R 0 /app && chmod -R g=u /app"
+with
+.B "chown -R appuser:appuser /app"
+.RE
+.PP
+The script is idempotent: if the standard pattern is already present it
+exits without making changes.
+A timestamped backup is written to
+.B $TMPDIR
+before any modifications.
+.SH ARGUMENTS
+.TP
+.I DOCKERFILE
+Path to the Dockerfile to restore.
+.br
+Default:
+.B docker/web/Dockerfile
+(relative to the repository root).
+.SH EXAMPLES
+Restore the default Dockerfile:
+.PP
+.RS
+.EX
+./scripts/revert-okd-permissions.sh
+.EE
+.RE
+.SH SEE ALSO
+.BR update-okd-permissions (1),
+.BR build-docker (1)

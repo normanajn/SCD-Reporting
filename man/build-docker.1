@@ -1,0 +1,119 @@
+.TH BUILD-DOCKER 1 "2026-05-22" "SCD Reporting v0.1.0" "SCD Reporting"
+.SH NAME
+build-docker \- build multi-architecture Docker images for SCD Reporting
+.SH SYNOPSIS
+.B ./scripts/build-docker.sh
+[\fB\-r\fR \fIREPO\fR]
+[\fB\-t\fR \fITAG\fR]
+[\fB\-\-platforms\fR \fIPLATFORMS\fR]
+[\fB\-\-push\fR]
+[\fB\-\-load\fR]
+[\fB\-\-no\-cache\fR]
+.SH DESCRIPTION
+.B build-docker.sh
+builds the SCD Reporting web container image for multiple CPU
+architectures using
+.BR docker\ buildx .
+By default it targets both
+.B linux/amd64
+and
+.B linux/arm64
+so that the same image runs on x86 servers and Apple Silicon development
+machines without modification.
+.PP
+If the active buildx builder does not support multi-platform builds (the
+default builder typically does not), the script automatically creates and
+activates a builder named
+.B multiarch
+using the
+.B docker-container
+driver.
+.PP
+Git metadata (commit hash, commit date, and tag) is baked into the image
+via
+.BR ARG /\c
+.B ENV
+instructions in the Dockerfile so that the running container can report
+its own version.
+.PP
+When neither
+.B \-\-push
+nor
+.B \-\-load
+is specified the image is built and cached but not exported anywhere.
+This is useful for pre-validating a build in CI before a separate push step.
+.SH OPTIONS
+.TP
+.BI \-r " REPO"
+Docker image repository.
+.br
+Default:
+.B docker.io/normanajn/scd-reporting-web
+.TP
+.BI \-t " TAG"
+Image tag.
+Defaults to the git tag on HEAD (from
+.BR "git describe \-\-tags \-\-exact\-match" ),
+or
+.B latest
+if HEAD carries no tag.
+A versioned tag always also produces a
+.B :latest
+tag on the same manifest.
+.TP
+.BI \-\-platforms " PLATFORMS"
+Comma-separated list of
+.BR docker\ buildx
+platform specifiers.
+.br
+Default:
+.B linux/amd64,linux/arm64
+.TP
+.B \-\-push
+Push the built manifest to the registry after building.
+Mutually exclusive with
+.BR \-\-load .
+.TP
+.B \-\-load
+Load the image into the local Docker daemon.
+Only valid when a single platform is specified.
+Mutually exclusive with
+.BR \-\-push .
+.TP
+.B \-\-no\-cache
+Pass
+.B \-\-no\-cache
+to
+.BR docker\ buildx\ build ,
+forcing a full rebuild from scratch.
+.TP
+.B \-h
+Display usage information and exit.
+.SH EXAMPLES
+Build and push using the current git tag:
+.PP
+.RS
+.EX
+./scripts/build-docker.sh --push
+.EE
+.RE
+.PP
+Load an x86-only image into the local daemon for testing:
+.PP
+.RS
+.EX
+./scripts/build-docker.sh --platforms linux/amd64 --load
+.EE
+.RE
+.PP
+Push to a custom registry with an explicit tag:
+.PP
+.RS
+.EX
+./scripts/build-docker.sh -r ghcr.io/myorg/scd-reporting-web -t v1.0.0 --push
+.EE
+.RE
+.SH SEE ALSO
+.BR docker-buildx (1),
+.BR generate-helm-chart (1),
+.BR bootstrap (1)

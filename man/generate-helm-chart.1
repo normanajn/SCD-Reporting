@@ -1,0 +1,136 @@
+.TH GENERATE-HELM-CHART 1 "2026-05-22" "SCD Reporting v0.1.0" "SCD Reporting"
+.SH NAME
+generate-helm-chart \- generate a Helm chart from a Docker Compose file using kompose
+.SH SYNOPSIS
+.B ./scripts/generate-helm-chart.sh
+[\fB\-f\fR \fIFILE\fR]
+[\fB\-o\fR \fIDIR\fR]
+[\fB\-n\fR \fINAMESPACE\fR]
+[\fB\-r\fR \fIREPLICAS\fR]
+[\fB\-\-pvc\-size\fR \fISIZE\fR]
+.SH DESCRIPTION
+.B generate-helm-chart.sh
+converts a Docker Compose file into a Helm chart using
+.BR kompose (1)
+and then post-processes the result to correct known deficiencies in
+kompose output:
+.PP
+.RS
+.IP \(bu 2
+The chart name in
+.I Chart.yaml
+is set to a clean short name derived from the compose filename rather
+than the absolute output path that kompose uses.
+.IP \(bu 2
+A human-readable
+.B description
+and
+.B appVersion
+field are appended.
+.RE
+.PP
+The output directory is always removed and recreated so the chart is
+generated from scratch on every run.
+.PP
+If
+.BR helm (1)
+is installed,
+.B helm lint
+is run automatically on the generated chart.
+.PP
+Note: the generated chart uses kompose's raw output and does not apply
+the full Helm templating (values.yaml, helpers, Secret/ConfigMap split)
+that the committed charts under
+.I helm/
+provide.
+To regenerate those committed charts, run this script and then apply the
+templating by hand, or use it only when you need a quick scaffold from a
+new compose file.
+.SH OPTIONS
+.TP
+.BI \-f " FILE"
+Compose file to convert.
+.br
+Default:
+.B compose-simple.yaml
+.TP
+.BI \-o " DIR"
+Output directory for the generated chart.
+.br
+Default:
+.BI helm/ CHARTNAME
+where
+.I CHARTNAME
+is derived from the compose filename by stripping the
+.B compose-
+prefix and file extension.
+.TP
+.BI \-n " NAMESPACE"
+Kubernetes namespace embedded in generated resource manifests.
+.br
+Default:
+.B scd-reporting
+.TP
+.BI \-r " REPLICAS"
+Number of replicas to set in generated Deployment manifests.
+.br
+Default:
+.B 1
+.TP
+.BI \-\-pvc\-size " SIZE"
+Storage request size used for all generated PersistentVolumeClaims.
+.br
+Default:
+.B 1Gi
+.TP
+.B \-h
+Display usage information and exit.
+.SH DEPENDENCIES
+.TP
+.BR kompose (1)
+Required.
+Install with:
+.B brew install kompose
+.TP
+.BR helm (1)
+Optional.
+If present,
+.B helm lint
+is run on the output.
+Install with:
+.B brew install helm
+.SH EXAMPLES
+Generate the chart for the simple compose file (default):
+.PP
+.RS
+.EX
+./scripts/generate-helm-chart.sh
+.EE
+.RE
+.PP
+Generate the chart for the full compose file:
+.PP
+.RS
+.EX
+./scripts/generate-helm-chart.sh -f compose.yaml
+.EE
+.RE
+.PP
+Generate to a custom directory with larger PVCs:
+.PP
+.RS
+.EX
+./scripts/generate-helm-chart.sh -f compose.yaml -o /tmp/my-chart --pvc-size 20Gi
+.EE
+.RE
+.SH FILES
+.TP
+.I helm/simple/
+Templated Helm chart for the simple (SQLite, no Caddy) configuration.
+.TP
+.I helm/compose/
+Templated Helm chart for the full stack (PostgreSQL + Caddy).
+.SH SEE ALSO
+.BR kompose (1),
+.BR helm (1),
+.BR build-docker (1)

@@ -1,0 +1,62 @@
+.TH GENERATE-ARCHITECTURE-DIAGRAM 1 "2026-05-22" "SCD Reporting v0.1.0" "SCD Reporting"
+.SH NAME
+generate-architecture-diagram \- render the SCD Reporting application architecture as a PDF
+.SH SYNOPSIS
+.B python3 scripts/generate_architecture_diagram.py
+.SH DESCRIPTION
+.B generate_architecture_diagram.py
+produces an A3-landscape PDF diagram of the SCD Reporting application
+architecture using
+.BR reportlab .
+The diagram shows:
+.PP
+.RS
+.IP \(bu 2
+External services (browser, Fermilab SSO, Google OAuth, GitHub API,
+Anthropic API).
+.IP \(bu 2
+Docker Compose services (Caddy reverse proxy, Django/Gunicorn web
+container, PostgreSQL database) with internal component breakdowns.
+.IP \(bu 2
+Named Docker volumes (staticfiles, media, pgdata, caddy-data,
+caddy-config) and which services read or write each one.
+.IP \(bu 2
+Arrows indicating HTTP traffic, database connections, OAuth callbacks,
+API calls, and CI/CD image build flows.
+.IP \(bu 2
+A colour-coded legend distinguishing container-baked assets, shared
+volumes, databases, the reverse proxy, and external services.
+.RE
+.PP
+The output file is written to
+.I SCD-Reporting-Architecture.pdf
+in the repository root, overwriting any previous version.
+.SH DEPENDENCIES
+.TP
+.B reportlab
+Python PDF generation library.
+Install with:
+.B pip install reportlab
+.SH FILES
+.TP
+.I SCD-Reporting-Architecture.pdf
+Output file written to the repository root.
+.SH EXAMPLES
+Regenerate the architecture diagram:
+.PP
+.RS
+.EX
+python3 scripts/generate_architecture_diagram.py
+.EE
+.RE
+.PP
+Or from within an activated virtual environment:
+.PP
+.RS
+.EX
+source .venv/bin/activate
+python scripts/generate_architecture_diagram.py
+.EE
+.RE
+.SH SEE ALSO
+.BR bootstrap (1)
