@@ -13,7 +13,6 @@ data:
   SCD_DISABLE_LOCAL_SIGNUP: {{ .Values.django.disableLocalSignup | quote }}
   SCD_INITIAL_ADMIN_USERNAME: {{ .Values.django.initialAdminUsername | quote }}
   SCD_INITIAL_ADMIN_EMAIL: {{ .Values.django.initialAdminEmail | quote }}
-  DATABASE_URL: {{ include "scd-reporting.databaseUrl" . | quote }}
   POSTGRES_DB: {{ .Values.db.name | quote }}
   POSTGRES_USER: {{ .Values.db.user | quote }}
   GUNICORN_WORKERS: {{ .Values.gunicorn.workers | quote }}

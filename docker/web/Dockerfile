@@ -50,7 +50,7 @@ COPY --from=css-builder /app/theme/static/css/dist/styles.css \
 
 # Create a non-root runtime user
 RUN useradd --uid 1001 --gid 0 --no-create-home --shell /bin/false appuser \
-    && mkdir -p staticfiles media \
+    && mkdir -p staticfiles media data \
     && chgrp -R 0 /app \
     && chmod -R g=u /app \
     && chmod +x /app/docker/web/entrypoint.sh

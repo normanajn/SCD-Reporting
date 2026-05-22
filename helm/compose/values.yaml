@@ -4,7 +4,7 @@
 # ── Web (Django + Gunicorn) ────────────────────────────────────────────────────
 web:
   image:
-    repository: scd-reporting
+    repository: docker.io/normanajn/scd-reporting-web
     tag: latest
     pullPolicy: IfNotPresent
   replicaCount: 1

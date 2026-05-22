@@ -3,7 +3,7 @@ name: scd-reporting
 description: SCD Reporting – full stack (PostgreSQL + Caddy reverse proxy)
 type: application
 version: 0.1.0
-appVersion: "latest"
+appVersion: "0.1.0"
 keywords:
   - scd-reporting
   - django

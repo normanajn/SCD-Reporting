@@ -2,7 +2,7 @@
 # Override with:  helm install ... -f my-values.yaml  or  --set key=value
 
 image:
-  repository: scd-reporting
+  repository: docker.io/normanajn/scd-reporting-web
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -22,14 +22,14 @@ pvc:
 django:
   settingsModule: scd_reporting.settings.dev
   # REQUIRED – set to a long random string in production
-  secretKey: "change-me-50-chars-minimum-random-string-here"
+  secretKey: "V2CSywJLIpeukkIm0FqoUzNal8RA3EM0Q1sVyzbefQGdAOjmAiz13myVIMfWgIjBhIw"
   allowedHosts: "localhost,127.0.0.1"
   emailVerification: optional   # none | optional | mandatory
   disableLocalSignup: "0"
   initialAdminUsername: scd-admin
   initialAdminEmail: admin@example.com
   # REQUIRED – change before first deploy
-  initialAdminPassword: "change-me"
+  initialAdminPassword: "neutrino"
 
 # ── Database ───────────────────────────────────────────────────────────────────
 database:
