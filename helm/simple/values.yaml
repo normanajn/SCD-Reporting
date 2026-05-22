@@ -12,6 +12,12 @@ service:
   type: ClusterIP
   port: 8000
 
+# ── OKD Route ─────────────────────────────────────────────────────────────────
+route:
+  # Set to the public hostname to create an OKD Route with TLS edge termination.
+  # Leave empty to skip Route creation.
+  hostname: ""
+
 pvc:
   sqliteData:
     size: 1Gi
@@ -27,7 +33,7 @@ django:
   emailVerification: optional   # none | optional | mandatory
   disableLocalSignup: "0"
   initialAdminUsername: scd-admin
-  initialAdminEmail: admin@example.com
+  initialAdminEmail: scd-admin@fnal.gov
   # REQUIRED – change before first deploy
   initialAdminPassword: "neutrino"
 

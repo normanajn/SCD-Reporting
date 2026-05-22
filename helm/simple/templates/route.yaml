@@ -1,0 +1,20 @@
+{{- if .Values.route.hostname }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: web
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "scd-reporting-simple.labels" . | nindent 4 }}
+spec:
+  host: {{ .Values.route.hostname }}
+  to:
+    kind: Service
+    name: web
+    weight: 100
+  port:
+    targetPort: 8000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}

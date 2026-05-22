@@ -7,6 +7,9 @@ python manage.py migrate --noinput
 echo "[entrypoint] Collecting static files..."
 python manage.py collectstatic --noinput --clear
 
+echo "[entrypoint] Seeding taxonomy..."
+python manage.py seed_taxonomy
+
 echo "[entrypoint] Seeding initial admin account..."
 python manage.py seed_admin
 
