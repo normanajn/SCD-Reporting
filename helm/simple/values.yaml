@@ -4,7 +4,7 @@
 image:
   repository: docker.io/normanajn/scd-reporting-web
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 replicaCount: 1
 
