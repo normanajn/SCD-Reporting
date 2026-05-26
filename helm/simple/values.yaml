@@ -23,6 +23,9 @@ certManager:
   enabled: false
   clusterIssuer: incommon-acme
   secretName: scd-reporting-tls
+  # Set to true only after the Certificate has been issued and the secret exists.
+  # This wires the secret into the Route and grants the OKD router RBAC access.
+  externalCertificate: false
 
 pvc:
   sqliteData:
