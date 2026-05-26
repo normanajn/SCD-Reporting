@@ -51,3 +51,7 @@ htmlcov/
 .scd-reporting.pid
 .scd-tailwind.pid
 logs/
+
+# Local Helm overrides (contain secrets — never commit)
+my-values.yaml
+*-my-values.yaml

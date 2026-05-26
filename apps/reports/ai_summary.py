@@ -45,7 +45,8 @@ def generate(qs, user=None) -> str:
 
     config = AIPromptConfig.for_user(user) if user is not None else AIPromptConfig.get_solo()
     model = getattr(settings, 'ANTHROPIC_SUMMARY_MODEL', 'claude-sonnet-4-6')
-    client = anthropic.Anthropic(api_key=api_key)
+    base_url = getattr(settings, 'ANTHROPIC_BASE_URL', '') or None
+    client = anthropic.Anthropic(api_key=api_key, **({"base_url": base_url} if base_url else {}))
     message = client.messages.create(
         model=model,
         max_tokens=2048,
