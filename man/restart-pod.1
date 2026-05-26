@@ -1,0 +1,65 @@
+.TH RESTART-POD 1 "2026-05-26" "SCD Reporting v0.2.0" "SCD Reporting"
+.SH NAME
+restart-pod \- restart the SCD Reporting web pod in OKD and wait for readiness
+.SH SYNOPSIS
+.B ./scripts/restart-pod.sh
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B restart-pod.sh
+performs a rolling restart of the
+.B web
+Deployment in the specified OKD namespace and blocks until the new pod
+reaches the
+.B Ready
+state.
+.PP
+This is useful after patching a Secret directly (e.g. updating
+.BR ANTHROPIC_API_KEY
+via
+.BR "oc set data" )
+or after pushing a new image to Docker Hub with the
+.B :latest
+tag, when a Helm upgrade is not required.
+.SH OPTIONS
+.TP
+.BI \-n " NAMESPACE"
+OKD namespace containing the Deployment.
+.br
+Default:
+.B scd-reporting
+.TP
+.BI \-t " TIMEOUT"
+Number of seconds to wait for the pod to become ready before giving up.
+.br
+Default:
+.B 120
+.TP
+.B \-h
+Show a short help message and exit.
+.SH EXAMPLES
+Restart the pod in the default namespace:
+.PP
+.RS
+.EX
+./scripts/restart-pod.sh
+.EE
+.RE
+.PP
+Restart in a different namespace:
+.PP
+.RS
+.EX
+./scripts/restart-pod.sh -n my-namespace
+.EE
+.RE
+.PP
+Restart with a longer readiness timeout:
+.PP
+.RS
+.EX
+./scripts/restart-pod.sh -t 180
+.EE
+.RE
+.SH SEE ALSO
+.BR build-docker (1),
+.BR oc (1)
