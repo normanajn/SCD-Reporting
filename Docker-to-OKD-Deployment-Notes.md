@@ -227,18 +227,82 @@ oc logs deployment/web -n scd-reporting --tail=50
 
 ### cert-manager TLS certificate
 
-The Helm chart includes a `cert-manager.io/v1 Certificate` resource (enabled via
-`certManager.enabled=true`) that requests a certificate from the `incommon-acme`
-`ClusterIssuer` and stores it in the `scd-reporting-tls` secret. The OKD Route
-references this secret via `spec.tls.externalCertificate`.
+The Helm chart manages a `cert-manager.io/v1 Certificate` resource that requests a
+signed certificate from the `incommon-acme` `ClusterIssuer` and stores it in the
+`scd-reporting-tls` secret. The OKD Route references this secret via
+`spec.tls.externalCertificate`, and a `Role`/`RoleBinding` grants the OKD router
+serviceaccount permission to read it.
 
-**Prerequisite:** A cluster admin must configure the OPA policy to permit the
-`scd-reporting` namespace to request certificates for `scd-reporting.fnal.gov`.
-Check how other namespaces with certificates are annotated:
+#### Prerequisites
+
+A cluster admin must configure the OPA admission policy to permit the `scd-reporting`
+namespace to request certificates for `scd-reporting.fnal.gov` before this will work.
+Without that permission the `Certificate` resource will be rejected at apply time.
+
+#### First-time certificate setup (two-step process)
+
+Because the Route cannot reference a secret that does not yet exist, the certificate
+must be issued before wiring it into the Route.
+
+**Step 1** — create the `Certificate` resource and wait for it to be issued:
 
 ```bash
-oc get namespace <working-namespace> -o yaml | grep -A10 "annotations:"
+helm upgrade scd-reporting ./helm/simple -n scd-reporting \
+  -f /path/to/my-values.yaml \
+  --set certManager.enabled=true \
+  --set certManager.externalCertificate=false
 ```
+
+Watch cert-manager issue the certificate (takes ~30–60 seconds):
+
+```bash
+oc get certificate -n scd-reporting -w
+# Wait until READY = True
+```
+
+**Step 2** — wire the issued secret into the Route and grant the router RBAC:
+
+```bash
+helm upgrade scd-reporting ./helm/simple -n scd-reporting \
+  -f /path/to/my-values.yaml \
+  --set certManager.enabled=true \
+  --set certManager.externalCertificate=true
+```
+
+Verify the Route is using the certificate:
+
+```bash
+oc get route web -n scd-reporting -o jsonpath='{.spec.tls}' | python3 -m json.tool
+# Should show: "externalCertificate": {"name": "scd-reporting-tls"}
+```
+
+#### Subsequent upgrades
+
+Once the certificate and RBAC are in place, pass both flags on every future upgrade:
+
+```bash
+--set certManager.enabled=true --set certManager.externalCertificate=true
+```
+
+Or add both to `my-values.yaml`:
+
+```yaml
+certManager:
+  enabled: true
+  externalCertificate: true
+```
+
+cert-manager automatically renews the certificate before expiry — no manual
+intervention required.
+
+#### Helm values reference
+
+| Value | Default | Description |
+|---|---|---|
+| `certManager.enabled` | `false` | Create the `Certificate` resource |
+| `certManager.clusterIssuer` | `incommon-acme` | Name of the `ClusterIssuer` |
+| `certManager.secretName` | `scd-reporting-tls` | Secret cert-manager writes the cert into |
+| `certManager.externalCertificate` | `false` | Wire the secret into the Route and create router RBAC |
 
 ---
 
