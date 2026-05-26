@@ -30,7 +30,7 @@ A Django web application for Fermilab Scientific Computing Division employees to
 - **Audit log** — WorkItem create/update/delete events, login/logout events, and report exports (including AI summaries) are recorded with actor, IP address, user-agent, and field-level diffs for tracked WorkItem fields
 - **Taxonomy management** — projects, categories, and organisational groups are managed through a tabbed web UI (Admin role required); groups can be assigned to entries to associate work with a team or division
 - **User management** — administrators can create accounts, assign roles, reset passwords, and delete users directly from the web interface
-- **SSO-ready** — local email/password auth via django-allauth; a seam exists for CILogon integration when required
+- **SSO** — local email/password auth via django-allauth; optional OIDC single sign-on (Fermilab Keycloak / CILogon); the SSO button appears only when the OIDC credentials are configured
 
 ---
 
@@ -62,7 +62,7 @@ Each app is independently namespaced and has its own URLs, templates, and tests.
 | XLSX export | openpyxl |
 | AI summary | Anthropic Python SDK (claude-sonnet-4-6 by default) |
 | Filtering | django-filter |
-| Container | Docker + Caddy (reverse proxy + automatic TLS) |
+| Container | Docker + Caddy (local/VM), Docker + OKD/Helm (Fermilab cluster) |
 | Tests | pytest-django |
 
 ---
@@ -161,6 +161,15 @@ export ANTHROPIC_SUMMARY_MODEL=claude-haiku-4-5-20251001   # faster / cheaper
 ```
 
 The default is `claude-sonnet-4-6`.
+
+To route requests through a custom endpoint (e.g. a LiteLLM proxy):
+
+```bash
+export ANTHROPIC_BASE_URL=https://litellm.example.org
+export ANTHROPIC_SUMMARY_MODEL=azure/claude-sonnet-4-6
+```
+
+Leave `ANTHROPIC_BASE_URL` unset to use the standard Anthropic API endpoint.
 
 ---
 
@@ -268,7 +277,8 @@ All variables are loaded via `.env` in Docker Compose. For local development, ex
 | `SCD_DISABLE_LOCAL_SIGNUP` | `0` | Set to `1` to block new local accounts (for SSO-only deployments) |
 | `ACCOUNT_EMAIL_VERIFICATION` | `optional` | allauth email verification mode: `none`, `optional`, or `mandatory` |
 | `ANTHROPIC_API_KEY` | *(empty)* | API key for the Anthropic AI summary feature. Required to use AI Summary; the feature is silently disabled if unset. Obtain from [console.anthropic.com](https://console.anthropic.com). |
-| `ANTHROPIC_SUMMARY_MODEL` | `claude-sonnet-4-6` | Anthropic model used for report summaries. Override to use a different model (e.g. `claude-haiku-4-5-20251001` for faster/cheaper generation). |
+| `ANTHROPIC_SUMMARY_MODEL` | `claude-sonnet-4-6` | Anthropic model used for report summaries. Override to use a different model (e.g. `claude-haiku-4-5-20251001` for faster/cheaper generation). LiteLLM model strings (e.g. `azure/claude-sonnet-4-6`) are also accepted when `ANTHROPIC_BASE_URL` is set. |
+| `ANTHROPIC_BASE_URL` | *(empty)* | Custom API base URL. Use this to route requests through a LiteLLM proxy or other Anthropic-compatible gateway. Leave unset to use the standard `api.anthropic.com` endpoint. |
 
 ---
 

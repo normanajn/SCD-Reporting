@@ -15,6 +15,7 @@ via an external OpenID Connect (OIDC) identity provider, such as Keycloak or CIL
 - [Step 4 — Start the server with SSO enabled](#step-4--start-the-server-with-sso-enabled)
 - [Step 5 — Verify the login page](#step-5--verify-the-login-page)
 - [Step 6 — Disable local signup (optional)](#step-6--disable-local-signup-optional)
+- [OKD / Helm deployment](#okd--helm-deployment)
 - [Docker Compose deployment](#docker-compose-deployment)
 - [Claim mapping](#claim-mapping)
 - [Troubleshooting](#troubleshooting)
@@ -217,6 +218,39 @@ local accounts is blocked.
 
 The self-serve signup toggle in the Admin Users page (`/admin-users/`) is also
 overridden when this variable is set to `1`.
+
+---
+
+## OKD / Helm deployment
+
+Add the OIDC values to your local `my-values.yaml` override file (never in `values.yaml`):
+
+```yaml
+# my-values.yaml
+oidc:
+  providerUrl: "https://kc.apps.okddev.fnal.gov/realms/myrealm/.well-known/openid-configuration"
+  clientId: "scd-report-summarizer"
+  clientSecret: "your-client-secret"
+```
+
+Then upgrade:
+
+```bash
+helm upgrade scd-reporting ./helm/simple -n scd-reporting -f my-values.yaml
+```
+
+The secret is stored in the `scd-reporting-secret` Kubernetes `Secret` object and
+injected into the pod as `OIDC_CLIENT_SECRET`. A pod restart is not required — Helm
+applies the Secret update and the next pod start picks it up automatically.
+
+If the pod is already running and you want to update the secret without a full
+Helm upgrade, patch it directly:
+
+```bash
+oc set data secret/scd-reporting-secret -n scd-reporting \
+  OIDC_CLIENT_SECRET="your-client-secret"
+./scripts/restart-pod.sh
+```
 
 ---
 
