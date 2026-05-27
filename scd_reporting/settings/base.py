@@ -147,6 +147,11 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 # SSO seam — flip to '1' to disable local signup once OIDC is configured
 SCD_DISABLE_LOCAL_SIGNUP = os.environ.get('SCD_DISABLE_LOCAL_SIGNUP', '0') == '1'
 
+# Show email/password form on the login page. Off by default so production
+# deployments that use SSO exclusively don't expose the local login form.
+# Override to True in dev.py or via LOCAL_LOGIN_ENABLED=1 env var.
+LOCAL_LOGIN_ENABLED = os.environ.get('LOCAL_LOGIN_ENABLED', '0') == '1'
+
 ACCOUNT_ADAPTER = 'apps.accounts.adapters.AccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'apps.accounts.adapters.SocialAccountAdapter'
 

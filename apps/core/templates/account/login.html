@@ -11,6 +11,7 @@
       <h1 class="text-2xl font-bold text-slate-900 mb-1">Sign in</h1>
       <p class="text-sm text-slate-500 mb-6">SCD Activity Reporting</p>
 
+      {% if LOCAL_LOGIN_ENABLED %}
       <form method="post" action="{% url 'account_login' %}">
         {% csrf_token %}
         {% if redirect_field_value %}
@@ -26,6 +27,7 @@
           Sign in
         </button>
       </form>
+      {% endif %}
 
       {% if PASSKEY_LOGIN_ENABLED or OIDC_ENABLED or GOOGLE_ENABLED %}
       <div class="relative my-5">
@@ -77,6 +79,7 @@
       {% endif %}
       {% endif %}
 
+      {% if LOCAL_LOGIN_ENABLED %}
       <div class="mt-5 space-y-2 text-center text-sm text-slate-500">
         <p>
           <a href="{% url 'account_reset_password' %}"
@@ -89,6 +92,7 @@
         </p>
         {% endif %}
       </div>
+      {% endif %}
     </div>
   </div>
 

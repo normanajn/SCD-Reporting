@@ -10,6 +10,7 @@ def site_settings(request):
     user = request.user
     return {
         'ACCOUNT_ALLOW_SIGNUPS': s.allow_signup,
+        'LOCAL_LOGIN_ENABLED': getattr(django_settings, 'LOCAL_LOGIN_ENABLED', False),
         'OIDC_ENABLED': getattr(django_settings, 'OIDC_ENABLED', False),
         'GOOGLE_ENABLED': getattr(django_settings, 'GOOGLE_ENABLED', False),
         'PASSKEY_LOGIN_ENABLED': mfa_settings.PASSKEY_LOGIN_ENABLED,
