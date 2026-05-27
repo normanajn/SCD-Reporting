@@ -1,3 +1,5 @@
+import shlex
+
 import django_filters
 from django.db.models import Q
 
@@ -53,7 +55,48 @@ class WorkItemFilter(django_filters.FilterSet):
     )
 
     def filter_search(self, queryset, name, value):
-        return queryset.filter(Q(title__icontains=value) | Q(description__icontains=value))
+        try:
+            tokens = shlex.split(value)
+        except ValueError:
+            tokens = value.split()
+
+        OPERATORS = {'AND', 'OR', 'XOR'}
+
+        # Normalise token list: insert default OR between consecutive non-operator tokens.
+        # Result is always [term, OP, term, OP, ...].
+        normalized = []
+        prev_was_term = False
+        for token in tokens:
+            if token.upper() in OPERATORS:
+                if prev_was_term:
+                    normalized.append(token.upper())
+                    prev_was_term = False
+            else:
+                if prev_was_term:
+                    normalized.append('OR')
+                normalized.append(token)
+                prev_was_term = True
+
+        if not normalized:
+            return queryset
+
+        def term_q(t):
+            return Q(title__icontains=t) | Q(description__icontains=t)
+
+        result = term_q(normalized[0])
+        i = 1
+        while i < len(normalized) - 1:
+            op = normalized[i]
+            next_q = term_q(normalized[i + 1])
+            if op == 'AND':
+                result = result & next_q
+            elif op == 'XOR':
+                result = (result | next_q) & ~(result & next_q)
+            else:  # OR
+                result = result | next_q
+            i += 2
+
+        return queryset.filter(result)
 
     def filter_exclude_private(self, queryset, name, value):
         if value:

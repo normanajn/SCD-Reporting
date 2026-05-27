@@ -15,11 +15,60 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
         {# Full-text search #}
-        <div class="sm:col-span-2 lg:col-span-3">
-          <label class="block text-xs font-medium text-slate-500 mb-1">Search title &amp; description</label>
+        <div class="sm:col-span-2 lg:col-span-3 relative">
+          <div class="flex items-center gap-1 mb-1">
+            <label class="text-xs font-medium text-slate-500">Search title &amp; description</label>
+            <button type="button" id="search-help-btn"
+                    class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-500 text-xs font-bold leading-none transition-colors"
+                    aria-label="Search syntax help">?</button>
+          </div>
+
+          <div id="search-help-panel"
+               class="hidden absolute z-10 top-full left-0 mt-1 w-full max-w-lg bg-white border border-slate-200 rounded-lg shadow-lg p-4 text-xs text-slate-700 space-y-3">
+            <p class="font-semibold text-slate-800 text-sm">Search syntax</p>
+
+            <p>Terms are matched against entry <strong>title</strong> and <strong>description</strong>. Separate terms with spaces or explicit operators.</p>
+
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="text-left text-slate-500 border-b border-slate-100">
+                  <th class="pr-4 pb-1 font-medium">Syntax</th>
+                  <th class="pb-1 font-medium">Behaviour</th>
+                </tr>
+              </thead>
+              <tbody class="space-y-1">
+                <tr class="border-b border-slate-50">
+                  <td class="pr-4 py-1 font-mono">term1 term2</td>
+                  <td class="py-1">OR — entries matching <em>either</em> term</td>
+                </tr>
+                <tr class="border-b border-slate-50">
+                  <td class="pr-4 py-1 font-mono">term1 AND term2</td>
+                  <td class="py-1">AND — entries matching <em>both</em> terms</td>
+                </tr>
+                <tr class="border-b border-slate-50">
+                  <td class="pr-4 py-1 font-mono">term1 XOR term2</td>
+                  <td class="py-1">XOR — entries matching <em>one but not both</em> terms</td>
+                </tr>
+                <tr>
+                  <td class="pr-4 py-1 font-mono">"dark matter"</td>
+                  <td class="py-1">Quotes group words into a single phrase</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="space-y-1 text-slate-500">
+              <p class="font-medium text-slate-600">Examples</p>
+              <p><span class="font-mono bg-slate-100 px-1 rounded">neutrino muon</span> — either word</p>
+              <p><span class="font-mono bg-slate-100 px-1 rounded">neutrino AND muon</span> — both words</p>
+              <p><span class="font-mono bg-slate-100 px-1 rounded">"dark matter" AND tau</span> — phrase and word</p>
+              <p><span class="font-mono bg-slate-100 px-1 rounded">upgrade XOR maintenance</span> — one or the other, not both</p>
+              <p><span class="font-mono bg-slate-100 px-1 rounded">alpha AND beta OR gamma</span> — evaluated left to right</p>
+            </div>
+          </div>
+
           <input type="text" name="search"
                  value="{{ filter.form.search.value|default:'' }}"
-                 placeholder="keyword search across title and description…"
+                 placeholder='neutrino muon  /  neutrino AND muon  /  "dark matter" XOR tau'
                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
         </div>
@@ -200,7 +249,7 @@
 
       {# Actions row #}
       <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
-        <button type="button"
+        <button type="button" id="preview-btn"
                 hx-post="{% url 'reports:preview' %}"
                 hx-include="#report-form"
                 hx-target="#report-preview"
@@ -325,6 +374,27 @@
     afterInput.value  = '';
     beforeInput.value = '';
   });
+
+  document.getElementById('report-form').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+      document.getElementById('preview-btn').click();
+    }
+  });
+
+  (function () {
+    var btn   = document.getElementById('search-help-btn');
+    var panel = document.getElementById('search-help-panel');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      panel.classList.toggle('hidden');
+    });
+    document.addEventListener('click', function (e) {
+      if (!panel.contains(e.target) && e.target !== btn) {
+        panel.classList.add('hidden');
+      }
+    });
+  })();
 })();
 </script>
 {% endblock %}
