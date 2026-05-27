@@ -55,3 +55,6 @@ logs/
 # Local Helm overrides (contain secrets — never commit)
 my-values.yaml
 *-my-values.yaml
+
+# Exported conversation transcripts (may contain secrets)
+*-transcript.md
