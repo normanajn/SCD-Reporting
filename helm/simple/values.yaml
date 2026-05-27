@@ -71,6 +71,9 @@ email:
   defaultFrom: "noreply@localhost"
 
 # ── Google OAuth (optional) ────────────────────────────────────────────────────
+github:
+  token: ""
+
 google:
   clientId: ""
   clientSecret: ""
