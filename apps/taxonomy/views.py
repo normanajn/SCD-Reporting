@@ -9,7 +9,7 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import UpdateView
 
-from apps.accounts.permissions import AdminRequiredMixin
+from apps.accounts.permissions import TaxonomyEditorRequiredMixin as AdminRequiredMixin
 
 from .forms import CategoryForm, LabPriorityForm, ProjectForm, WorkGroupForm
 from .models import Category, LabPriority, Project, Tag, WorkGroup

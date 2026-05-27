@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import F
+from django.db.models import F, Q
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -82,8 +82,13 @@ class EntryDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         qs = WorkItem.objects.prefetch_related('tags')
-        if not self.request.user.is_auditor:
-            qs = qs.filter(author=self.request.user)
+        user = self.request.user
+        if user.is_scd_admin or user.is_division_head:
+            pass  # full access including division-head-only entries
+        elif user.is_auditor:
+            qs = qs.filter(Q(is_division_head_only=False) | Q(author=user))
+        else:
+            qs = qs.filter(author=user)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -187,6 +192,9 @@ class EntryManageView(EntryManagerRequiredMixin, ListView):
         qs = (WorkItem.objects
               .select_related('author', 'project', 'category')
               .prefetch_related('tags'))
+        user = self.request.user
+        if not (user.is_scd_admin or user.is_division_head):
+            qs = qs.filter(is_division_head_only=False)
         q = self.request.GET.get('q', '').strip()
         if q:
             qs = qs.filter(title__icontains=q)

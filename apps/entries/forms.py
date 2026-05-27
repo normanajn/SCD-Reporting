@@ -15,6 +15,7 @@ class WorkItemForm(forms.ModelForm):
             'title', 'project', 'category', 'group', 'lab_priority',
             'period_kind', 'period_start', 'period_end',
             'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
+            'is_division_head_only',
         ]
         widgets = {
             'period_kind':    forms.HiddenInput(),

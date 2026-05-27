@@ -48,10 +48,11 @@ class WorkItem(models.Model):
     )
     period_start = models.DateField(db_index=True)
     period_end   = models.DateField(db_index=True)
-    is_private   = models.BooleanField(default=False, db_index=True)
-    is_critical  = models.BooleanField(default=False, db_index=True)
-    is_highlight = models.BooleanField(default=False, db_index=True)
-    is_archived  = models.BooleanField(default=False, db_index=True)
+    is_private            = models.BooleanField(default=False, db_index=True)
+    is_critical           = models.BooleanField(default=False, db_index=True)
+    is_highlight          = models.BooleanField(default=False, db_index=True)
+    is_archived           = models.BooleanField(default=False, db_index=True)
+    is_division_head_only = models.BooleanField(default=False, db_index=True)
     highlight_stars = models.PositiveSmallIntegerField(
         default=0,
         validators=[MaxValueValidator(5)],

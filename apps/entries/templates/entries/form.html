@@ -237,6 +237,18 @@
           </span>
         </label>
 
+        {# Division Head Eyes Only #}
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <input type="checkbox" name="is_division_head_only" id="{{ form.is_division_head_only.id_for_label }}"
+                 {% if form.is_division_head_only.value %}checked{% endif %}
+                 class="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500">
+          <span class="text-sm text-slate-700">
+            <span class="font-medium">Division Head Eyes Only</span>
+            <span class="text-slate-400 ml-1 underline decoration-dotted cursor-help"
+                  title="Selecting this will limit this entry to being viewed ONLY by the Division Head.">— restricted visibility</span>
+          </span>
+        </label>
+
         {# Highlight + stars #}
         <div class="flex items-center gap-4 flex-wrap">
           <label class="flex items-center gap-3 cursor-pointer select-none">

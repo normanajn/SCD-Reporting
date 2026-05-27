@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -38,12 +39,14 @@ def _get_project_scope(user):
     return None
 
 
-def _filtered_qs(data, group_scope=None, project_scope=None):
+def _filtered_qs(data, group_scope=None, project_scope=None, user=None):
     qs = WorkItem.objects.select_related('author', 'project', 'category').prefetch_related('tags')
     if group_scope is not None:
-        qs = qs.filter(author__group__in=group_scope)
+        qs = qs.filter(Q(author__group__in=group_scope) | Q(group__in=group_scope))
     if project_scope is not None:
         qs = qs.filter(project__in=project_scope)
+    if user is not None and not (user.is_scd_admin or user.is_division_head):
+        qs = qs.filter(is_division_head_only=False)
     show_archived = data.get('show_archived') == '1'
     if show_archived:
         qs = qs.filter(is_archived=True)
@@ -69,7 +72,7 @@ class ReportPreviewView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
         group_scope   = _get_group_scope(request.user)
         project_scope = _get_project_scope(request.user)
-        f, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope)
+        f, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope, user=request.user)
         total = qs.count()
         rows  = qs[:PREVIEW_LIMIT]
         return render(request, 'reports/partials/_preview.html', {
@@ -88,7 +91,7 @@ class ReportDownloadView(AuditorOrAdminRequiredMixin, View):
             return HttpResponseBadRequest(f'Unknown format: {fmt}')
         group_scope   = _get_group_scope(request.user)
         project_scope = _get_project_scope(request.user)
-        _, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope)
+        _, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope, user=request.user)
         selected_ids = request.POST.getlist('selected_ids')
         if selected_ids:
             qs = qs.filter(pk__in=selected_ids)
@@ -105,7 +108,7 @@ class ReportSummaryView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
         group_scope   = _get_group_scope(request.user)
         project_scope = _get_project_scope(request.user)
-        _, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope)
+        _, qs = _filtered_qs(request.POST, group_scope=group_scope, project_scope=project_scope, user=request.user)
         selected_ids = request.POST.getlist('selected_ids')
         if selected_ids:
             qs = qs.filter(pk__in=selected_ids)

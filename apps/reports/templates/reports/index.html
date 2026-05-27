@@ -14,6 +14,16 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
+        {# Full-text search #}
+        <div class="sm:col-span-2 lg:col-span-3">
+          <label class="block text-xs font-medium text-slate-500 mb-1">Search title &amp; description</label>
+          <input type="text" name="search"
+                 value="{{ filter.form.search.value|default:'' }}"
+                 placeholder="keyword search across title and description…"
+                 class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                        focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+        </div>
+
         {# Author email #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Author email</label>

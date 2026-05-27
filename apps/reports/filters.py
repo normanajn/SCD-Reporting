@@ -1,10 +1,15 @@
 import django_filters
+from django.db.models import Q
 
 from apps.entries.models import WorkItem
 from apps.taxonomy.models import Category, LabPriority, Project, WorkGroup
 
 
 class WorkItemFilter(django_filters.FilterSet):
+    search = django_filters.CharFilter(
+        method='filter_search',
+        label='Search',
+    )
     author_email = django_filters.CharFilter(
         field_name='author__email',
         lookup_expr='icontains',
@@ -46,6 +51,9 @@ class WorkItemFilter(django_filters.FilterSet):
         method='filter_exclude_private',
         label='Exclude private',
     )
+
+    def filter_search(self, queryset, name, value):
+        return queryset.filter(Q(title__icontains=value) | Q(description__icontains=value))
 
     def filter_exclude_private(self, queryset, name, value):
         if value:
