@@ -2,7 +2,7 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = True
 
-LOCAL_LOGIN_ENABLED = True
+LOCAL_LOGIN_ENABLED = os.environ.get('LOCAL_LOGIN_ENABLED', '1') == '1'
 
 MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = True
 
