@@ -132,7 +132,7 @@ class DashboardPromptConfigView(LoginRequiredMixin, View):
         return redirect('dashboard')
 
 
-class AboutView(LoginRequiredMixin, TemplateView):
+class AboutView(TemplateView):
     template_name = 'core/about.html'
 
     def get_context_data(self, **kwargs):

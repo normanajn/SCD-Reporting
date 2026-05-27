@@ -21,11 +21,18 @@
 
     <div class="px-6 py-5 space-y-4 text-sm text-slate-700">
       <p>
-        SCD Activity Reporting is an internal tool for tracking and summarizing
-        effort across SCD projects, milestones, and performance goals. It supports
-        individual work-item logging, group-level reporting, AI-assisted summaries,
-        and data export.
+        SCD Activity Reporting is a web application developed by staff at
+        <strong>Fermi National Accelerator Laboratory</strong> (Fermilab) for use by the
+        Scientific Computing Division. It provides a structured way for SCD personnel to
+        log weekly effort entries against projects, categories, and performance goals, and
+        allows administrators and group leaders to filter, review, export, and summarize
+        that activity using both standard reports and AI-assisted narrative summaries.
       </p>
+
+      <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-amber-800 text-sm">
+        <strong>Internal use only.</strong> This application is intended exclusively for
+        Fermilab SCD staff. Unauthorized access or use is prohibited.
+      </div>
 
       <div class="grid grid-cols-2 gap-x-8 gap-y-2 pt-2 text-sm">
         {% if git.tag %}
@@ -38,31 +45,35 @@
 
         <div class="text-slate-500 font-medium">Source</div>
         <div>
-          <a href="https://github.com/normanajn/SCD-Reporting"
+          <a href="https://github.com/fermitools/SCD-Reporting"
              class="text-scd-primary hover:underline" target="_blank" rel="noopener">
-            github.com/normanajn/SCD-Reporting
+            github.com/fermitools/SCD-Reporting
           </a>
         </div>
 
         <div class="text-slate-500 font-medium">Stack</div>
         <div class="text-slate-700">Django · HTMX · Tailwind CSS · SQLite</div>
 
-        <div class="text-slate-500 font-medium">Contact</div>
+        <div class="text-slate-500 font-medium">Developed by</div>
         <div>
-          <a href="mailto:anorman@fnal.gov" class="text-scd-primary hover:underline">
-            anorman@fnal.gov
-          </a>
+          Fermilab Scientific Computing Division
         </div>
       </div>
     </div>
 
     <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-4 text-sm">
+      {% if user.is_authenticated %}
       <a href="{% url 'dashboard' %}" class="text-slate-400 hover:text-slate-600">
         &larr; Back to dashboard
       </a>
       <a href="{% url 'bug-report' %}" class="text-scd-primary hover:underline">
         Report a bug
       </a>
+      {% else %}
+      <a href="{% url 'account_login' %}" class="text-scd-primary hover:underline">
+        &larr; Back to login
+      </a>
+      {% endif %}
     </div>
 
   </div>
