@@ -41,6 +41,7 @@ django:
   allowedHosts: "localhost,127.0.0.1"
   emailVerification: optional   # none | optional | mandatory
   disableLocalSignup: "0"
+  localLoginEnabled: "0"
   initialAdminUsername: scd-admin
   initialAdminEmail: scd-admin@fnal.gov
   # REQUIRED – change before first deploy

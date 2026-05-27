@@ -13,6 +13,7 @@ data:
   {{- end }}
   ACCOUNT_EMAIL_VERIFICATION: {{ .Values.django.emailVerification | quote }}
   SCD_DISABLE_LOCAL_SIGNUP: {{ .Values.django.disableLocalSignup | quote }}
+  LOCAL_LOGIN_ENABLED: {{ .Values.django.localLoginEnabled | quote }}
   SCD_INITIAL_ADMIN_USERNAME: {{ .Values.django.initialAdminUsername | quote }}
   SCD_INITIAL_ADMIN_EMAIL: {{ .Values.django.initialAdminEmail | quote }}
   DATABASE_URL: {{ .Values.database.url | quote }}
