@@ -1,6 +1,6 @@
 """Auto-log WorkItem changes and auth events via Django signals."""
 from django.contrib.auth.signals import user_logged_in, user_logged_out
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from apps.entries.models import WorkItem
@@ -11,6 +11,7 @@ _TRACKED_FIELDS = (
     'title', 'project_id', 'category_id', 'group_id',
     'period_kind', 'period_start', 'period_end',
     'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
+    'is_division_head_only',
 )
 
 
@@ -52,6 +53,29 @@ def _workitem_saved(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=WorkItem)
 def _workitem_deleted(sender, instance, **kwargs):
     log_event(action='delete', obj=instance)
+
+
+# ── WorkItem tag m2m changes ──────────────────────────────────────────────────
+
+@receiver(m2m_changed, sender=WorkItem.tags.through)
+def _workitem_tags_changed(sender, instance, action, pk_set, **kwargs):
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+    if not isinstance(instance, WorkItem):
+        return  # guard: m2m_changed fires for both sides of the relation
+
+    from apps.taxonomy.models import Tag
+
+    if action == 'post_add' and pk_set:
+        names = sorted(Tag.objects.filter(pk__in=pk_set).values_list('name', flat=True))
+        if names:
+            log_event(action='update', obj=instance, changes={'tags_added': names})
+    elif action == 'post_remove' and pk_set:
+        names = sorted(Tag.objects.filter(pk__in=pk_set).values_list('name', flat=True))
+        if names:
+            log_event(action='update', obj=instance, changes={'tags_removed': names})
+    elif action == 'post_clear':
+        log_event(action='update', obj=instance, changes={'tags_cleared': True})
 
 
 # ── Auth events ───────────────────────────────────────────────────────────────

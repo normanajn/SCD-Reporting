@@ -10,7 +10,7 @@ from apps.accounts.models import User
 from apps.audit.models import AuditLogEntry
 from apps.audit.service import log_event
 from apps.entries.models import WorkItem
-from apps.taxonomy.models import Category, Project
+from apps.taxonomy.models import Category, Project, Tag
 
 
 @pytest.fixture
@@ -112,6 +112,38 @@ class TestSignals:
         request.user = regular_user
         user_logged_in.send(sender=regular_user.__class__, request=request, user=regular_user)
         assert AuditLogEntry.objects.filter(action='login', actor=regular_user).exists()
+
+    def test_adding_tags_logs_update(self, db, regular_user, project, category):
+        item = _make_entry(regular_user, project, category)
+        AuditLogEntry.objects.all().delete()
+
+        tag = Tag.objects.create(name='neutrino')
+        item.tags.add(tag)
+
+        entry = AuditLogEntry.objects.get(action='update', object_id=item.pk)
+        assert entry.changes.get('tags_added') == ['neutrino']
+
+    def test_removing_tags_logs_update(self, db, regular_user, project, category):
+        item = _make_entry(regular_user, project, category)
+        tag = Tag.objects.create(name='muon')
+        item.tags.add(tag)
+        AuditLogEntry.objects.all().delete()
+
+        item.tags.remove(tag)
+
+        entry = AuditLogEntry.objects.get(action='update', object_id=item.pk)
+        assert entry.changes.get('tags_removed') == ['muon']
+
+    def test_noop_tag_sync_logs_nothing(self, db, regular_user, project, category):
+        item = _make_entry(regular_user, project, category)
+        tag = Tag.objects.create(name='tau')
+        item.tags.add(tag)
+        AuditLogEntry.objects.all().delete()
+
+        # set() with the same tags — no add or remove should fire
+        item.tags.set([tag])
+
+        assert not AuditLogEntry.objects.filter(action='update', object_id=item.pk).exists()
 
 
 # ── Viewer access control ─────────────────────────────────────────────────────
