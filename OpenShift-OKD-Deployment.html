@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenShift OKD Deployment Checklist</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #5b6575;
+      --line: #d9dee8;
+      --accent: #2563eb;
+      --accent-soft: #e8f0ff;
+      --done: #16794c;
+      --code-bg: #111827;
+      --code-ink: #e5e7eb;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    header {
+      background: #111827;
+      color: #fff;
+      border-bottom: 4px solid var(--accent);
+    }
+
+    .header-inner,
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      padding: 28px 0 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.75rem, 3vw, 2.5rem);
+      line-height: 1.12;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #cbd5e1;
+      max-width: 760px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(246, 248, 251, 0.94);
+      backdrop-filter: blur(8px);
+    }
+
+    .toolbar-inner {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 12px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .progress {
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e2e8f0;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      transition: width 160ms ease;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 12px;
+      background: var(--panel);
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 24px;
+      padding: 24px 0 48px;
+    }
+
+    nav {
+      position: sticky;
+      top: 78px;
+      align-self: start;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    nav h2 {
+      margin: 0 0 10px;
+      font-size: 0.95rem;
+    }
+
+    nav a {
+      display: block;
+      padding: 6px 0;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+    }
+
+    nav a:hover {
+      color: var(--accent);
+    }
+
+    .content {
+      display: grid;
+      gap: 18px;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    section h2 {
+      margin: 0;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      font-size: 1.2rem;
+    }
+
+    .section-body {
+      padding: 18px 20px 20px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--muted);
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .check-item {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .check-item input {
+      width: 18px;
+      height: 18px;
+      margin: 2px 0 0;
+      accent-color: var(--done);
+    }
+
+    .check-item label {
+      cursor: pointer;
+    }
+
+    .check-item:has(input:checked) {
+      border-color: #badbcc;
+      background: #f1fbf6;
+    }
+
+    .check-item:has(input:checked) label {
+      color: var(--done);
+      text-decoration: line-through;
+      text-decoration-thickness: 1px;
+    }
+
+    .nested {
+      margin-left: 32px;
+    }
+
+    code {
+      padding: 0.12rem 0.3rem;
+      border-radius: 4px;
+      background: var(--accent-soft);
+      color: #1d4ed8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 10px 0 18px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    .note {
+      padding: 12px 14px;
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: #24324a;
+    }
+
+    @media (max-width: 860px) {
+      .toolbar-inner {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>OpenShift OKD Deployment Checklist</h1>
+      <p class="subtitle">A static checklist for adapting SCD Reporting to an OpenShift OKD deployment.</p>
+    </div>
+  </header>
+
+  <div class="toolbar" aria-label="Checklist progress">
+    <div class="toolbar-inner">
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="progressText">0 of 0 complete</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="clearChecks">Clear Checks</button>
+        <button type="button" id="printPage">Print</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <nav aria-label="Page sections">
+      <h2>Sections</h2>
+      <a href="#container-readiness">1. Container Readiness</a>
+      <a href="#static-media">2. Static And Media</a>
+      <a href="#startup-tasks">3. Startup Tasks</a>
+      <a href="#database">4. Database</a>
+      <a href="#configuration">5. Configuration</a>
+      <a href="#okd-resources">6. OKD Resources</a>
+      <a href="#build-image">7. Build And Image</a>
+      <a href="#health-checks">8. Health Checks</a>
+      <a href="#first-deployment">9. First Deployment</a>
+      <a href="#validation">10. Validation</a>
+      <a href="#project-items">11. Project Items</a>
+      <a href="#references">12. References</a>
+    </nav>
+
+    <div class="content">
+      <section id="container-readiness">
+        <h2>1. Container Readiness</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c1" type="checkbox"><label for="c1">Use the Django/Gunicorn web container as the app workload.</label></li>
+            <li class="check-item"><input id="c2" type="checkbox"><label for="c2">Do not deploy the Compose Caddy container unless you intentionally choose a sidecar/static-server design.</label></li>
+            <li class="check-item"><input id="c3" type="checkbox"><label for="c3">Confirm the app listens on port <code>8000</code>.</label></li>
+            <li class="check-item"><input id="c4" type="checkbox"><label for="c4">Update any stale port references in deployment manifests or scripts.</label></li>
+            <li class="check-item"><input id="c5" type="checkbox"><label for="c5">Make the Docker image compatible with OKD arbitrary UIDs.</label></li>
+          </ul>
+
+          <p>Recommended Dockerfile permission pattern:</p>
+          <pre><code>RUN mkdir -p staticfiles media \
+    &amp;&amp; chgrp -R 0 /app \
+    &amp;&amp; chmod -R g=u /app \
+    &amp;&amp; chmod +x /app/docker/web/entrypoint.sh</code></pre>
+
+          <p class="note">OKD runs containers as non-root unique users by default, so writable paths must not depend on a fixed UID such as <code>appuser</code>.</p>
+        </div>
+      </section>
+
+      <section id="static-media">
+        <h2>2. Static And Media Files</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c6" type="checkbox"><label for="c6">Decide how <code>/static/</code> will be served.</label></li>
+            <li class="check-item"><input id="c7" type="checkbox"><label for="c7">Decide how <code>/media/</code> user uploads will be persisted.</label></li>
+            <li class="check-item"><input id="c8" type="checkbox"><label for="c8">Do not rely on ephemeral pod storage for uploaded media in production.</label></li>
+          </ul>
+
+          <p>Recommended options:</p>
+          <ul class="checklist nested">
+            <li class="check-item"><input id="c9" type="checkbox"><label for="c9">Add WhiteNoise for Django static files, or run a dedicated static server.</label></li>
+            <li class="check-item"><input id="c10" type="checkbox"><label for="c10">Use S3/object storage or a PVC-backed media volume for uploaded media.</label></li>
+            <li class="check-item"><input id="c11" type="checkbox"><label for="c11">If using a PVC for media, mount it at <code>/app/media</code>.</label></li>
+            <li class="check-item"><input id="c12" type="checkbox"><label for="c12">If using static collection at runtime, mount or prepare <code>/app/staticfiles</code>.</label></li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="startup-tasks">
+        <h2>3. Startup Tasks</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c13" type="checkbox"><label for="c13">Remove production-only setup work from the long-running web container startup path where practical.</label></li>
+            <li class="check-item"><input id="c14" type="checkbox"><label for="c14">Run database migrations as an OKD <code>Job</code>.</label></li>
+            <li class="check-item"><input id="c15" type="checkbox"><label for="c15">Run initial admin seeding as an OKD <code>Job</code> or one-time administrative command.</label></li>
+            <li class="check-item"><input id="c16" type="checkbox"><label for="c16">Avoid running migrations from every web pod during scale-up or restart.</label></li>
+          </ul>
+
+          <p>Current entrypoint tasks to split or explicitly accept:</p>
+          <pre><code>python manage.py migrate --noinput
+python manage.py collectstatic --noinput --clear
+python manage.py seed_taxonomy
+python manage.py seed_admin
+gunicorn scd_reporting.wsgi:application --bind 0.0.0.0:8000</code></pre>
+        </div>
+      </section>
+
+      <section id="database">
+        <h2>4. Database</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c17" type="checkbox"><label for="c17">Use PostgreSQL for OKD.</label></li>
+            <li class="check-item"><input id="c18" type="checkbox"><label for="c18">Do not use SQLite in production.</label></li>
+            <li class="check-item"><input id="c19" type="checkbox"><label for="c19">Choose a database provider.</label></li>
+          </ul>
+          <ul class="checklist nested">
+            <li class="check-item"><input id="c20" type="checkbox"><label for="c20">External managed PostgreSQL.</label></li>
+            <li class="check-item"><input id="c21" type="checkbox"><label for="c21">PostgreSQL Operator, such as CrunchyData.</label></li>
+            <li class="check-item"><input id="c22" type="checkbox"><label for="c22">Cluster-provided PostgreSQL template/operator.</label></li>
+          </ul>
+          <ul class="checklist">
+            <li class="check-item"><input id="c23" type="checkbox"><label for="c23">Create the database.</label></li>
+            <li class="check-item"><input id="c24" type="checkbox"><label for="c24">Create the database user.</label></li>
+            <li class="check-item"><input id="c25" type="checkbox"><label for="c25">Store the connection string in an OKD <code>Secret</code>.</label></li>
+          </ul>
+
+          <p>Required format:</p>
+          <pre><code>DATABASE_URL=postgres://user:password@postgres-host:5432/scd</code></pre>
+        </div>
+      </section>
+
+      <section id="configuration">
+        <h2>5. Configuration</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c26" type="checkbox"><label for="c26">Create an OKD <code>ConfigMap</code> for non-secret settings.</label></li>
+            <li class="check-item"><input id="c27" type="checkbox"><label for="c27">Create an OKD <code>Secret</code> for sensitive settings.</label></li>
+            <li class="check-item"><input id="c28" type="checkbox"><label for="c28">Set production settings.</label></li>
+            <li class="check-item"><input id="c29" type="checkbox"><label for="c29">Set the public hostname.</label></li>
+            <li class="check-item"><input id="c30" type="checkbox"><label for="c30">Set CSRF trusted origins.</label></li>
+          </ul>
+
+          <p>Minimum required environment:</p>
+          <pre><code>DJANGO_SETTINGS_MODULE=scd_reporting.settings.prod
+DJANGO_ALLOWED_HOSTS=scd-reporting.apps.&lt;cluster-domain&gt;
+CSRF_TRUSTED_ORIGINS=https://scd-reporting.apps.&lt;cluster-domain&gt;
+DATABASE_URL=postgres://...
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN=false</code></pre>
+
+          <p>Minimum required secrets:</p>
+          <pre><code>DJANGO_SECRET_KEY=&lt;strong-secret&gt;
+SCD_INITIAL_ADMIN_EMAIL=scd-admin@fnal.gov
+SCD_INITIAL_ADMIN_PASSWORD=&lt;initial-password&gt;
+POSTGRES_PASSWORD=&lt;database-password&gt;</code></pre>
+
+          <p>Optional secrets/config:</p>
+          <pre><code>ANTHROPIC_API_KEY=&lt;api-key&gt;
+OIDC_PROVIDER_URL=&lt;provider-url&gt;
+OIDC_CLIENT_ID=&lt;client-id&gt;
+OIDC_CLIENT_SECRET=&lt;client-secret&gt;
+GOOGLE_CLIENT_ID=&lt;client-id&gt;
+GOOGLE_CLIENT_SECRET=&lt;client-secret&gt;
+EMAIL_HOST=&lt;smtp-host&gt;
+EMAIL_PORT=587
+EMAIL_HOST_USER=&lt;smtp-user&gt;
+EMAIL_HOST_PASSWORD=&lt;smtp-password&gt;
+DEFAULT_FROM_EMAIL=&lt;sender-address&gt;</code></pre>
+        </div>
+      </section>
+
+      <section id="okd-resources">
+        <h2>6. OKD Resources</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c31" type="checkbox"><label for="c31">Create an OKD project/namespace.</label></li>
+            <li class="check-item"><input id="c32" type="checkbox"><label for="c32">Create app <code>Secret</code>.</label></li>
+            <li class="check-item"><input id="c33" type="checkbox"><label for="c33">Create app <code>ConfigMap</code>.</label></li>
+            <li class="check-item"><input id="c34" type="checkbox"><label for="c34">Create PostgreSQL resources or external database secret.</label></li>
+            <li class="check-item"><input id="c35" type="checkbox"><label for="c35">Create migration <code>Job</code>.</label></li>
+            <li class="check-item"><input id="c36" type="checkbox"><label for="c36">Create optional seed-admin <code>Job</code>.</label></li>
+            <li class="check-item"><input id="c37" type="checkbox"><label for="c37">Create web <code>Deployment</code>.</label></li>
+            <li class="check-item"><input id="c38" type="checkbox"><label for="c38">Create web <code>Service</code>.</label></li>
+            <li class="check-item"><input id="c39" type="checkbox"><label for="c39">Create external <code>Route</code>.</label></li>
+            <li class="check-item"><input id="c40" type="checkbox"><label for="c40">Create optional media <code>PersistentVolumeClaim</code>.</label></li>
+            <li class="check-item"><input id="c41" type="checkbox"><label for="c41">Create optional image <code>ImageStream</code>.</label></li>
+            <li class="check-item"><input id="c42" type="checkbox"><label for="c42">Create optional <code>BuildConfig</code>, if building inside OKD.</label></li>
+          </ul>
+
+          <p>Expected service port:</p>
+          <pre><code>ports:
+  - name: http
+    port: 8000
+    targetPort: 8000</code></pre>
+
+          <p>Expected route shape:</p>
+          <pre><code>tls:
+  termination: edge
+  insecureEdgeTerminationPolicy: Redirect</code></pre>
+
+          <p>Expected deployment container shape:</p>
+          <pre><code>ports:
+  - containerPort: 8000
+envFrom:
+  - secretRef:
+      name: scd-reporting-secrets
+  - configMapRef:
+      name: scd-reporting-config</code></pre>
+        </div>
+      </section>
+
+      <section id="build-image">
+        <h2>7. Build And Image Publishing</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c43" type="checkbox"><label for="c43">Choose an image build path.</label></li>
+          </ul>
+          <ul class="checklist nested">
+            <li class="check-item"><input id="c44" type="checkbox"><label for="c44">Build externally and push to a registry OKD can pull from.</label></li>
+            <li class="check-item"><input id="c45" type="checkbox"><label for="c45">Build inside OKD with <code>BuildConfig</code>.</label></li>
+          </ul>
+          <ul class="checklist">
+            <li class="check-item"><input id="c46" type="checkbox"><label for="c46">Tag the image with a version, commit SHA, or release tag.</label></li>
+            <li class="check-item"><input id="c47" type="checkbox"><label for="c47">Configure OKD image pull credentials if needed.</label></li>
+            <li class="check-item"><input id="c48" type="checkbox"><label for="c48">Confirm the image can be pulled by the target namespace.</label></li>
+          </ul>
+
+          <p>Example external build:</p>
+          <pre><code>docker build -f docker/web/Dockerfile -t registry.example.org/scd-reporting:&lt;tag&gt; .
+docker push registry.example.org/scd-reporting:&lt;tag&gt;</code></pre>
+        </div>
+      </section>
+
+      <section id="health-checks">
+        <h2>8. Health Checks</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c49" type="checkbox"><label for="c49">Configure readiness probe.</label></li>
+            <li class="check-item"><input id="c50" type="checkbox"><label for="c50">Configure liveness probe.</label></li>
+            <li class="check-item"><input id="c51" type="checkbox"><label for="c51">Point probes at a stable, unauthenticated or redirect-tolerant path.</label></li>
+            <li class="check-item"><input id="c52" type="checkbox"><label for="c52">Confirm probes use port <code>8000</code>.</label></li>
+          </ul>
+
+          <p>Current container health check target:</p>
+          <pre><code>http://localhost:8000/accounts/login/</code></pre>
+        </div>
+      </section>
+
+      <section id="first-deployment">
+        <h2>9. First Deployment</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c53" type="checkbox"><label for="c53">Apply ConfigMap and Secret.</label></li>
+            <li class="check-item"><input id="c54" type="checkbox"><label for="c54">Deploy or connect PostgreSQL.</label></li>
+            <li class="check-item"><input id="c55" type="checkbox"><label for="c55">Run migration Job.</label></li>
+            <li class="check-item"><input id="c56" type="checkbox"><label for="c56">Run seed-admin Job.</label></li>
+            <li class="check-item"><input id="c57" type="checkbox"><label for="c57">Deploy web Deployment.</label></li>
+            <li class="check-item"><input id="c58" type="checkbox"><label for="c58">Create Service.</label></li>
+            <li class="check-item"><input id="c59" type="checkbox"><label for="c59">Create Route.</label></li>
+            <li class="check-item"><input id="c60" type="checkbox"><label for="c60">Open the public route URL.</label></li>
+            <li class="check-item"><input id="c61" type="checkbox"><label for="c61">Confirm the login page is styled.</label></li>
+            <li class="check-item"><input id="c62" type="checkbox"><label for="c62">Log in as the initial admin email.</label></li>
+            <li class="check-item"><input id="c63" type="checkbox"><label for="c63">Confirm taxonomy is seeded — <code>seed_taxonomy</code> runs automatically in the web pod entrypoint on every startup.</label></li>
+          </ul>
+
+          <p>Useful commands:</p>
+          <pre><code>oc project &lt;namespace&gt;
+oc apply -f deploy/okd/
+oc get pods
+oc get route
+oc logs deploy/scd-reporting-web</code></pre>
+        </div>
+      </section>
+
+      <section id="validation">
+        <h2>10. Post-Deployment Validation</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c64" type="checkbox"><label for="c64">Confirm <code>/accounts/login/</code> loads.</label></li>
+            <li class="check-item"><input id="c65" type="checkbox"><label for="c65">Confirm static CSS loads.</label></li>
+            <li class="check-item"><input id="c66" type="checkbox"><label for="c66">Confirm admin login works.</label></li>
+            <li class="check-item"><input id="c67" type="checkbox"><label for="c67">Confirm database migrations are applied.</label></li>
+            <li class="check-item"><input id="c68" type="checkbox"><label for="c68">Confirm taxonomy records exist.</label></li>
+            <li class="check-item"><input id="c69" type="checkbox"><label for="c69">Create a test entry.</label></li>
+            <li class="check-item"><input id="c70" type="checkbox"><label for="c70">Confirm media upload behavior, if media uploads are used.</label></li>
+            <li class="check-item"><input id="c71" type="checkbox"><label for="c71">Confirm reports work for admin/auditor roles.</label></li>
+            <li class="check-item"><input id="c72" type="checkbox"><label for="c72">Confirm SSO callback URLs match the OKD route hostname, if SSO is enabled.</label></li>
+            <li class="check-item"><input id="c73" type="checkbox"><label for="c73">Confirm email sending works, if SMTP is enabled.</label></li>
+            <li class="check-item"><input id="c74" type="checkbox"><label for="c74">Confirm logs do not expose secrets.</label></li>
+          </ul>
+
+          <p>Static CSS smoke test:</p>
+          <pre><code>curl -I https://scd-reporting.apps.&lt;cluster-domain&gt;/static/css/dist/styles.css</code></pre>
+
+          <p>Expected result:</p>
+          <pre><code>HTTP/2 200</code></pre>
+        </div>
+      </section>
+
+      <section id="project-items">
+        <h2>11. Known Project-Specific Items To Resolve</h2>
+        <div class="section-body">
+          <ul class="checklist">
+            <li class="check-item"><input id="c75" type="checkbox"><label for="c75">Confirm <code>compose.yaml</code> port mapping matches the image port (<code>8000</code>).</label></li>
+            <li class="check-item"><input id="c76" type="checkbox"><label for="c76">Decide whether <code>collectstatic</code> should run at image build time, migration Job time, or web startup time.</label></li>
+            <li class="check-item"><input id="c77" type="checkbox"><label for="c77">Decide how uploaded media should be stored before running more than one replica.</label></li>
+            <li class="check-item"><input id="c78" type="checkbox"><label for="c78">Keep Docker Compose deployment docs separate from OKD deployment docs.</label></li>
+            <li class="check-item"><input id="c79" type="checkbox"><label for="c79">Document the canonical admin login as the email address, not the username.</label></li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="references">
+        <h2>12. Reference Links</h2>
+        <div class="section-body">
+          <ul>
+            <li><a href="https://okd.io/docs/project/about/">OKD overview and container security model</a></li>
+            <li><a href="https://docs.okd.io/4.19/networking/ingress_load_balancing/routes/secured-routes.html">OKD secured routes</a></li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const storageKey = "scd-okd-deployment-checklist";
+    const checks = Array.from(document.querySelectorAll('input[type="checkbox"]'));
+    const progressText = document.getElementById("progressText");
+    const progressPercent = document.getElementById("progressPercent");
+    const progressBar = document.getElementById("progressBar");
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        checks.forEach((check) => {
+          check.checked = Boolean(saved[check.id]);
+        });
+      } catch {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    function saveState() {
+      const state = {};
+      checks.forEach((check) => {
+        state[check.id] = check.checked;
+      });
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function updateProgress() {
+      const total = checks.length;
+      const complete = checks.filter((check) => check.checked).length;
+      const percent = total ? Math.round((complete / total) * 100) : 0;
+      progressText.textContent = `${complete} of ${total} complete`;
+      progressPercent.textContent = `${percent}%`;
+      progressBar.style.width = `${percent}%`;
+    }
+
+    checks.forEach((check) => {
+      check.addEventListener("change", () => {
+        saveState();
+        updateProgress();
+      });
+    });
+
+    document.getElementById("clearChecks").addEventListener("click", () => {
+      checks.forEach((check) => {
+        check.checked = false;
+      });
+      saveState();
+      updateProgress();
+    });
+
+    document.getElementById("printPage").addEventListener("click", () => window.print());
+
+    loadState();
+    updateProgress();
+  </script>
+</body>
+</html>
