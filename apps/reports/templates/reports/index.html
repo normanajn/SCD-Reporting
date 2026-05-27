@@ -83,9 +83,65 @@
                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
         </div>
 
-        {# Group #}
+        {# Employee Group #}
         <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Group</label>
+          <div class="flex items-center gap-1 mb-1">
+            <label class="block text-xs font-medium text-slate-500">Employee Group</label>
+            <div class="relative group/info">
+              <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-500
+                           text-[9px] font-bold cursor-default select-none leading-none">ⓘ</span>
+              <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-20 hidden group-hover/info:block
+                          w-56 rounded-md bg-slate-800 text-white text-xs px-3 py-2 shadow-lg pointer-events-none">
+                This matches the employee's assigned group.
+                <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0
+                             border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+              </div>
+            </div>
+          </div>
+          {% if user.is_group_leader %}
+          {# Locked to the single group #}
+          <input type="hidden" name="employee_group" value="{{ group_scope.first.pk }}">
+          <div class="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {{ group_scope.first.name }}
+          </div>
+          {% elif user.is_division_head %}
+          <select name="employee_group"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All my groups</option>
+            {% for g in group_scope %}
+            <option value="{{ g.pk }}" {% if filter.form.employee_group.value|stringformat:"s" == g.pk|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <select name="employee_group"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All groups</option>
+            {% for pk, label in filter.filters.employee_group.field.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if filter.form.employee_group.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          {% endif %}
+        </div>
+
+        {# Activity Group #}
+        <div>
+          <div class="flex items-center gap-1 mb-1">
+            <label class="block text-xs font-medium text-slate-500">Activity Group</label>
+            <div class="relative group/info">
+              <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-500
+                           text-[9px] font-bold cursor-default select-none leading-none">ⓘ</span>
+              <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-20 hidden group-hover/info:block
+                          w-56 rounded-md bg-slate-800 text-white text-xs px-3 py-2 shadow-lg pointer-events-none">
+                This matches the group for which the work was being done.
+                <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0
+                             border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+              </div>
+            </div>
+          </div>
           {% if user.is_group_leader %}
           {# Locked to the single group #}
           <input type="hidden" name="group" value="{{ group_scope.first.pk }}">

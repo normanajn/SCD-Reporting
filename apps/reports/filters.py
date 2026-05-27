@@ -17,9 +17,15 @@ class WorkItemFilter(django_filters.FilterSet):
         lookup_expr='icontains',
         label='Author email',
     )
+    employee_group = django_filters.ModelChoiceFilter(
+        field_name='author__group',
+        queryset=WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name'),
+        label='Employee Group',
+        empty_label='All groups',
+    )
     group = django_filters.ModelChoiceFilter(
         queryset=WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name'),
-        label='Group',
+        label='Activity Group',
         empty_label='All groups',
     )
     project = django_filters.ModelChoiceFilter(
