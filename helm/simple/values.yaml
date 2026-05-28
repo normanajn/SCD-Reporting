@@ -36,16 +36,16 @@ pvc:
 # ── Django core ────────────────────────────────────────────────────────────────
 django:
   settingsModule: scd_reporting.settings.dev
-  # REQUIRED – set to a long random string in production
-  secretKey: "V2CSywJLIpeukkIm0FqoUzNal8RA3EM0Q1sVyzbefQGdAOjmAiz13myVIMfWgIjBhIw"
+  # REQUIRED – set in my-values.yaml, never commit a real value here
+  secretKey: ""
   allowedHosts: "localhost,127.0.0.1"
   emailVerification: optional   # none | optional | mandatory
   disableLocalSignup: "0"
   localLoginEnabled: "0"
   initialAdminUsername: scd-admin
   initialAdminEmail: scd-admin@fnal.gov
-  # REQUIRED – change before first deploy
-  initialAdminPassword: "neutrino"
+  # REQUIRED – set in my-values.yaml, never commit a real value here
+  initialAdminPassword: ""
 
 # ── Database ───────────────────────────────────────────────────────────────────
 database:
