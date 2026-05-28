@@ -193,8 +193,6 @@ class BugReportSubmitView(LoginRequiredMixin, View):
     REPO = 'normanajn/SCD-Reporting'
 
     def post(self, request):
-        import urllib.parse
-
         import requests as http_requests
 
         title = request.POST.get('title', '').strip()
@@ -215,35 +213,40 @@ class BugReportSubmitView(LoginRequiredMixin, View):
         try:
             token = _resolve_github_token()
         except Exception as exc:
-            messages.error(request, f'Could not obtain GitHub token: {exc}')
-            return redirect('about')
+            messages.error(request, f'Bug report could not be submitted — failed to obtain GitHub credentials: {exc}')
+            return redirect('bug-report')
 
-        if token:
-            try:
-                resp = http_requests.post(
-                    f'https://api.github.com/repos/{self.REPO}/issues',
-                    json={'title': title, 'body': full_body, 'labels': ['bug']},
-                    headers={
-                        'Authorization': f'Bearer {token}',
-                        'Accept': 'application/vnd.github+json',
-                        'X-GitHub-Api-Version': '2022-11-28',
-                    },
-                    timeout=15,
-                )
-                if resp.status_code == 201:
-                    issue_url = resp.json().get('html_url', '')
-                    messages.success(request, f'Bug report submitted. {issue_url}')
-                else:
-                    messages.error(request, f'GitHub error {resp.status_code}: {resp.json().get("message", "")}')
-            except Exception as exc:
-                messages.error(request, f'Could not submit issue: {exc}')
-        else:
-            # No credentials — give the user a pre-filled GitHub URL to open manually
-            params = urllib.parse.urlencode({'title': title, 'body': full_body, 'labels': 'bug'})
-            gh_url = f'https://github.com/{self.REPO}/issues/new?{params}'
-            messages.warning(
-                request,
-                f'GitHub credentials not configured. Open this URL to file the issue manually: {gh_url}',
+        if not token:
+            messages.error(request, 'Bug reporting is not configured. Contact your administrator.')
+            return redirect('bug-report')
+
+        try:
+            resp = http_requests.post(
+                f'https://api.github.com/repos/{self.REPO}/issues',
+                json={'title': title, 'body': full_body, 'labels': ['bug']},
+                headers={
+                    'Authorization': f'Bearer {token}',
+                    'Accept': 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28',
+                },
+                timeout=15,
             )
+            if resp.status_code == 201:
+                data = resp.json()
+                issue_number = data.get('number', '?')
+                submitted_at = timezone.now().strftime('%Y-%m-%d %H:%M UTC')
+                messages.success(
+                    request,
+                    f'{reporter} successfully created issue #{issue_number} at {submitted_at}.',
+                )
+                return redirect('about')
+            else:
+                gh_message = resp.json().get('message', 'unknown error')
+                messages.error(
+                    request,
+                    f'Bug report could not be submitted — GitHub returned: {gh_message} (HTTP {resp.status_code}).',
+                )
+        except Exception as exc:
+            messages.error(request, f'Bug report could not be submitted — could not reach GitHub: {exc}')
 
-        return redirect('about')
+        return redirect('bug-report')
