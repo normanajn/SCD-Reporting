@@ -10,13 +10,8 @@ scd\-post\-entry \- interactively create a work entry via the SCD Activity Repor
 .IR file ]
 .RB [ \-u
 .IR url ]
-.RB [ \-e
-.IR email ]
-.RB [ \-p
-.IR password ]
-.RB [ \-\-no\-cache ]
-.RB [ \-\-session\-file
-.IR file ]
+.RB [ \-t
+.IR token ]
 .
 .SH DESCRIPTION
 .B scd\-post\-entry
@@ -30,12 +25,10 @@ The tool prompts for all required and optional fields, then opens
 for the multi\-line entry description.  A summary is displayed before
 submission, and confirmation is required before the request is sent.
 .PP
-On first use the tool performs a full login and caches the resulting
-session in
-.I ~/.config/scd\-reporting/session.json
-(mode 0600) so subsequent runs do not prompt for a password.  Use
-.B \-\-no\-cache
-to force re\-authentication.
+Authentication uses a personal API token issued by the web application.
+No password or session cookie is required.  See
+.B TOKEN SETUP
+below.
 .
 .SH OPTIONS
 .TP
@@ -55,33 +48,40 @@ config key and the
 .B SCD_URL
 environment variable.
 .TP
-.BI \-e\  email ,\ \-\-email\  email
-Login email address.
+.BI \-t\  token ,\ \-\-token\  token
+API token.
 Overrides the
-.B email
+.B token
 config key and the
-.B SCD_EMAIL
+.B SCD_TOKEN
 environment variable.
-.TP
-.BI \-p\  password ,\ \-\-password\  password
-Login password.
-Overrides the
-.B password
-config key and the
-.B SCD_PASSWORD
-environment variable.
-Avoid passing passwords on the command line on shared systems; use the
-config file or the interactive prompt instead.
-.TP
-.B \-\-no\-cache
-Force a full login even if a valid session cache exists.  The old
-cache is overwritten on success.
-.TP
-.BI \-\-session\-file\  file
-Path to the session cache file.
-.br
-Default:
-.I ~/.config/scd\-reporting/session.json
+Avoid passing the token on the command line on shared systems; use the
+config file or environment variable instead.
+.
+.SH TOKEN SETUP
+API tokens are generated in the web application under
+.BR "Profile > API Token" .
+Each user has at most one active token; generating a new token immediately
+invalidates the previous one.
+.PP
+Once you have a token, add it to the configuration file:
+.PP
+.nf
+    url:   https://scd\-reporting.fnal.gov
+    token: <paste token here>
+.fi
+.PP
+Alternatively, export it as an environment variable:
+.PP
+.nf
+    export SCD_TOKEN=<paste token here>
+.fi
+.PP
+The token is a 64\-character hexadecimal string.  Keep it secret — anyone
+who holds it can post entries on your behalf.  If a token is compromised,
+use
+.B Revoke
+on the Profile page to invalidate it immediately, then generate a new one.
 .
 .SH FIELDS
 The tool prompts for the following fields in order:
@@ -170,19 +170,15 @@ The editor opens with a standard template pre\-filled.
 .SH CONFIGURATION FILE
 The default configuration file is
 .IR ~/.config/scd\-reporting/config.yaml .
-It is created automatically on first use if the directory exists.
 Example:
 .PP
 .nf
-    url:      https://scd\-reporting.fnal.gov
-    email:    you@fnal.gov
-    password: (optional — prompted if omitted)
+    url:   https://scd\-reporting.fnal.gov
+    token: 3a9f2c...  # 64-char hex token from Profile
 .fi
 .PP
-Setting
-.B password
-in the config file is convenient but stores credentials in plain text.
-The session cache is preferred for day\-to\-day use.
+Settings are resolved in this order (highest priority first):
+command\-line flags, environment variables, config file, interactive prompt.
 .
 .SH ENVIRONMENT
 .TP
@@ -191,15 +187,10 @@ Base URL of the SCD Reporting instance.
 Overridden by
 .BR \-\-url .
 .TP
-.B SCD_EMAIL
-Login email.
+.B SCD_TOKEN
+API token.
 Overridden by
-.BR \-\-email .
-.TP
-.B SCD_PASSWORD
-Login password.
-Overridden by
-.BR \-\-password .
+.BR \-\-token .
 .TP
 .B EDITOR
 Editor launched for the description field.
@@ -231,10 +222,10 @@ Override the URL for a dev instance:
     scd\-post\-entry \-u http://localhost:8000
 .fi
 .PP
-Force a fresh login (e.g.\& after a password change):
+Pass the token inline (not recommended on shared systems):
 .PP
 .nf
-    scd\-post\-entry \-\-no\-cache
+    scd\-post\-entry \-\-token 3a9f2c...
 .fi
 .PP
 Use a non\-default config file:
@@ -255,11 +246,11 @@ Set the editor to nano for the description:
 Source file for this utility.
 .TP
 .I ~/.config/scd\-reporting/config.yaml
-User configuration file.
-.TP
-.I ~/.config/scd\-reporting/session.json
-Cached session credentials (mode 0600).
-Delete this file to force re\-authentication.
+User configuration file.  Contains
+.B url
+and
+.B token
+keys.
 .
 .SH SEE ALSO
 .BR scd\-seed\-admin (1),
@@ -269,6 +260,9 @@ Delete this file to force re\-authentication.
 .PP
 SCD Activity Reporting API documentation:
 .I /api/
+.PP
+Token management:
+.I /profile/
 .
 .SH AUTHOR
 Fermilab Scientific Computing Division
