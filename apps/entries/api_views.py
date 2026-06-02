@@ -4,7 +4,10 @@ from datetime import date
 from django.db import transaction
 from django.db.models import F
 from django.http import JsonResponse
+from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.taxonomy.models import Category, LabPriority, Project, Tag, WorkGroup
 
@@ -13,6 +16,22 @@ from .models import WorkItem
 
 def _json_error(message, status=400):
     return JsonResponse({'error': message}, status=status)
+
+
+def _authenticate_token(request):
+    """Return the User for a valid Bearer token, or None."""
+    auth = request.META.get('HTTP_AUTHORIZATION', '')
+    if not auth.startswith('Bearer '):
+        return None
+    key = auth[len('Bearer '):].strip()
+    from apps.accounts.models import APIToken
+    try:
+        token = APIToken.objects.select_related('user').get(key=key)
+        token.last_used_at = timezone.now()
+        token.save(update_fields=['last_used_at'])
+        return token.user
+    except APIToken.DoesNotExist:
+        return None
 
 
 def _resolve_fk(model, value, allow_blank=False):
@@ -47,12 +66,14 @@ def _coerce_int(val, default=0, lo=0, hi=5):
         return default
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class EntryCreateAPIView(View):
     """POST /api/entries/ — create a work entry; returns JSON."""
 
     def post(self, request):
-        if not request.user.is_authenticated:
-            return JsonResponse({'error': 'Authentication required.'}, status=401)
+        user = _authenticate_token(request)
+        if user is None:
+            return JsonResponse({'error': 'Valid Bearer token required.'}, status=401)
 
         try:
             data = json.loads(request.body)
@@ -120,7 +141,7 @@ class EntryCreateAPIView(View):
 
         with transaction.atomic():
             entry = WorkItem.objects.create(
-                author=request.user,
+                author=user,
                 title=title,
                 description=description,
                 project=project,

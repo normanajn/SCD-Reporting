@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
@@ -11,7 +12,7 @@ from django.views.generic import ListView, UpdateView
 from apps.taxonomy.models import WorkGroup
 
 from .forms import AdminCreateUserForm, ProfileForm
-from .models import SiteSettings
+from .models import APIToken, SiteSettings
 from .permissions import AdminRequiredMixin, UserPageRequiredMixin
 
 User = get_user_model()
@@ -29,6 +30,11 @@ class ProfileView(AdminRequiredMixin, UpdateView):
 
     def get_object(self, queryset=None):
         return self.request.user
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['api_token'] = APIToken.objects.filter(user=self.request.user).first()
+        return ctx
 
     def form_valid(self, form):
         messages.success(self.request, 'Profile updated.')
@@ -260,6 +266,20 @@ class GroupSelectionView(View):
             messages.info(request, 'You can set your group at any time from your profile.')
 
         return redirect('dashboard')
+
+
+class APITokenRotateView(LoginRequiredMixin, View):
+    def post(self, request):
+        APIToken.rotate(request.user)
+        messages.success(request, 'API token generated. Copy it from your profile — it will not be shown again.')
+        return redirect('profile')
+
+
+class APITokenRevokeView(LoginRequiredMixin, View):
+    def post(self, request):
+        APIToken.objects.filter(user=request.user).delete()
+        messages.success(request, 'API token revoked.')
+        return redirect('profile')
 
 
 class AdminCreateUserView(AdminRequiredMixin, View):

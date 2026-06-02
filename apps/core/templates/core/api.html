@@ -8,7 +8,8 @@
     <h1 class="text-2xl font-bold text-slate-900">API &amp; Routes</h1>
     <p class="mt-1 text-sm text-slate-500">
       All routes served by SCD Activity Reporting. HTML routes use standard Django session
-      authentication. The REST API also uses session auth with a <code class="font-mono bg-slate-100 px-1 rounded">X-CSRFToken</code> header.
+      authentication. The REST API uses Bearer token authentication — generate your token at
+      <a href="{% url 'profile' %}" class="text-scd-primary hover:underline">Profile</a>.
     </p>
   </div>
 
@@ -40,7 +41,7 @@
   <div class="bg-white rounded-lg border border-blue-200 shadow-sm overflow-hidden">
     <div class="px-6 py-4 bg-blue-50 border-b border-blue-200">
       <h2 class="text-base font-semibold text-blue-900">REST API</h2>
-      <p class="text-xs text-blue-700 mt-0.5">JSON endpoints — send <code class="font-mono bg-blue-100 px-1 rounded">Content-Type: application/json</code> and a valid <code class="font-mono bg-blue-100 px-1 rounded">X-CSRFToken</code> header.</p>
+      <p class="text-xs text-blue-700 mt-0.5">Send <code class="font-mono bg-blue-100 px-1 rounded">Content-Type: application/json</code> and <code class="font-mono bg-blue-100 px-1 rounded">Authorization: Bearer &lt;token&gt;</code>. Generate your token at <a href="{% url 'profile' %}" class="underline">Profile</a>.</p>
     </div>
 
     <div class="divide-y divide-slate-100">
@@ -100,8 +101,7 @@
               <p class="font-medium text-slate-700 mb-1">Example (curl)</p>
               <pre class="bg-slate-50 border border-slate-200 rounded p-3 text-slate-700 overflow-x-auto leading-relaxed">curl -s -X POST https://scd-reporting.fnal.gov/api/entries/ \
   -H "Content-Type: application/json" \
-  -H "X-CSRFToken: &lt;token&gt;" \
-  --cookie "sessionid=&lt;sessionid&gt;; csrftoken=&lt;token&gt;" \
+  -H "Authorization: Bearer &lt;your-api-token&gt;" \
   -d '{
     "title": "Weekly status update",
     "description": "Project Milestone:\nPerformance Goal: FY26-Q3\nUpdate: Completed integration tests.",

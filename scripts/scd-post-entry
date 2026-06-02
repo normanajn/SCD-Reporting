@@ -2,10 +2,8 @@
 """scd-post-entry — interactive CLI to post a new work entry to SCD Activity Reporting."""
 
 import argparse
-import getpass
 import json
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -40,7 +38,6 @@ except ImportError:
 
 DEFAULT_CONFIG_DIR  = Path.home() / ".config" / "scd-reporting"
 DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.yaml"
-DEFAULT_SESSION_FILE = DEFAULT_CONFIG_DIR / "session.json"
 
 PERIOD_KINDS = ["today", "week", "fortnight", "month", "custom"]
 
@@ -60,23 +57,6 @@ def _load_config(path: Path) -> dict:
     except Exception as exc:
         print(f"Warning: could not read config file {path}: {exc}", file=sys.stderr)
         return {}
-
-
-def _load_session(path: Path) -> dict | None:
-    if not path.exists():
-        return None
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def _save_session(path: Path, data: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(data, f)
-    path.chmod(0o600)
 
 
 def _prompt(label: str, default: str | None = None, required: bool = True,
@@ -165,68 +145,17 @@ def _sep(label: str = "") -> None:
         print("─" * 60)
 
 
-# ── Authentication ─────────────────────────────────────────────────────────────
-
-def _extract_csrf(html: str, cookies) -> str:
-    """Return CSRF token from cookies or hidden form field."""
-    token = cookies.get('csrftoken', '')
-    if not token:
-        m = re.search(r'csrfmiddlewaretoken[^>]+value=["\']([^"\']+)', html)
-        if m:
-            token = m.group(1)
-    return token
-
-
-def _login(base_url: str, email: str, password: str) -> requests.Session:
-    session = requests.Session()
-    session.headers['User-Agent'] = 'scd-post-entry/1.0'
-
-    login_url = f"{base_url}/accounts/login/"
-    r = session.get(login_url, timeout=15)
-    r.raise_for_status()
-
-    csrf = _extract_csrf(r.text, session.cookies)
-    if not csrf:
-        raise RuntimeError("Could not obtain CSRF token from the login page.")
-
-    r = session.post(
-        login_url,
-        data={'login': email, 'password': password, 'csrfmiddlewaretoken': csrf},
-        headers={'Referer': login_url},
-        timeout=15,
-        allow_redirects=True,
-    )
-
-    # allauth redirects to / on success; failure re-renders /accounts/login/
-    if 'login' in r.url.split('?')[0].rstrip('/').rsplit('/', 1)[-1] or r.status_code >= 400:
-        raise RuntimeError("Login failed — check your email and password.")
-
-    return session
-
-
-def _session_from_cache(base_url: str, data: dict) -> requests.Session:
-    session = requests.Session()
-    session.headers['User-Agent'] = 'scd-post-entry/1.0'
-    domain = re.sub(r'^https?://', '', base_url).split('/')[0]
-    session.cookies.set('sessionid', data['sessionid'], domain=domain)
-    session.cookies.set('csrftoken',  data['csrftoken'],  domain=domain)
-    return session
-
-
 # ── API call ──────────────────────────────────────────────────────────────────
 
-def _post_entry(session: requests.Session, base_url: str, payload: dict) -> requests.Response:
-    csrf = session.cookies.get('csrftoken', '')
-    return session.post(
+def _post_entry(base_url: str, token: str, payload: dict) -> requests.Response:
+    return requests.post(
         f"{base_url}/api/entries/",
         json=payload,
         headers={
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrf,
-            'Referer': base_url + '/',
+            'Authorization': f'Bearer {token}',
         },
         timeout=30,
-        allow_redirects=False,
     )
 
 
@@ -239,12 +168,11 @@ def _parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""\
 Config file ({DEFAULT_CONFIG_FILE}):
-  url:      https://scd-reporting.fnal.gov
-  email:    you@fnal.gov
-  password: (optional — prompted if omitted)
+  url:   https://scd-reporting.fnal.gov
+  token: <your API token from Profile > API Token>
 
 Environment variables (override config file):
-  SCD_URL, SCD_EMAIL, SCD_PASSWORD
+  SCD_URL, SCD_TOKEN
 
 The EDITOR (or VISUAL) environment variable selects the editor used for
 the description field.  Defaults to vi on Unix and notepad on Windows.
@@ -252,13 +180,8 @@ the description field.  Defaults to vi on Unix and notepad on Windows.
     )
     p.add_argument('-c', '--config', default=str(DEFAULT_CONFIG_FILE),
                    metavar='FILE', help='Config file (default: %(default)s)')
-    p.add_argument('-u', '--url',      metavar='URL',   help='Base URL of the SCD Reporting instance')
-    p.add_argument('-e', '--email',    metavar='EMAIL', help='Login email')
-    p.add_argument('-p', '--password', metavar='PASS',  help='Login password')
-    p.add_argument('--no-cache', action='store_true',
-                   help='Force re-login even if a cached session exists')
-    p.add_argument('--session-file', default=str(DEFAULT_SESSION_FILE),
-                   metavar='FILE', help='Session cache file (default: %(default)s)')
+    p.add_argument('-u', '--url',   metavar='URL',   help='Base URL of the SCD Reporting instance')
+    p.add_argument('-t', '--token', metavar='TOKEN', help='API token (from Profile > API Token)')
     return p.parse_args()
 
 
@@ -268,37 +191,14 @@ def main() -> None:
     args = _parse_args()
     cfg  = _load_config(Path(args.config))
 
-    # Resolve connection settings: CLI > env > config > prompt
+    # Resolve settings: CLI > env > config > prompt
     base_url = (args.url or os.environ.get('SCD_URL') or cfg.get('url', '')).rstrip('/')
     if not base_url:
         base_url = _prompt("SCD Reporting URL", hint="https://scd-reporting.fnal.gov")
 
-    email = args.email or os.environ.get('SCD_EMAIL') or cfg.get('email', '')
-    if not email:
-        email = _prompt("Email")
-
-    password = args.password or os.environ.get('SCD_PASSWORD') or cfg.get('password', '')
-
-    # ── Authentication ────────────────────────────────────────────────────────
-    session_path = Path(args.session_file)
-    cached = None if args.no_cache else _load_session(session_path)
-
-    if cached:
-        http = _session_from_cache(base_url, cached)
-    else:
-        if not password:
-            password = getpass.getpass(f"Password for {email}: ")
-        print("Logging in…", end='', flush=True)
-        try:
-            http = _login(base_url, email, password)
-        except Exception as exc:
-            print()
-            sys.exit(f"ERROR: {exc}")
-        _save_session(session_path, {
-            'sessionid': http.cookies.get('sessionid', ''),
-            'csrftoken':  http.cookies.get('csrftoken',  ''),
-        })
-        print(" done.")
+    token = args.token or os.environ.get('SCD_TOKEN') or cfg.get('token', '')
+    if not token:
+        token = _prompt("API token", hint="from Profile > API Token")
 
     # ── Collect fields ────────────────────────────────────────────────────────
     _sep("New Work Entry")
@@ -386,7 +286,7 @@ def main() -> None:
 
     print("\nPosting…", end='', flush=True)
     try:
-        r = _post_entry(http, base_url, payload)
+        r = _post_entry(base_url, token, payload)
     except requests.RequestException as exc:
         print()
         sys.exit(f"ERROR: {exc}")
@@ -405,11 +305,10 @@ def main() -> None:
             print(f"  {field}: {msg}", file=sys.stderr)
         sys.exit(1)
 
-    elif r.status_code in (401, 302):
+    elif r.status_code == 401:
         print()
-        print("ERROR: Session expired or invalid.  Re-run with --no-cache to log in again.",
-              file=sys.stderr)
-        print(f"  Or delete: {session_path}", file=sys.stderr)
+        print("ERROR: Invalid or missing API token.", file=sys.stderr)
+        print("  Generate one at: Profile > API Token", file=sys.stderr)
         sys.exit(1)
 
     else:

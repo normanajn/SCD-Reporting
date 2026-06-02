@@ -56,6 +56,77 @@
       </a>
     </div>
 
+    <!-- API Token -->
+    <div class="px-6 py-4 space-y-3">
+      <div>
+        <p class="text-sm font-medium text-slate-700">API Token</p>
+        <p class="text-xs text-slate-500">Used by command-line tools such as <code class="font-mono">scd-post-entry</code>.</p>
+      </div>
+
+      {% if api_token %}
+      <div>
+        <div class="flex items-center gap-2">
+          <code id="api-token-display"
+                class="font-mono text-xs bg-slate-100 px-2 py-1 rounded flex-1 truncate">
+            {{ api_token.key|slice:":8" }}&hellip;(hidden)
+          </code>
+          <button type="button" id="api-token-toggle"
+                  class="text-xs text-scd-primary hover:underline whitespace-nowrap">
+            Reveal
+          </button>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">
+          Created {{ api_token.created_at|date:"Y-m-d" }}
+          {% if api_token.last_used_at %}&nbsp;&middot; Last used {{ api_token.last_used_at|date:"Y-m-d" }}{% endif %}
+        </p>
+      </div>
+      <script>
+        (function () {
+          var full = "{{ api_token.key }}";
+          var masked = "{{ api_token.key|slice:':8' }}…(hidden)";
+          var el  = document.getElementById("api-token-display");
+          var btn = document.getElementById("api-token-toggle");
+          var shown = false;
+          btn.addEventListener("click", function () {
+            shown = !shown;
+            el.textContent = shown ? full : masked;
+            btn.textContent = shown ? "Hide" : "Reveal";
+          });
+        })();
+      </script>
+      {% else %}
+      <p class="text-xs text-slate-500 italic">No token generated yet.</p>
+      {% endif %}
+
+      <div class="flex gap-3">
+        <form method="post" action="{% url 'api-token-rotate' %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="text-xs bg-scd-primary hover:bg-scd-primary-hover text-white px-3 py-1.5 rounded-md transition-colors">
+            {% if api_token %}Regenerate token{% else %}Generate token{% endif %}
+          </button>
+        </form>
+        {% if api_token %}
+        <form method="post" action="{% url 'api-token-revoke' %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="text-xs text-red-600 hover:text-red-800 hover:underline self-center">
+            Revoke
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      {% if api_token %}
+      <div class="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
+        Add to <code class="font-mono">~/.config/scd-reporting/config.yaml</code>:<br>
+        <code class="font-mono">token: {{ api_token.key|slice:':8' }}…</code>
+        <span class="text-slate-400">(reveal token above for full value)</span>
+      </div>
+      {% endif %}
+    </div>
+
   </div>
 </div>
+
 {% endblock %}

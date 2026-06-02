@@ -15,4 +15,6 @@ urlpatterns = [
     path('admin-users/<int:pk>/managed-projects/', views.UserManagedProjectsView.as_view(), name='user-managed-projects'),
     path('admin-users/<int:pk>/set-password/',   views.UserSetPasswordView.as_view(), name='user-set-password'),
     path('admin-users/<int:pk>/delete/',         views.UserDeleteView.as_view(),      name='user-delete'),
+    path('profile/api-token/rotate/', views.APITokenRotateView.as_view(), name='api-token-rotate'),
+    path('profile/api-token/revoke/', views.APITokenRevokeView.as_view(), name='api-token-revoke'),
 ]
