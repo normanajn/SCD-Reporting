@@ -1,0 +1,421 @@
+#!/usr/bin/env python3
+"""scd-post-entry — interactive CLI to post a new work entry to SCD Activity Reporting."""
+
+import argparse
+import getpass
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from datetime import date, timedelta
+from pathlib import Path
+
+try:
+    import requests
+except ImportError:
+    sys.exit("ERROR: 'requests' is required.  Install with: pip install requests")
+
+try:
+    import yaml as _yaml
+    def _load_yaml(path):
+        with open(path) as f:
+            return _yaml.safe_load(f) or {}
+except ImportError:
+    _yaml = None
+    def _load_yaml(path):
+        """Minimal key: value YAML subset (no PyYAML installed)."""
+        cfg = {}
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ':' in line:
+                    k, _, v = line.partition(':')
+                    cfg[k.strip()] = v.strip()
+        return cfg
+
+
+DEFAULT_CONFIG_DIR  = Path.home() / ".config" / "scd-reporting"
+DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.yaml"
+DEFAULT_SESSION_FILE = DEFAULT_CONFIG_DIR / "session.json"
+
+PERIOD_KINDS = ["today", "week", "fortnight", "month", "custom"]
+
+DESCRIPTION_TEMPLATE = (
+    "Project Milestone:\n"
+    "Performance Goal: \n"
+    "Update:\n\n"
+)
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _load_config(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return _load_yaml(path)
+    except Exception as exc:
+        print(f"Warning: could not read config file {path}: {exc}", file=sys.stderr)
+        return {}
+
+
+def _load_session(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _save_session(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'w') as f:
+        json.dump(data, f)
+    path.chmod(0o600)
+
+
+def _prompt(label: str, default: str | None = None, required: bool = True,
+            hint: str = "") -> str:
+    parts = [label]
+    if hint:
+        parts.append(f"[{hint}]")
+    if default is not None:
+        parts.append(f"(default: {default})")
+    display = " ".join(parts) + ": "
+    while True:
+        val = input(display).strip()
+        if not val and default is not None:
+            return default
+        if val:
+            return val
+        if not required:
+            return ""
+        print(f"  {label} is required.", file=sys.stderr)
+
+
+def _prompt_bool(label: str, default: bool = False) -> bool:
+    hint = "Y/n" if default else "y/N"
+    val = input(f"{label} [{hint}]: ").strip().lower()
+    if not val:
+        return default
+    return val in ('y', 'yes', '1', 'true')
+
+
+def _prompt_int(label: str, default: int = 0, lo: int = 0, hi: int = 5) -> int:
+    while True:
+        val = input(f"{label} ({lo}–{hi}) [{default}]: ").strip()
+        if not val:
+            return default
+        try:
+            n = int(val)
+            if lo <= n <= hi:
+                return n
+        except ValueError:
+            pass
+        print(f"  Must be an integer between {lo} and {hi}.", file=sys.stderr)
+
+
+def _open_editor(initial_text: str = "") -> str:
+    """Launch $EDITOR (or vi / notepad) for multi-line input."""
+    editor = (
+        os.environ.get('VISUAL')
+        or os.environ.get('EDITOR')
+        or ('notepad' if sys.platform == 'win32' else 'vi')
+    )
+    with tempfile.NamedTemporaryFile(
+        mode='w', suffix='.txt', prefix='scd-entry-',
+        delete=False, encoding='utf-8',
+    ) as f:
+        f.write(initial_text)
+        tmpfile = f.name
+    try:
+        subprocess.call([editor, tmpfile])
+        with open(tmpfile, encoding='utf-8') as f:
+            return f.read()
+    finally:
+        try:
+            os.unlink(tmpfile)
+        except OSError:
+            pass
+
+
+def _default_period_dates(kind: str) -> tuple[str, str]:
+    today = date.today()
+    if kind == 'today':
+        return today.isoformat(), today.isoformat()
+    if kind == 'week':
+        start = today - timedelta(days=today.weekday())
+        return start.isoformat(), (start + timedelta(days=6)).isoformat()
+    if kind == 'fortnight':
+        return (today - timedelta(days=13)).isoformat(), today.isoformat()
+    if kind == 'month':
+        return today.replace(day=1).isoformat(), today.isoformat()
+    return today.isoformat(), today.isoformat()
+
+
+def _sep(label: str = "") -> None:
+    if label:
+        print(f"\n── {label} " + "─" * max(0, 54 - len(label)))
+    else:
+        print("─" * 60)
+
+
+# ── Authentication ─────────────────────────────────────────────────────────────
+
+def _extract_csrf(html: str, cookies) -> str:
+    """Return CSRF token from cookies or hidden form field."""
+    token = cookies.get('csrftoken', '')
+    if not token:
+        m = re.search(r'csrfmiddlewaretoken[^>]+value=["\']([^"\']+)', html)
+        if m:
+            token = m.group(1)
+    return token
+
+
+def _login(base_url: str, email: str, password: str) -> requests.Session:
+    session = requests.Session()
+    session.headers['User-Agent'] = 'scd-post-entry/1.0'
+
+    login_url = f"{base_url}/accounts/login/"
+    r = session.get(login_url, timeout=15)
+    r.raise_for_status()
+
+    csrf = _extract_csrf(r.text, session.cookies)
+    if not csrf:
+        raise RuntimeError("Could not obtain CSRF token from the login page.")
+
+    r = session.post(
+        login_url,
+        data={'login': email, 'password': password, 'csrfmiddlewaretoken': csrf},
+        headers={'Referer': login_url},
+        timeout=15,
+        allow_redirects=True,
+    )
+
+    # allauth redirects to / on success; failure re-renders /accounts/login/
+    if 'login' in r.url.split('?')[0].rstrip('/').rsplit('/', 1)[-1] or r.status_code >= 400:
+        raise RuntimeError("Login failed — check your email and password.")
+
+    return session
+
+
+def _session_from_cache(base_url: str, data: dict) -> requests.Session:
+    session = requests.Session()
+    session.headers['User-Agent'] = 'scd-post-entry/1.0'
+    domain = re.sub(r'^https?://', '', base_url).split('/')[0]
+    session.cookies.set('sessionid', data['sessionid'], domain=domain)
+    session.cookies.set('csrftoken',  data['csrftoken'],  domain=domain)
+    return session
+
+
+# ── API call ──────────────────────────────────────────────────────────────────
+
+def _post_entry(session: requests.Session, base_url: str, payload: dict) -> requests.Response:
+    csrf = session.cookies.get('csrftoken', '')
+    return session.post(
+        f"{base_url}/api/entries/",
+        json=payload,
+        headers={
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf,
+            'Referer': base_url + '/',
+        },
+        timeout=30,
+        allow_redirects=False,
+    )
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────────
+
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        prog='scd-post-entry',
+        description='Interactively post a new work entry to SCD Activity Reporting.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""\
+Config file ({DEFAULT_CONFIG_FILE}):
+  url:      https://scd-reporting.fnal.gov
+  email:    you@fnal.gov
+  password: (optional — prompted if omitted)
+
+Environment variables (override config file):
+  SCD_URL, SCD_EMAIL, SCD_PASSWORD
+
+The EDITOR (or VISUAL) environment variable selects the editor used for
+the description field.  Defaults to vi on Unix and notepad on Windows.
+""",
+    )
+    p.add_argument('-c', '--config', default=str(DEFAULT_CONFIG_FILE),
+                   metavar='FILE', help='Config file (default: %(default)s)')
+    p.add_argument('-u', '--url',      metavar='URL',   help='Base URL of the SCD Reporting instance')
+    p.add_argument('-e', '--email',    metavar='EMAIL', help='Login email')
+    p.add_argument('-p', '--password', metavar='PASS',  help='Login password')
+    p.add_argument('--no-cache', action='store_true',
+                   help='Force re-login even if a cached session exists')
+    p.add_argument('--session-file', default=str(DEFAULT_SESSION_FILE),
+                   metavar='FILE', help='Session cache file (default: %(default)s)')
+    return p.parse_args()
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    args = _parse_args()
+    cfg  = _load_config(Path(args.config))
+
+    # Resolve connection settings: CLI > env > config > prompt
+    base_url = (args.url or os.environ.get('SCD_URL') or cfg.get('url', '')).rstrip('/')
+    if not base_url:
+        base_url = _prompt("SCD Reporting URL", hint="https://scd-reporting.fnal.gov")
+
+    email = args.email or os.environ.get('SCD_EMAIL') or cfg.get('email', '')
+    if not email:
+        email = _prompt("Email")
+
+    password = args.password or os.environ.get('SCD_PASSWORD') or cfg.get('password', '')
+
+    # ── Authentication ────────────────────────────────────────────────────────
+    session_path = Path(args.session_file)
+    cached = None if args.no_cache else _load_session(session_path)
+
+    if cached:
+        http = _session_from_cache(base_url, cached)
+    else:
+        if not password:
+            password = getpass.getpass(f"Password for {email}: ")
+        print("Logging in…", end='', flush=True)
+        try:
+            http = _login(base_url, email, password)
+        except Exception as exc:
+            print()
+            sys.exit(f"ERROR: {exc}")
+        _save_session(session_path, {
+            'sessionid': http.cookies.get('sessionid', ''),
+            'csrftoken':  http.cookies.get('csrftoken',  ''),
+        })
+        print(" done.")
+
+    # ── Collect fields ────────────────────────────────────────────────────────
+    _sep("New Work Entry")
+
+    title    = _prompt("Title")
+    project  = _prompt("Project",  hint="slug or id")
+    category = _prompt("Category", hint="slug or id")
+
+    print(f"Period kind ({'/'.join(PERIOD_KINDS)}):")
+    period_kind = _prompt("Period kind", default="week")
+    while period_kind not in PERIOD_KINDS:
+        print(f"  Must be one of: {', '.join(PERIOD_KINDS)}", file=sys.stderr)
+        period_kind = _prompt("Period kind", default="week")
+
+    def_start, def_end = _default_period_dates(period_kind)
+    period_start = _prompt("Period start", default=def_start, hint="YYYY-MM-DD")
+    period_end   = _prompt("Period end",   default=def_end,   hint="YYYY-MM-DD")
+
+    group        = _prompt("Group",        required=False, hint="slug, id, or blank")
+    lab_priority = _prompt("Lab priority", required=False, hint="slug, id, or blank")
+
+    tags_raw = _prompt("Tags", required=False, hint="comma-separated, or blank")
+    tags = [t.strip() for t in tags_raw.split(',') if t.strip()] if tags_raw else []
+
+    _sep("Flags")
+    is_private   = _prompt_bool("Private?",            default=False)
+    is_critical  = _prompt_bool("Critical?",           default=False)
+    is_highlight = _prompt_bool("Highlight?",          default=False)
+    highlight_stars = _prompt_int("Highlight stars", default=0) if is_highlight else 0
+    is_dho       = _prompt_bool("Division head only?", default=False)
+
+    _sep("Description")
+    print("Your $EDITOR will open.  Write the entry description, save, and close.")
+    input("Press Enter to open the editor…")
+    description = _open_editor(DESCRIPTION_TEMPLATE).strip()
+    if not description:
+        sys.exit("ERROR: Description cannot be empty.")
+
+    # ── Summary ───────────────────────────────────────────────────────────────
+    _sep("Summary")
+    rows = [
+        ("Title",        title),
+        ("Project",      project),
+        ("Category",     category),
+        ("Period",       f"{period_start} → {period_end} ({period_kind})"),
+    ]
+    if group:        rows.append(("Group",        group))
+    if lab_priority: rows.append(("Lab priority", lab_priority))
+    if tags:         rows.append(("Tags",         ", ".join(tags)))
+    flags = []
+    if is_private:   flags.append("private")
+    if is_critical:  flags.append("critical")
+    if is_highlight: flags.append(f"highlight ({'★' * highlight_stars or '0 stars'})")
+    if is_dho:       flags.append("division-head-only")
+    if flags:        rows.append(("Flags", ", ".join(flags)))
+    rows.append(("Description", f"{len(description.splitlines())} line(s)"))
+
+    width = max(len(k) for k, _ in rows) + 2
+    for k, v in rows:
+        print(f"  {k:<{width}}{v}")
+
+    print()
+    confirm = input("Post this entry? [Y/n]: ").strip().lower()
+    if confirm and confirm not in ('y', 'yes'):
+        sys.exit("Aborted.")
+
+    # ── POST ──────────────────────────────────────────────────────────────────
+    payload: dict = {
+        'title':        title,
+        'description':  description,
+        'project':      project,
+        'category':     category,
+        'period_kind':  period_kind,
+        'period_start': period_start,
+        'period_end':   period_end,
+        'tags':         tags,
+        'is_private':              is_private,
+        'is_critical':             is_critical,
+        'is_highlight':            is_highlight,
+        'highlight_stars':         highlight_stars,
+        'is_division_head_only':   is_dho,
+    }
+    if group:        payload['group']        = group
+    if lab_priority: payload['lab_priority'] = lab_priority
+
+    print("\nPosting…", end='', flush=True)
+    try:
+        r = _post_entry(http, base_url, payload)
+    except requests.RequestException as exc:
+        print()
+        sys.exit(f"ERROR: {exc}")
+
+    if r.status_code == 201:
+        data = r.json()
+        print(" done.\n")
+        print(f"  Entry #{data['id']} created: {data['title']}")
+        print(f"  {data['url']}")
+
+    elif r.status_code == 400:
+        print()
+        print("ERROR: The server rejected the entry:", file=sys.stderr)
+        errors = r.json().get('errors', r.json())
+        for field, msg in errors.items():
+            print(f"  {field}: {msg}", file=sys.stderr)
+        sys.exit(1)
+
+    elif r.status_code in (401, 302):
+        print()
+        print("ERROR: Session expired or invalid.  Re-run with --no-cache to log in again.",
+              file=sys.stderr)
+        print(f"  Or delete: {session_path}", file=sys.stderr)
+        sys.exit(1)
+
+    else:
+        print()
+        sys.exit(f"ERROR: Unexpected response {r.status_code}: {r.text[:300]}")
+
+
+if __name__ == '__main__':
+    main()

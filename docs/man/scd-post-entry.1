@@ -1,0 +1,274 @@
+.\" Man page for scd-post-entry
+.TH SCD\-POST\-ENTRY 1 "2026-06-02" "SCD Effort Reporting" "SCD Effort Reporting Commands"
+.
+.SH NAME
+scd\-post\-entry \- interactively create a work entry via the SCD Activity Reporting API
+.
+.SH SYNOPSIS
+.B scd\-post\-entry
+.RB [ \-c
+.IR file ]
+.RB [ \-u
+.IR url ]
+.RB [ \-e
+.IR email ]
+.RB [ \-p
+.IR password ]
+.RB [ \-\-no\-cache ]
+.RB [ \-\-session\-file
+.IR file ]
+.
+.SH DESCRIPTION
+.B scd\-post\-entry
+is an interactive command\-line utility that guides you through creating a
+new work entry in the SCD Activity Reporting web application.  It submits
+the entry via the application's REST API endpoint
+.RI ( POST\ /api/entries/ ).
+.PP
+The tool prompts for all required and optional fields, then opens
+.BR $EDITOR
+for the multi\-line entry description.  A summary is displayed before
+submission, and confirmation is required before the request is sent.
+.PP
+On first use the tool performs a full login and caches the resulting
+session in
+.I ~/.config/scd\-reporting/session.json
+(mode 0600) so subsequent runs do not prompt for a password.  Use
+.B \-\-no\-cache
+to force re\-authentication.
+.
+.SH OPTIONS
+.TP
+.BI \-c\  file ,\ \-\-config\  file
+Path to the YAML configuration file.
+.br
+Default:
+.I ~/.config/scd\-reporting/config.yaml
+.TP
+.BI \-u\  url ,\ \-\-url\  url
+Base URL of the SCD Reporting instance,
+e.g.\&
+.IR https://scd\-reporting.fnal.gov .
+Overrides the
+.B url
+config key and the
+.B SCD_URL
+environment variable.
+.TP
+.BI \-e\  email ,\ \-\-email\  email
+Login email address.
+Overrides the
+.B email
+config key and the
+.B SCD_EMAIL
+environment variable.
+.TP
+.BI \-p\  password ,\ \-\-password\  password
+Login password.
+Overrides the
+.B password
+config key and the
+.B SCD_PASSWORD
+environment variable.
+Avoid passing passwords on the command line on shared systems; use the
+config file or the interactive prompt instead.
+.TP
+.B \-\-no\-cache
+Force a full login even if a valid session cache exists.  The old
+cache is overwritten on success.
+.TP
+.BI \-\-session\-file\  file
+Path to the session cache file.
+.br
+Default:
+.I ~/.config/scd\-reporting/session.json
+.
+.SH FIELDS
+The tool prompts for the following fields in order:
+.TP
+.B Title
+Short summary of the work item.
+Required.
+.TP
+.B Project
+Project slug or numeric ID (e.g.\&
+.IR mu2e\-daq ).
+Required.
+See
+.I /taxonomy/projects/
+in the web UI for available slugs.
+.TP
+.B Category
+Category slug or numeric ID.
+Required.
+See
+.I /taxonomy/categories/
+in the web UI.
+.TP
+.B Period kind
+One of:
+.BR today ,
+.BR week ,
+.BR fortnight ,
+.BR month ,
+.BR custom .
+Default:
+.BR week .
+.TP
+.B Period start / Period end
+Reporting period dates in
+.B YYYY\-MM\-DD
+format.
+Defaults are computed automatically from the chosen period kind
+(e.g.\& the current calendar week for
+.BR week ).
+.TP
+.B Group
+Work group slug or ID.
+Optional.
+.TP
+.B Lab priority
+Lab priority slug or ID.
+Optional.
+.TP
+.B Tags
+Comma\-separated list of tag names.
+Optional.
+Tags that do not exist are created automatically.
+.TP
+.B Flags
+.RS
+.TP
+.B Private
+Hides the entry from most report views.
+.TP
+.B Critical
+Marks the entry as critical work.
+.TP
+.B Highlight
+Marks the entry as a highlight.  A star rating (0\(en5) is requested
+when this flag is set.
+.TP
+.B Division head only
+Restricts visibility to division heads and administrators.
+.RE
+.TP
+.B Description
+Free\-form Markdown text describing the work.
+The
+.B $EDITOR
+(or
+.BR $VISUAL )
+environment variable controls which editor is launched.
+Falls back to
+.B vi
+on Unix and
+.B notepad
+on Windows.
+The editor opens with a standard template pre\-filled.
+.
+.SH CONFIGURATION FILE
+The default configuration file is
+.IR ~/.config/scd\-reporting/config.yaml .
+It is created automatically on first use if the directory exists.
+Example:
+.PP
+.nf
+    url:      https://scd\-reporting.fnal.gov
+    email:    you@fnal.gov
+    password: (optional — prompted if omitted)
+.fi
+.PP
+Setting
+.B password
+in the config file is convenient but stores credentials in plain text.
+The session cache is preferred for day\-to\-day use.
+.
+.SH ENVIRONMENT
+.TP
+.B SCD_URL
+Base URL of the SCD Reporting instance.
+Overridden by
+.BR \-\-url .
+.TP
+.B SCD_EMAIL
+Login email.
+Overridden by
+.BR \-\-email .
+.TP
+.B SCD_PASSWORD
+Login password.
+Overridden by
+.BR \-\-password .
+.TP
+.B EDITOR
+Editor launched for the description field.
+.TP
+.B VISUAL
+Preferred editor; checked before
+.BR EDITOR .
+.
+.SH EXIT STATUS
+.TP
+.B 0
+Entry created successfully.
+.TP
+.B 1
+Validation error, authentication failure, or network error.
+The specific message is printed to stderr.
+.
+.SH EXAMPLES
+.PP
+Run with all settings in the config file:
+.PP
+.nf
+    scd\-post\-entry
+.fi
+.PP
+Override the URL for a dev instance:
+.PP
+.nf
+    scd\-post\-entry \-u http://localhost:8000
+.fi
+.PP
+Force a fresh login (e.g.\& after a password change):
+.PP
+.nf
+    scd\-post\-entry \-\-no\-cache
+.fi
+.PP
+Use a non\-default config file:
+.PP
+.nf
+    scd\-post\-entry \-c ~/my\-scd\-config.yaml
+.fi
+.PP
+Set the editor to nano for the description:
+.PP
+.nf
+    EDITOR=nano scd\-post\-entry
+.fi
+.
+.SH FILES
+.TP
+.I scripts/scd\-post\-entry
+Source file for this utility.
+.TP
+.I ~/.config/scd\-reporting/config.yaml
+User configuration file.
+.TP
+.I ~/.config/scd\-reporting/session.json
+Cached session credentials (mode 0600).
+Delete this file to force re\-authentication.
+.
+.SH SEE ALSO
+.BR scd\-seed\-admin (1),
+.BR scd\-seed\-taxonomy (1),
+.BR vi (1),
+.BR curl (1)
+.PP
+SCD Activity Reporting API documentation:
+.I /api/
+.
+.SH AUTHOR
+Fermilab Scientific Computing Division
