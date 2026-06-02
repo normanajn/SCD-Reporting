@@ -1,5 +1,7 @@
 from django.urls import path
 
+from apps.entries.api_views import EntryCreateAPIView
+
 from . import views
 
 urlpatterns = [
@@ -10,6 +12,8 @@ urlpatterns = [
     path('dashboard/summary/download/pdf/', views.DashboardSummaryDownloadPdfView.as_view(), name='dashboard-summary-pdf'),
     path('dashboard/prompt-config/',        views.DashboardPromptConfigView.as_view(),        name='dashboard-prompt-config'),
     path('about/', views.AboutView.as_view(), name='about'),
+    path('api/',   views.ApiView.as_view(),   name='api'),
+    path('api/entries/', EntryCreateAPIView.as_view(), name='api-entry-create'),
     path('bug-report/', views.BugReportView.as_view(), name='bug-report'),
     path('bug-report/submit/', views.BugReportSubmitView.as_view(), name='bug-report-submit'),
 ]

@@ -135,6 +135,10 @@ class DashboardPromptConfigView(LoginRequiredMixin, View):
 class AboutView(TemplateView):
     template_name = 'core/about.html'
 
+
+class ApiView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/api.html'
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['git'] = _git_info()

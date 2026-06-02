@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}API — SCD Reporting{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl space-y-8">
+
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">API &amp; Routes</h1>
+    <p class="mt-1 text-sm text-slate-500">
+      All routes served by SCD Activity Reporting. HTML routes use standard Django session
+      authentication. The REST API also uses session auth with a <code class="font-mono bg-slate-100 px-1 rounded">X-CSRFToken</code> header.
+    </p>
+  </div>
+
+  {% comment %}— Role legend ————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">Role Reference</h2>
+    </div>
+    <div class="px-6 py-4">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-slate-100">
+            <th class="pb-2 font-medium w-36">Badge</th>
+            <th class="pb-2 font-medium">Who</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50 text-slate-700">
+          <tr><td class="py-1.5 pr-4"><span class="badge badge-login">Login</span></td><td>Any authenticated user</td></tr>
+          <tr><td class="py-1.5 pr-4"><span class="badge badge-manager">Manager</span></td><td>Admin, Division Head, or Group Leader</td></tr>
+          <tr><td class="py-1.5 pr-4"><span class="badge badge-reporter">Reporter</span></td><td>Auditor, Group Leader, Division Head, or Functional Lead</td></tr>
+          <tr><td class="py-1.5 pr-4"><span class="badge badge-admin">Admin</span></td><td>SCD Admin only</td></tr>
+          <tr><td class="py-1.5 pr-4"><span class="badge badge-public">Public</span></td><td>No authentication required</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% comment %}— REST API ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-blue-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 bg-blue-50 border-b border-blue-200">
+      <h2 class="text-base font-semibold text-blue-900">REST API</h2>
+      <p class="text-xs text-blue-700 mt-0.5">JSON endpoints — send <code class="font-mono bg-blue-100 px-1 rounded">Content-Type: application/json</code> and a valid <code class="font-mono bg-blue-100 px-1 rounded">X-CSRFToken</code> header.</p>
+    </div>
+
+    <div class="divide-y divide-slate-100">
+
+      <div class="px-6 py-4">
+        <div class="flex items-start gap-3">
+          <span class="method-post mt-0.5">POST</span>
+          <div class="flex-1 min-w-0">
+            <code class="font-mono text-sm text-slate-800">/api/entries/</code>
+            <span class="ml-3 badge badge-login">Login</span>
+            <p class="mt-1 text-sm text-slate-600">Create a new work entry. Returns <code class="font-mono bg-slate-100 px-1 rounded text-xs">201</code> on success or <code class="font-mono bg-slate-100 px-1 rounded text-xs">400</code> with an <code class="font-mono bg-slate-100 px-1 rounded text-xs">errors</code> object on validation failure.</p>
+
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <p class="font-medium text-slate-700 mb-1">Request body</p>
+                <pre class="bg-slate-50 border border-slate-200 rounded p-3 text-slate-700 overflow-x-auto leading-relaxed">{
+  "title":        "string (required)",
+  "description":  "string (required)",
+  "project":      "slug or id (required)",
+  "category":     "slug or id (required)",
+  "period_kind":  "today|week|fortnight|month|custom",
+  "period_start": "YYYY-MM-DD (required)",
+  "period_end":   "YYYY-MM-DD (required)",
+  "group":        "slug or id (optional)",
+  "lab_priority": "slug or id (optional)",
+  "tags":         ["tag1", "tag2"],
+  "is_private":           false,
+  "is_critical":          false,
+  "is_highlight":         false,
+  "highlight_stars":      0,
+  "is_division_head_only": false
+}</pre>
+              </div>
+              <div>
+                <p class="font-medium text-slate-700 mb-1">Response (201)</p>
+                <pre class="bg-slate-50 border border-slate-200 rounded p-3 text-slate-700 overflow-x-auto leading-relaxed">{
+  "id":           42,
+  "title":        "Weekly status",
+  "project":      "project-slug",
+  "category":     "category-slug",
+  "period_kind":  "week",
+  "period_start": "2026-05-26",
+  "period_end":   "2026-06-01",
+  "url":          "https://…/entries/42/"
+}</pre>
+                <p class="mt-2 font-medium text-slate-700 mb-1">Response (400)</p>
+                <pre class="bg-slate-50 border border-slate-200 rounded p-3 text-slate-700 overflow-x-auto leading-relaxed">{
+  "errors": {
+    "title": "This field is required.",
+    "project": "Project \"bad-slug\" not found."
+  }
+}</pre>
+              </div>
+            </div>
+
+            <div class="mt-3 text-xs text-slate-500">
+              <p class="font-medium text-slate-700 mb-1">Example (curl)</p>
+              <pre class="bg-slate-50 border border-slate-200 rounded p-3 text-slate-700 overflow-x-auto leading-relaxed">curl -s -X POST https://scd-reporting.fnal.gov/api/entries/ \
+  -H "Content-Type: application/json" \
+  -H "X-CSRFToken: &lt;token&gt;" \
+  --cookie "sessionid=&lt;sessionid&gt;; csrftoken=&lt;token&gt;" \
+  -d '{
+    "title": "Weekly status update",
+    "description": "Project Milestone:\nPerformance Goal: FY26-Q3\nUpdate: Completed integration tests.",
+    "project": "mu2e-daq",
+    "category": "software-development",
+    "period_kind": "week",
+    "period_start": "2026-05-26",
+    "period_end": "2026-06-01"
+  }'</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  {% comment %}— Dashboard ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">Dashboard</h2>
+    </div>
+    <div class="divide-y divide-slate-100 text-sm">
+      {% include "core/partials/_route_row.html" with method="GET"  path="/"                                 badge="login"   desc="Dashboard — recent entries and AI summary panel" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/dashboard/summary/"               badge="login"   desc="HTMX: generate AI narrative summary for selected entries" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/dashboard/summary/download/txt/"  badge="login"   desc="Download dashboard summary as plain text (.txt)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/dashboard/summary/download/md/"   badge="login"   desc="Download dashboard summary as Markdown (.md)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/dashboard/summary/download/pdf/"  badge="login"   desc="Download dashboard summary as PDF" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/dashboard/prompt-config/"         badge="login"   desc="Save per-user AI prompt configuration" %}
+    </div>
+  </div>
+
+  {% comment %}— Entries ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">Entries</h2>
+    </div>
+    <div class="divide-y divide-slate-100 text-sm">
+      {% include "core/partials/_route_row.html" with method="GET"  path="/entries/"                        badge="login"   desc="List my active work entries (paginated, filterable by project)" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/entries/new/"                    badge="login"   desc="New entry form" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/new/"                    badge="login"   desc="Create a new work entry" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/new/from-summary/"       badge="login"   desc="Pre-fill entry description from an AI summary, then redirect to form" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/entries/&lt;id&gt;/"             badge="login"   desc="Entry detail view" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/entries/&lt;id&gt;/edit/"        badge="login"   desc="Edit entry form (author only)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/&lt;id&gt;/edit/"        badge="login"   desc="Save entry edits (author only)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/&lt;id&gt;/delete/"      badge="login"   desc="Delete entry (author only)" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/entries/period-prefill/"         badge="login"   desc="HTMX: compute period start/end dates for a given period_kind" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/markdown-preview/"       badge="login"   desc="HTMX: render description Markdown to HTML" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/entries/manage/"                 badge="manager" desc="Manage all entries — search, filter, paginate (50/page)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/&lt;id&gt;/reassign/"    badge="manager" desc="Reassign entry to a different author" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/&lt;id&gt;/archive/"     badge="manager" desc="Toggle entry archived status" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/entries/&lt;id&gt;/manager-delete/" badge="manager" desc="Permanently delete any entry" %}
+    </div>
+  </div>
+
+  {% comment %}— Reports ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">Reports</h2>
+    </div>
+    <div class="divide-y divide-slate-100 text-sm">
+      {% include "core/partials/_route_row.html" with method="GET"  path="/reports/"                          badge="reporter" desc="Report builder — filter entries, preview, export, or summarize" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/reports/preview/"                  badge="reporter" desc="HTMX: preview filtered entries (first 50 rows)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/reports/download/&lt;fmt&gt;/"     badge="reporter" desc="Download report; fmt is csv, xlsx, or json" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/reports/summary/"                  badge="reporter" desc="HTMX: generate AI narrative summary of filtered/selected entries" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/reports/summary/download/txt/"     badge="reporter" desc="Download report summary as plain text (.txt)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/reports/summary/download/pdf/"     badge="reporter" desc="Download report summary as PDF" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/reports/prompt-config/"            badge="admin"    desc="Save global AI prompt configuration (Admin only)" %}
+    </div>
+  </div>
+
+  {% comment %}— Taxonomy ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">Taxonomy</h2>
+    </div>
+    <div class="divide-y divide-slate-100 text-sm">
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/projects/"                    badge="manager" desc="Manage projects — list and add" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/projects/"                    badge="manager" desc="Create a new project" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/projects/&lt;id&gt;/edit/"    badge="manager" desc="Edit project form" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/projects/&lt;id&gt;/edit/"    badge="manager" desc="Save project changes" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/categories/"                  badge="manager" desc="Manage categories — list and add" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/categories/"                  badge="manager" desc="Create a new category" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/categories/&lt;id&gt;/edit/"  badge="manager" desc="Edit category form" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/categories/&lt;id&gt;/edit/"  badge="manager" desc="Save category changes" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/groups/"                      badge="manager" desc="Manage work groups — list and add" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/groups/"                      badge="manager" desc="Create a new work group" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/groups/&lt;id&gt;/edit/"      badge="manager" desc="Edit work group form" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/groups/&lt;id&gt;/edit/"      badge="manager" desc="Save work group changes" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/lab-priorities/"              badge="manager" desc="Manage lab priorities — list and add" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/lab-priorities/"              badge="manager" desc="Create a new lab priority" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/lab-priorities/&lt;id&gt;/edit/" badge="manager" desc="Edit lab priority form" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/lab-priorities/&lt;id&gt;/edit/" badge="manager" desc="Save lab priority changes" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/export/"                      badge="manager" desc="Export all taxonomy data as JSON" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/import/"                      badge="manager" desc="Import taxonomy from a JSON file (upserts by slug)" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/tags/autocomplete/"           badge="login"   desc="HTMX: tag autocomplete — query param: q" %}
+    </div>
+  </div>
+
+  {% comment %}— Accounts ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">Accounts</h2>
+    </div>
+    <div class="divide-y divide-slate-100 text-sm">
+      {% include "core/partials/_route_row.html" with method="GET"  path="/profile/"                                      badge="login"   desc="View and edit own profile" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/profile/"                                      badge="login"   desc="Save profile changes" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/select-group/"                                 badge="login"   desc="First-login group selection" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/select-group/"                                 badge="login"   desc="Save group selection" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/preview-role/"                                 badge="admin"   desc="Activate or exit role preview mode" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin-users/"                                  badge="manager" desc="User admin list" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/create/"                           badge="admin"   desc="Create a new user account" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/signup-toggle/"                    badge="admin"   desc="Toggle self-serve signup on/off" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/role/"                  badge="admin"   desc="HTMX: update a user's role" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin-users/&lt;id&gt;/primary-group/"         badge="manager" desc="HTMX: render primary group cell (add ?edit=1 to edit)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/primary-group/"         badge="manager" desc="HTMX: set user primary group" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin-users/&lt;id&gt;/managed-groups/"        badge="admin"   desc="HTMX: render managed groups cell" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/managed-groups/"        badge="admin"   desc="HTMX: set user managed groups" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin-users/&lt;id&gt;/managed-projects/"      badge="admin"   desc="HTMX: render managed projects cell" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/managed-projects/"      badge="admin"   desc="HTMX: set user managed projects" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin-users/&lt;id&gt;/set-password/"          badge="admin"   desc="Set password form for another user" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/set-password/"          badge="admin"   desc="Save new password for another user" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin-users/&lt;id&gt;/delete/"                badge="admin"   desc="Confirm user deletion" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/delete/"                badge="admin"   desc="Delete user account (blocked if entries exist)" %}
+    </div>
+  </div>
+
+  {% comment %}— Audit ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">Audit Log</h2>
+    </div>
+    <div class="divide-y divide-slate-100 text-sm">
+      {% include "core/partials/_route_row.html" with method="GET" path="/audit/" badge="reporter" desc="Audit log — filter by actor, action, object type, or date range (50/page)" %}
+    </div>
+  </div>
+
+  {% comment %}— System ——————————————————————————————————{% endcomment %}
+  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <h2 class="text-base font-semibold text-slate-900">System</h2>
+    </div>
+    <div class="divide-y divide-slate-100 text-sm">
+      {% include "core/partials/_route_row.html" with method="GET" path="/about/" badge="public"  desc="About page — version, build info, and dependency overview" %}
+      {% include "core/partials/_route_row.html" with method="GET" path="/api/"   badge="login"   desc="This page — routes and API documentation" %}
+      {% include "core/partials/_route_row.html" with method="GET" path="/bug-report/" badge="login" desc="Bug report form" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/bug-report/submit/" badge="login" desc="Submit bug report as a GitHub issue" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin/" badge="admin"  desc="Django admin panel (staff/superuser access)" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/accounts/login/"   badge="public" desc="Login page (django-allauth)" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/accounts/signup/"  badge="public" desc="Self-serve registration (when enabled)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/accounts/logout/"  badge="login"  desc="Sign out" %}
+    </div>
+  </div>
+
+  <div class="text-sm text-slate-400">
+    <a href="{% url 'dashboard' %}" class="hover:text-slate-600">&larr; Back to dashboard</a>
+  </div>
+
+</div>
+
+<style>
+  .badge        { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 9999px; }
+  .badge-login    { background: #dbeafe; color: #1e40af; }
+  .badge-manager  { background: #fef3c7; color: #92400e; }
+  .badge-reporter { background: #d1fae5; color: #065f46; }
+  .badge-admin    { background: #fee2e2; color: #991b1b; }
+  .badge-public   { background: #f1f5f9; color: #475569; }
+  .method-get  { font-family: monospace; font-size: 0.7rem; font-weight: 700; color: #1d4ed8; background: #dbeafe; padding: 0.15rem 0.4rem; border-radius: 3px; white-space: nowrap; }
+  .method-post { font-family: monospace; font-size: 0.7rem; font-weight: 700; color: #15803d; background: #dcfce7; padding: 0.15rem 0.4rem; border-radius: 3px; white-space: nowrap; }
+</style>
+{% endblock %}

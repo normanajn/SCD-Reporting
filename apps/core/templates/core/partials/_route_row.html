@@ -1,0 +1,16 @@
+<div class="px-6 py-2.5 flex items-start gap-3">
+  {% if method == "GET" %}
+  <span class="method-get mt-0.5">GET</span>
+  {% else %}
+  <span class="method-post mt-0.5">POST</span>
+  {% endif %}
+  <code class="font-mono text-sm text-slate-800 flex-1">{{ path }}</code>
+  <span class="badge badge-{{ badge }} shrink-0">
+    {% if badge == "login" %}Login
+    {% elif badge == "manager" %}Manager
+    {% elif badge == "reporter" %}Reporter
+    {% elif badge == "admin" %}Admin
+    {% else %}Public{% endif %}
+  </span>
+  <span class="text-slate-500 text-sm flex-1">{{ desc }}</span>
+</div>
