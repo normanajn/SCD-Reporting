@@ -126,13 +126,15 @@ fi
 
 # ── POST ──────────────────────────────────────────────────────────────────────
 
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${URL}/api/entries/" \
+TMPFILE=$(mktemp)
+trap 'rm -f "$TMPFILE"' EXIT
+
+HTTP_CODE=$(curl -s -o "$TMPFILE" -w "%{http_code}" -X POST "${URL}/api/entries/" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}" \
   --data-raw "$DATA")
 
-HTTP_CODE=$(printf '%s' "$RESPONSE" | tail -n1)
-BODY=$(printf '%s' "$RESPONSE" | head -n -1)
+BODY=$(cat "$TMPFILE")
 
 case $HTTP_CODE in
   201)
