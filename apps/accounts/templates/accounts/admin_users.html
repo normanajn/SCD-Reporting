@@ -6,7 +6,12 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-slate-900">Users</h1>
-    <span class="text-sm text-slate-500">{{ users.count }} total</span>
+    <div class="flex items-center gap-4">
+      {% if request.user.is_scd_admin %}
+      <a href="{% url 'admin-api-tokens' %}" class="text-sm text-scd-primary hover:underline">API Tokens</a>
+      {% endif %}
+      <span class="text-sm text-slate-500">{{ users.count }} total</span>
+    </div>
   </div>
 
   {% if request.user.is_scd_admin %}

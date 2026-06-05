@@ -284,6 +284,10 @@ curl -s -X POST https://scd-reporting.fnal.gov/api/entries/ \
       {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/set-password/"          badge="admin"   desc="Save new password for another user" %}
       {% include "core/partials/_route_row.html" with method="GET"  path="/admin-users/&lt;id&gt;/delete/"                badge="admin"   desc="Confirm user deletion" %}
       {% include "core/partials/_route_row.html" with method="POST" path="/admin-users/&lt;id&gt;/delete/"                badge="admin"   desc="Delete user account (blocked if entries exist)" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/profile/api-token/rotate/"                    badge="login"   desc="Generate or rotate own API token" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/profile/api-token/revoke/"                    badge="login"   desc="Revoke own API token" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/admin-api-tokens/"                            badge="admin"   desc="List all issued API tokens with last-used timestamps" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/admin-api-tokens/&lt;id&gt;/revoke/"          badge="admin"   desc="Revoke any user's API token" %}
     </div>
   </div>
 

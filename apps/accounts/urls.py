@@ -17,4 +17,6 @@ urlpatterns = [
     path('admin-users/<int:pk>/delete/',         views.UserDeleteView.as_view(),      name='user-delete'),
     path('profile/api-token/rotate/', views.APITokenRotateView.as_view(), name='api-token-rotate'),
     path('profile/api-token/revoke/', views.APITokenRevokeView.as_view(), name='api-token-revoke'),
+    path('admin-api-tokens/',              views.AdminAPITokensView.as_view(),       name='admin-api-tokens'),
+    path('admin-api-tokens/<int:pk>/revoke/', views.AdminAPITokenRevokeView.as_view(), name='admin-api-token-revoke'),
 ]

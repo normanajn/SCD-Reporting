@@ -282,6 +282,24 @@ class APITokenRevokeView(LoginRequiredMixin, View):
         return redirect('profile')
 
 
+class AdminAPITokensView(AdminRequiredMixin, ListView):
+    model = APIToken
+    template_name = 'accounts/admin_api_tokens.html'
+    context_object_name = 'tokens'
+
+    def get_queryset(self):
+        return APIToken.objects.select_related('user').order_by('user__email')
+
+
+class AdminAPITokenRevokeView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        token = get_object_or_404(APIToken, pk=pk)
+        email = token.user.email
+        token.delete()
+        messages.success(request, f'API token for {email} revoked.')
+        return redirect('admin-api-tokens')
+
+
 class AdminCreateUserView(AdminRequiredMixin, View):
     def post(self, request):
         form = AdminCreateUserForm(request.POST)
