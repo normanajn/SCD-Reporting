@@ -1,0 +1,137 @@
+.TH SCD-POST-ENTRY-JSON.SH 1 "2026-06-05" "SCD Reporting" "SCD Reporting"
+.SH NAME
+scd-post-entry-json.sh \- post a work entry to SCD Activity Reporting from a JSON file (bash)
+.SH SYNOPSIS
+.B scd-post-entry-json.sh
+[\fB\-u\fR \fIURL\fR]
+[\fB\-t\fR \fITOKEN\fR]
+[\fB\-c\fR \fIFILE\fR]
+[\fB\-\-dry\-run\fR]
+[\fIFILE\fR]
+.SH DESCRIPTION
+.B scd-post-entry-json.sh
+is a bash script that reads a JSON object from
+.I FILE
+(or standard input when
+.I FILE
+is omitted or
+.BR \- )
+and POSTs it to the
+.B /api/entries/
+endpoint of an SCD Activity Reporting instance using Bearer token authentication.
+.PP
+The script requires
+.BR curl (1).
+If
+.BR jq (1)
+is installed, response output is pretty-printed; otherwise the raw JSON body
+is echoed.
+.PP
+Configuration is resolved in order: command-line flag > environment variable >
+config file > error.
+.SH OPTIONS
+.TP
+.I FILE
+Path to a JSON file containing the entry object.
+Defaults to standard input (\fB\-\fR).
+.TP
+.BI \-u " URL"
+Base URL of the SCD Reporting instance (e.g.
+.BR https://scd-reporting.fnal.gov ).
+Overrides
+.B SCD_URL
+and the config file.
+.TP
+.BI \-t " TOKEN"
+API Bearer token obtained from
+.BR Profile\ >\ API\ Token
+in the web UI.
+Overrides
+.B SCD_TOKEN
+and the config file.
+.TP
+.BI \-c " FILE"
+Path to the YAML configuration file.
+Default:
+.IR ~/.config/scd-reporting/config.yaml .
+.TP
+.B \-\-dry\-run
+Print the resolved endpoint URL and the JSON payload without sending any
+HTTP request.
+.TP
+.B \-h ", " \-\-help
+Display usage information and exit.
+.SH "JSON FIELDS"
+See
+.BR scd-post-entry-json (1)
+for the full list of supported fields.  Required:
+.BR title ,
+.BR description ,
+.BR project ,
+.BR category ,
+.B period_start ,
+.BR period_end .
+.SH "CONFIGURATION FILE"
+.B scd-post-entry-json.sh
+reads
+.I ~/.config/scd-reporting/config.yaml
+for default
+.B url
+and
+.B token
+values (simple
+.B key: value
+format; no PyYAML required).
+.PP
+.RS
+.EX
+url:   https://scd-reporting.fnal.gov
+token: <your-api-token>
+.EE
+.RE
+.SH "ENVIRONMENT"
+.TP
+.B SCD_URL
+Base URL of the SCD Reporting instance.  Overrides the config file value.
+.TP
+.B SCD_TOKEN
+API Bearer token.  Overrides the config file value.
+.SH "EXIT STATUS"
+.TP
+.B 0
+Entry created successfully.
+.TP
+.B 1
+Request failed, validation error, authentication error, or bad input.
+.SH EXAMPLES
+Post an entry from a JSON file:
+.PP
+.RS
+.EX
+./scripts/scd-post-entry-json.sh entry.json
+.EE
+.RE
+.PP
+Post from stdin with explicit credentials:
+.PP
+.RS
+.EX
+echo '{"title":"Weekly update","description":"...","project":"mu2e-daq",
+      "category":"software-development","period_kind":"week",
+      "period_start":"2026-05-26","period_end":"2026-06-01"}' \\
+  | scd-post-entry-json.sh -u https://scd-reporting.fnal.gov -t "$TOKEN"
+.EE
+.RE
+.PP
+Pipe the output of another tool into the script:
+.PP
+.RS
+.EX
+generate-entry-json.py | scd-post-entry-json.sh
+.EE
+.RE
+.SH "SEE ALSO"
+.BR scd-post-entry (1),
+.BR scd-post-entry-json (1),
+.BR curl (1),
+.BR jq (1)

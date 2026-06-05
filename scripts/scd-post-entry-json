@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""scd-post-entry-json — post a work entry to SCD Activity Reporting from a JSON object."""
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+try:
+    import requests
+except ImportError:
+    sys.exit("ERROR: 'requests' is required.  Install with: pip install requests")
+
+try:
+    import yaml as _yaml
+    def _load_yaml(path):
+        with open(path) as f:
+            return _yaml.safe_load(f) or {}
+except ImportError:
+    _yaml = None
+    def _load_yaml(path):
+        """Minimal key: value YAML subset (no PyYAML installed)."""
+        cfg = {}
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ':' in line:
+                    k, _, v = line.partition(':')
+                    cfg[k.strip()] = v.strip()
+        return cfg
+
+
+DEFAULT_CONFIG_DIR  = Path.home() / ".config" / "scd-reporting"
+DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.yaml"
+
+REQUIRED_FIELDS = ('title', 'description', 'project', 'category', 'period_start', 'period_end')
+
+
+def _load_config(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return _load_yaml(path)
+    except Exception as exc:
+        print(f"Warning: could not read config file {path}: {exc}", file=sys.stderr)
+        return {}
+
+
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        prog='scd-post-entry-json',
+        description='Post a new work entry to SCD Activity Reporting from a JSON object.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""\
+Reads entry data from FILE (or stdin when FILE is omitted or "-").
+
+Config file ({DEFAULT_CONFIG_FILE}):
+  url:   https://scd-reporting.fnal.gov
+  token: <your API token from Profile > API Token>
+
+Environment variables (override config file):
+  SCD_URL, SCD_TOKEN
+
+Required JSON fields:
+  title, description, project, category, period_start, period_end
+
+Example:
+  echo '{{"title":"My entry","description":"...","project":"mu2e-daq",
+         "category":"software-development","period_kind":"week",
+         "period_start":"2026-05-26","period_end":"2026-06-01"}}' | scd-post-entry-json
+""",
+    )
+    p.add_argument('file', nargs='?', default='-',
+                   metavar='FILE',
+                   help='JSON file to read (default: stdin)')
+    p.add_argument('-c', '--config', default=str(DEFAULT_CONFIG_FILE),
+                   metavar='FILE', help='Config file (default: %(default)s)')
+    p.add_argument('-u', '--url',   metavar='URL',   help='Base URL of the SCD Reporting instance')
+    p.add_argument('-t', '--token', metavar='TOKEN', help='API token (from Profile > API Token)')
+    p.add_argument('--dry-run', action='store_true',
+                   help='Print the JSON payload that would be sent without posting it')
+    return p.parse_args()
+
+
+def main() -> None:
+    args = _parse_args()
+    cfg  = _load_config(Path(args.config))
+
+    base_url = (args.url or os.environ.get('SCD_URL') or cfg.get('url', '')).rstrip('/')
+    if not base_url:
+        sys.exit("ERROR: No URL specified. Use -u/--url, SCD_URL env var, or config file.")
+
+    token = args.token or os.environ.get('SCD_TOKEN') or cfg.get('token', '')
+    if not token:
+        sys.exit("ERROR: No API token. Use -t/--token, SCD_TOKEN env var, or config file.\n"
+                 "  Generate a token at: <base_url>/profile/")
+
+    # Read JSON payload
+    try:
+        if args.file == '-':
+            raw = sys.stdin.read()
+        else:
+            raw = Path(args.file).read_text(encoding='utf-8')
+        payload = json.loads(raw)
+    except (OSError, IOError) as exc:
+        sys.exit(f"ERROR: Could not read {args.file}: {exc}")
+    except json.JSONDecodeError as exc:
+        sys.exit(f"ERROR: Invalid JSON: {exc}")
+
+    if not isinstance(payload, dict):
+        sys.exit("ERROR: JSON must be an object ({...}), not an array or scalar.")
+
+    # Check required fields
+    missing = [f for f in REQUIRED_FIELDS if not payload.get(f)]
+    if missing:
+        sys.exit(f"ERROR: Missing required field(s): {', '.join(missing)}")
+
+    if args.dry_run:
+        print("Dry run — would POST to:", f"{base_url}/api/entries/")
+        print(json.dumps(payload, indent=2))
+        return
+
+    # POST
+    try:
+        r = requests.post(
+            f"{base_url}/api/entries/",
+            json=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {token}',
+            },
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        sys.exit(f"ERROR: Request failed: {exc}")
+
+    if r.status_code == 201:
+        data = r.json()
+        print(f"Entry #{data['id']} created: {data['title']}")
+        print(f"  {data['url']}")
+
+    elif r.status_code == 400:
+        print("ERROR: The server rejected the entry:", file=sys.stderr)
+        errors = r.json().get('errors', r.json())
+        for field, msg in errors.items():
+            print(f"  {field}: {msg}", file=sys.stderr)
+        sys.exit(1)
+
+    elif r.status_code == 401:
+        print("ERROR: Invalid or missing API token.", file=sys.stderr)
+        print(f"  Generate one at: {base_url}/profile/", file=sys.stderr)
+        sys.exit(1)
+
+    else:
+        sys.exit(f"ERROR: Unexpected response {r.status_code}: {r.text[:300]}")
+
+
+if __name__ == '__main__':
+    main()

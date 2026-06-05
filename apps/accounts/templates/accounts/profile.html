@@ -74,6 +74,10 @@
                   class="text-xs text-scd-primary hover:underline whitespace-nowrap">
             Reveal
           </button>
+          <button type="button" id="api-token-copy"
+                  class="text-xs text-slate-500 hover:text-slate-800 hover:underline whitespace-nowrap">
+            Copy
+          </button>
         </div>
         <p class="text-xs text-slate-400 mt-1">
           Created {{ api_token.created_at|date:"Y-m-d" }}
@@ -84,13 +88,23 @@
         (function () {
           var full = "{{ api_token.key }}";
           var masked = "{{ api_token.key|slice:':8' }}…(hidden)";
-          var el  = document.getElementById("api-token-display");
-          var btn = document.getElementById("api-token-toggle");
+          var el      = document.getElementById("api-token-display");
+          var toggle  = document.getElementById("api-token-toggle");
+          var copyBtn = document.getElementById("api-token-copy");
           var shown = false;
-          btn.addEventListener("click", function () {
+          toggle.addEventListener("click", function () {
             shown = !shown;
             el.textContent = shown ? full : masked;
-            btn.textContent = shown ? "Hide" : "Reveal";
+            toggle.textContent = shown ? "Hide" : "Reveal";
+          });
+          copyBtn.addEventListener("click", function () {
+            navigator.clipboard.writeText(full).then(function () {
+              copyBtn.textContent = "Copied!";
+              setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+            }).catch(function () {
+              copyBtn.textContent = "Failed";
+              setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+            });
           });
         })();
       </script>
