@@ -85,7 +85,7 @@ class EntryDetailView(LoginRequiredMixin, DetailView):
         user = self.request.user
         if user.is_scd_admin or user.is_division_head:
             pass  # full access including division-head-only entries
-        elif user.is_auditor:
+        elif user.is_auditor or user.is_group_leader or user.is_functional_lead:
             qs = qs.filter(Q(is_division_head_only=False) | Q(author=user))
         else:
             qs = qs.filter(author=user)

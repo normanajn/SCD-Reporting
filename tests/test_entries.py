@@ -145,6 +145,20 @@ class TestEntryDetail:
         resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
         assert resp.status_code == 404
 
+    def test_group_leader_can_view_others_entry(self, db, client, entry):
+        leader = User.objects.create_user(username='leader', email='leader@example.com', password='pass',
+                                          role=User.Role.GROUP_LEADER)
+        client.force_login(leader)
+        resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
+        assert resp.status_code == 200
+
+    def test_functional_lead_can_view_others_entry(self, db, client, entry):
+        lead = User.objects.create_user(username='flead', email='flead@example.com', password='pass',
+                                        role=User.Role.FUNCTIONAL_LEAD)
+        client.force_login(lead)
+        resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
+        assert resp.status_code == 200
+
 
 # ── Edit ──────────────────────────────────────────────────────────────────────
 
