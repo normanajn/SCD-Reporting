@@ -1,6 +1,9 @@
 import pytest
 from django.test import RequestFactory
 from django.contrib.auth import get_user_model
+from django.urls import reverse
+
+from apps.taxonomy.models import WorkGroup
 
 User = get_user_model()
 
@@ -248,6 +251,73 @@ def test_create_user_duplicate_username_shows_error(client, make_user):
     })
     assert resp.status_code == 200
     assert User.objects.filter(email='taken@example.com').count() == 0
+
+
+# ── User directory scoping (issue #26) ───────────────────────────────────────
+
+@pytest.mark.django_db
+def test_group_leader_sees_only_own_group_members(client, make_user, db):
+    group_a = WorkGroup.objects.create(name='Group A', slug='group-a-26a')
+    group_b = WorkGroup.objects.create(name='Group B', slug='group-b-26a')
+
+    leader = make_user(role=User.Role.GROUP_LEADER, username='gl26a', email='gl26a@example.com',
+                       group=group_a)
+    member = make_user(username='mem26a', email='mem26a@example.com', group=group_a)
+    outsider = make_user(username='out26a', email='out26a@example.com', group=group_b)
+
+    client.force_login(leader)
+    resp = client.get(reverse('admin-users'))
+    assert resp.status_code == 200
+    assert member.email.encode() in resp.content
+    assert outsider.email.encode() not in resp.content
+
+
+@pytest.mark.django_db
+def test_group_leader_cannot_set_primary_group_on_out_of_scope_user(client, make_user, db):
+    group_a = WorkGroup.objects.create(name='Group A', slug='group-a-26b')
+    group_b = WorkGroup.objects.create(name='Group B', slug='group-b-26b')
+
+    leader = make_user(role=User.Role.GROUP_LEADER, username='gl26b', email='gl26b@example.com',
+                       group=group_a)
+    outsider = make_user(username='out26b', email='out26b@example.com', group=group_b)
+
+    client.force_login(leader)
+    resp = client.post(reverse('user-primary-group', kwargs={'pk': outsider.pk}),
+                       {'group': group_a.pk})
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_group_leader_cannot_assign_out_of_scope_group(client, make_user, db):
+    group_a = WorkGroup.objects.create(name='Group A', slug='group-a-26c')
+    group_b = WorkGroup.objects.create(name='Group B', slug='group-b-26c')
+
+    leader = make_user(role=User.Role.GROUP_LEADER, username='gl26c', email='gl26c@example.com',
+                       group=group_a)
+    member = make_user(username='mem26c', email='mem26c@example.com', group=group_a)
+
+    client.force_login(leader)
+    # Attempt to move member to group_b (out of scope)
+    resp = client.post(reverse('user-primary-group', kwargs={'pk': member.pk}),
+                       {'group': group_b.pk})
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_admin_sees_all_users(client, make_user, db):
+    group_a = WorkGroup.objects.create(name='Group A', slug='group-a-26d')
+    group_b = WorkGroup.objects.create(name='Group B', slug='group-b-26d')
+
+    # Admin needs a group to avoid the select-group redirect middleware
+    admin = make_user(role=User.Role.ADMIN, username='adm26d', email='adm26d@example.com',
+                      group=group_a)
+    u1 = make_user(username='u26d1', email='u26d1@example.com', group=group_a)
+    u2 = make_user(username='u26d2', email='u26d2@example.com', group=group_b)
+
+    client.force_login(admin)
+    resp = client.get(reverse('admin-users'))
+    assert u1.email.encode() in resp.content
+    assert u2.email.encode() in resp.content
 
 
 @pytest.mark.django_db

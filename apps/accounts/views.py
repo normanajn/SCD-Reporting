@@ -41,18 +41,43 @@ class ProfileView(AdminRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
+def _user_scope_qs(request_user):
+    """Return a User queryset scoped to what request_user is allowed to see/manage."""
+    if request_user.is_scd_admin:
+        return User.objects.all()
+    if request_user.is_division_head:
+        return User.objects.filter(group__in=request_user.managed_groups.all())
+    if request_user.is_group_leader:
+        return User.objects.filter(group_id=request_user.group_id)
+    return User.objects.none()
+
+
+def _group_scope_qs(request_user):
+    """Return a WorkGroup queryset scoped to groups request_user may assign."""
+    if request_user.is_scd_admin:
+        return WorkGroup.objects.filter(is_active=True)
+    if request_user.is_division_head:
+        return request_user.managed_groups.filter(is_active=True)
+    if request_user.is_group_leader and request_user.group_id:
+        return WorkGroup.objects.filter(pk=request_user.group_id, is_active=True)
+    return WorkGroup.objects.none()
+
+
 class AdminUsersView(UserPageRequiredMixin, ListView):
     model = User
     template_name = 'accounts/admin_users.html'
     context_object_name = 'users'
     ordering = ['email']
 
+    def get_queryset(self):
+        return _user_scope_qs(self.request.user).order_by('email')
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['role_choices'] = User.Role.choices
         ctx['site_settings'] = SiteSettings.get_solo()
         ctx['create_form'] = AdminCreateUserForm()
-        ctx['all_groups'] = WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
+        ctx['all_groups'] = _group_scope_qs(self.request.user).order_by('sort_order', 'name')
         return ctx
 
 
@@ -137,27 +162,30 @@ class UserDeleteView(AdminRequiredMixin, View):
 
 
 class UserPrimaryGroupView(UserPageRequiredMixin, View):
-    def _context(self, user, editing=False):
+    def _context(self, request, user, editing=False):
         return {
             'u': user,
-            'all_groups': WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name'),
+            'all_groups': _group_scope_qs(request.user).order_by('sort_order', 'name'),
             'editing': editing,
         }
 
+    def _get_scoped_user(self, request, pk):
+        return get_object_or_404(_user_scope_qs(request.user), pk=pk)
+
     def get(self, request, pk):
-        user = get_object_or_404(User, pk=pk)
+        user = self._get_scoped_user(request, pk)
         editing = request.GET.get('edit') == '1'
-        return render(request, 'accounts/partials/_primary_group_cell.html', self._context(user, editing))
+        return render(request, 'accounts/partials/_primary_group_cell.html', self._context(request, user, editing))
 
     def post(self, request, pk):
-        user = get_object_or_404(User, pk=pk)
+        user = self._get_scoped_user(request, pk)
         group_id = request.POST.get('group', '').strip()
         if group_id:
-            user.group = get_object_or_404(WorkGroup, pk=group_id, is_active=True)
+            user.group = get_object_or_404(_group_scope_qs(request.user), pk=group_id)
         else:
             user.group = None
         user.save(update_fields=['group'])
-        return render(request, 'accounts/partials/_primary_group_cell.html', self._context(user))
+        return render(request, 'accounts/partials/_primary_group_cell.html', self._context(request, user))
 
 
 class UserManagedGroupsView(AdminRequiredMixin, View):

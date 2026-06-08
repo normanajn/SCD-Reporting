@@ -11,7 +11,7 @@ _TRACKED_FIELDS = (
     'title', 'project_id', 'category_id', 'group_id',
     'period_kind', 'period_start', 'period_end',
     'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
-    'is_division_head_only',
+    'is_division_head_only', 'author_id', 'is_archived',
 )
 
 
@@ -33,6 +33,14 @@ def _workitem_snapshot(sender, instance, **kwargs):
 
 # ── WorkItem post_save: log create / update ───────────────────────────────────
 
+def _resolve_author_email(author_id):
+    from apps.accounts.models import User as _User
+    try:
+        return _User.objects.get(pk=author_id).email
+    except (_User.DoesNotExist, TypeError, ValueError):
+        return str(author_id)
+
+
 @receiver(post_save, sender=WorkItem)
 def _workitem_saved(sender, instance, created, **kwargs):
     if created:
@@ -44,6 +52,12 @@ def _workitem_saved(sender, instance, created, **kwargs):
             new_val = str(getattr(instance, f))
             if old.get(f) != new_val:
                 changes[f] = {'old': old.get(f), 'new': new_val}
+        # Make author changes readable — replace raw FK ids with email addresses
+        if 'author_id' in changes:
+            changes['author_id'] = {
+                'old': _resolve_author_email(old.get('author_id')),
+                'new': _resolve_author_email(getattr(instance, 'author_id')),
+            }
         if changes:
             log_event(action='update', obj=instance, changes=changes)
 

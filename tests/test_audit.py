@@ -146,6 +146,47 @@ class TestSignals:
         assert not AuditLogEntry.objects.filter(action='update', object_id=item.pk).exists()
 
 
+# ── Manager action tracking (issue #27) ──────────────────────────────────────
+
+class TestManagerAuditTracking:
+    def test_reassign_logs_author_change(self, db, admin_user, regular_user, project, category):
+        item = _make_entry(regular_user, project, category)
+        other = User.objects.create_user(username='other', email='other@example.com', password='pass')
+        AuditLogEntry.objects.all().delete()
+
+        item.author = other
+        item.save(update_fields=['author', 'updated_at'])
+
+        entry = AuditLogEntry.objects.get(action='update', object_id=item.pk)
+        assert 'author_id' in entry.changes
+        assert entry.changes['author_id']['old'] == regular_user.email
+        assert entry.changes['author_id']['new'] == other.email
+
+    def test_archive_logs_is_archived_change(self, db, regular_user, project, category):
+        item = _make_entry(regular_user, project, category)
+        AuditLogEntry.objects.all().delete()
+
+        item.is_archived = True
+        item.save(update_fields=['is_archived', 'updated_at'])
+
+        entry = AuditLogEntry.objects.get(action='update', object_id=item.pk)
+        assert 'is_archived' in entry.changes
+        assert entry.changes['is_archived']['old'] == 'False'
+        assert entry.changes['is_archived']['new'] == 'True'
+
+    def test_unarchive_logs_is_archived_change(self, db, regular_user, project, category):
+        item = _make_entry(regular_user, project, category)
+        item.is_archived = True
+        item.save(update_fields=['is_archived', 'updated_at'])
+        AuditLogEntry.objects.all().delete()
+
+        item.is_archived = False
+        item.save(update_fields=['is_archived', 'updated_at'])
+
+        entry = AuditLogEntry.objects.get(action='update', object_id=item.pk)
+        assert entry.changes['is_archived'] == {'old': 'True', 'new': 'False'}
+
+
 # ── Viewer access control ─────────────────────────────────────────────────────
 
 class TestAuditViewer:
