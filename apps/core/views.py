@@ -1,13 +1,17 @@
+import logging
 import os
 import subprocess
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
+
+logger = logging.getLogger(__name__)
 
 from .markdown import render_markdown
 
@@ -195,12 +199,23 @@ class BugReportView(LoginRequiredMixin, TemplateView):
 
 class BugReportSubmitView(LoginRequiredMixin, View):
     REPO = 'fermitools/SCD-Reporting'
+    RATE_LIMIT = 3       # max submissions per window
+    RATE_WINDOW = 3600   # seconds (1 hour)
+    MAX_TITLE  = 200
+    MAX_BODY   = 5000
 
     def post(self, request):
         import requests as http_requests
 
-        title = request.POST.get('title', '').strip()
-        body = request.POST.get('body', '').strip()
+        # Per-user rate limit
+        cache_key = f'bug_report_count_{request.user.pk}'
+        count = cache.get(cache_key, 0)
+        if count >= self.RATE_LIMIT:
+            messages.error(request, 'You have submitted too many bug reports recently. Please try again later.')
+            return redirect('bug-report')
+
+        title = request.POST.get('title', '').strip()[:self.MAX_TITLE]
+        body  = request.POST.get('body',  '').strip()[:self.MAX_BODY]
         if not title or not body:
             messages.error(request, 'Title and description are required.')
             return redirect('bug-report')
@@ -217,7 +232,8 @@ class BugReportSubmitView(LoginRequiredMixin, View):
         try:
             token = _resolve_github_token()
         except Exception as exc:
-            messages.error(request, f'Bug report could not be submitted — failed to obtain GitHub credentials: {exc}')
+            logger.error('BugReport: failed to obtain GitHub token: %s', exc)
+            messages.error(request, 'Bug reporting is not configured. Contact your administrator.')
             return redirect('bug-report')
 
         if not token:
@@ -239,18 +255,17 @@ class BugReportSubmitView(LoginRequiredMixin, View):
                 data = resp.json()
                 issue_number = data.get('number', '?')
                 submitted_at = timezone.now().strftime('%Y-%m-%d %H:%M UTC')
+                cache.set(cache_key, count + 1, self.RATE_WINDOW)
                 messages.success(
                     request,
                     f'{reporter} successfully created issue #{issue_number} at {submitted_at}.',
                 )
                 return redirect('about')
             else:
-                gh_message = resp.json().get('message', 'unknown error')
-                messages.error(
-                    request,
-                    f'Bug report could not be submitted — GitHub returned: {gh_message} (HTTP {resp.status_code}).',
-                )
+                logger.error('BugReport: GitHub API returned %s: %s', resp.status_code, resp.text[:500])
+                messages.error(request, 'Bug report could not be submitted. Please try again or contact your administrator.')
         except Exception as exc:
-            messages.error(request, f'Bug report could not be submitted — could not reach GitHub: {exc}')
+            logger.error('BugReport: error posting to GitHub: %s', exc)
+            messages.error(request, 'Bug report could not be submitted. Please try again or contact your administrator.')
 
         return redirect('bug-report')

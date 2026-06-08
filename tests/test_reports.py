@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.entries.models import WorkItem
-from apps.taxonomy.models import Category, Project
+from apps.taxonomy.models import Category, Project, WorkGroup
 
 
 @pytest.fixture
@@ -198,6 +198,77 @@ class TestExporters:
         resp = self._download(client, 'json', {'author_email': 'nobody@nowhere.com'})
         data = json.loads(resp.content)
         assert data == []
+
+
+# ── Group scope filtering (issue #10) ─────────────────────────────────────────
+
+class TestGroupScopeFiltering:
+    """
+    Group-scoped reports should use WorkItem.group as the authoritative dimension.
+    Fallback to author.group only when the entry has no explicit group set.
+    """
+
+    def _make_entry(self, author, project, category, group=None):
+        today = date.today()
+        start = today - timedelta(days=today.weekday())
+        return WorkItem.objects.create(
+            author=author,
+            title=f'Entry by {author.email}',
+            project=project,
+            category=category,
+            period_kind='week',
+            period_start=start,
+            period_end=start + timedelta(days=6),
+            description='desc',
+            group=group,
+        )
+
+    def test_entry_assigned_to_leaders_group_is_visible(self, client, db, project, category):
+        group_a = WorkGroup.objects.create(name='Group A', slug='group-a')
+        group_b = WorkGroup.objects.create(name='Group B', slug='group-b')
+
+        leader = User.objects.create_user(username='leader', email='leader@x.com', password='p',
+                                          role=User.Role.GROUP_LEADER, group=group_a)
+        outsider = User.objects.create_user(username='out', email='out@x.com', password='p',
+                                            group=group_b)
+        # Entry is explicitly assigned to group_a even though the author is in group_b
+        entry = self._make_entry(outsider, project, category, group=group_a)
+
+        client.force_login(leader)
+        resp = client.post(reverse('reports:preview'), {})
+        assert resp.status_code == 200
+        assert entry.title.encode() in resp.content
+
+    def test_entry_assigned_to_other_group_is_hidden(self, client, db, project, category):
+        group_a = WorkGroup.objects.create(name='Group A', slug='group-a')
+        group_b = WorkGroup.objects.create(name='Group B', slug='group-b')
+
+        leader = User.objects.create_user(username='leader2', email='leader2@x.com', password='p',
+                                          role=User.Role.GROUP_LEADER, group=group_a)
+        member = User.objects.create_user(username='mem', email='mem@x.com', password='p',
+                                          group=group_a)
+        # Entry is explicitly assigned to group_b — should NOT appear for leader of group_a
+        entry = self._make_entry(member, project, category, group=group_b)
+
+        client.force_login(leader)
+        resp = client.post(reverse('reports:preview'), {})
+        assert resp.status_code == 200
+        assert entry.title.encode() not in resp.content
+
+    def test_ungrouped_entry_visible_by_author_group(self, client, db, project, category):
+        group_a = WorkGroup.objects.create(name='Group A', slug='group-a')
+
+        leader = User.objects.create_user(username='leader3', email='leader3@x.com', password='p',
+                                          role=User.Role.GROUP_LEADER, group=group_a)
+        member = User.objects.create_user(username='mem2', email='mem2@x.com', password='p',
+                                          group=group_a)
+        # Entry has no explicit group — falls back to author.group
+        entry = self._make_entry(member, project, category, group=None)
+
+        client.force_login(leader)
+        resp = client.post(reverse('reports:preview'), {})
+        assert resp.status_code == 200
+        assert entry.title.encode() in resp.content
 
 
 class TestReportSummary:
