@@ -30,7 +30,7 @@ docker compose version # Docker Compose version v2.x
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/normanajn/SCD-Reporting.git
+git clone https://github.com/fermitools/SCD-Reporting.git
 cd SCD-Reporting
 ```
 

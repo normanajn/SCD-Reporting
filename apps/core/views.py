@@ -194,7 +194,7 @@ class BugReportView(LoginRequiredMixin, TemplateView):
 
 
 class BugReportSubmitView(LoginRequiredMixin, View):
-    REPO = 'normanajn/SCD-Reporting'
+    REPO = 'fermitools/SCD-Reporting'
 
     def post(self, request):
         import requests as http_requests
