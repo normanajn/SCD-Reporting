@@ -1,20 +1,26 @@
 # Deployment Guide
 
-SCD Activity Reporting runs as three Docker containers managed by Docker Compose:
+SCD Activity Reporting can run as either a singal Docker container for simple and test installations, or as three Docker containers managed by Docker Compose for more complex installs:
 
 | Service | Image | Role |
+|---|---|---|
+|`simple` | build from `docker/web/Dockerfile` | Django + Gunicorn + sqlite |
 |---|---|---|
 | `web` | built from `docker/web/Dockerfile` | Django + Gunicorn |
 | `db` | `postgres:16-alpine` | PostgreSQL database |
 | `caddy` | `caddy:2-alpine` | HTTPS reverse proxy, static files |
+
+The simple version combines everything that is needed into a single container.  It uses a sqlite (file based) database instead of a separate Postgres database.  The simple version is the same as the main web container, except that it uses a different configuration set to turn on/off features.  
+
+The other point to note is that containers are made as dual architecture so that they can run on both a mac laptop (apple silicon arm64) and on our OKD cluster which is x86.
 
 ---
 
 ## Prerequisites
 
 - **Docker Engine 24+** or **Docker Desktop** (includes Compose v2)
-- A domain name with an A record pointing to your server (for production TLS)
-- Outbound internet access from the server (Caddy fetches Let's Encrypt certificates)
+- A domain name with an A record pointing to your server (for production TLS) [This is setup by our OKD cluster]
+- Outbound internet access from the server (Caddy fetches Let's Encrypt certificates) [This is setup by our OKD cluster]
 
 Verify your installation:
 
@@ -26,6 +32,8 @@ docker compose version # Docker Compose version v2.x
 ---
 
 ## First-time setup
+
+This setup assumes you start with nothing and are going to clone the repo and bootstrap from there.
 
 ### 1. Clone the repository
 
@@ -47,8 +55,8 @@ Edit `.env` and fill in **at minimum** these values:
 DJANGO_SECRET_KEY=<50+ random characters>
 
 # Your server's public hostname (no https://)
-SCD_HOSTNAME=scd-reporting.example.org
-DJANGO_ALLOWED_HOSTS=scd-reporting.example.org
+SCD_HOSTNAME=scd-reporting.fnal.gov
+DJANGO_ALLOWED_HOSTS=scd-reporting.fnal.gov
 
 # Database credentials (chosen by you — Compose creates the DB on first run)
 POSTGRES_PASSWORD=<strong random password>
@@ -63,10 +71,23 @@ SCD_INITIAL_ADMIN_PASSWORD=<strong password>
 
 ### 3. (Optional) Configure OIDC or Google SSO
 
-See [HOWTO-SSO.md](HOWTO-SSO.md) for full details. Add the relevant variables to
-`.env` — no code changes are needed.
+Authentication is handled via a number of different supported methods.  For testing
+it is important that you have AT LEAST one version that will get you into the admin 
+role in Django.  For the very first time you spin up the application, you will NEED 
+this to be password based so that you can login as admin and then promote another 
+account to admin level (i.e. an account that is authenticated via a SSO or other 
+provider chain)
 
-For an OIDC client secret stored in a file, mount the secrets directory into the
+After that you will want to enable some form of Single signon or identity provider chain.
+To do this....
+
+See [HOWTO-SSO.md](HOWTO-SSO.md) for full details. Add the relevant variables to
+`.env` — No code changes are needed to enable/disable an identity provider.  You 
+just need to set or leave blank the entries that correspond to their secrets and urls
+
+When the application loads, it will look for the `.env` file.  If you want your secrets coming
+directly from the `.env` file then it needs to be visible inside the container at runtime.
+In this case to access an OIDC client secret stored in a file, you will have to mount the secrets directory into the
 `web` container and point `OIDC_CLIENT_SECRET_FILE` at it:
 
 ```yaml
@@ -81,6 +102,8 @@ services:
 # .env
 OIDC_CLIENT_SECRET_FILE=/run/secrets/oidc_secret
 ```
+Which makes it vissible to the container image.  Alternatives are to pass secrets as environment variables
+during startup of the application.
 
 ### 4. Build and start
 
