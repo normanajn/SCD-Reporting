@@ -70,9 +70,15 @@ email:
   password: ""
   defaultFrom: "noreply@localhost"
 
-# ── Google OAuth (optional) ────────────────────────────────────────────────────
+# ── GitHub bug-report integration ─────────────────────────────────────────────
+# Prefer GitHub App credentials (appId + appInstallationId + appPrivateKey).
+# Falls back to a personal access token (token) if App creds are not set.
+# Set all three app fields in my-values.yaml; never commit real values here.
 github:
-  token: ""
+  token: ""                  # PAT fallback — leave empty when using App auth
+  appId: ""                  # numeric App ID from the App's settings page
+  appInstallationId: ""      # installation ID (from /installations/<id> URL)
+  appPrivateKey: ""          # PEM private key; use \n for newlines in YAML
 
 google:
   clientId: ""
