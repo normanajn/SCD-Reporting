@@ -41,8 +41,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $ScriptDir
+$ScriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectDir = Split-Path -Parent $ScriptDir
+Set-Location $ProjectDir
 
 $PidFile        = Join-Path $ScriptDir '.scd-reporting.pid'
 $TailwindPidFile= Join-Path $ScriptDir '.scd-tailwind.pid'
@@ -110,12 +111,12 @@ if (-not $Python) {
 Write-Ok "Found $(& $Python --version)"
 
 # ── Virtual environment ───────────────────────────────────────────────────────
-if (-not (Test-Path ".venv")) {
-    Write-Info "Creating virtual environment (.venv)..."
-    & $Python -m venv .venv
+if (-not (Test-Path "venv")) {
+    Write-Info "Creating virtual environment (venv)..."
+    & $Python -m venv venv
     Write-Ok "Virtual environment created"
 }
-& .\.venv\Scripts\Activate.ps1
+& .\venv\Scripts\Activate.ps1
 Write-Ok "Virtual environment active"
 
 # ── Python packages ───────────────────────────────────────────────────────────
@@ -170,7 +171,7 @@ if ($WithTailwind) {
         Write-Info "Starting Tailwind CSS watcher..."
         if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir | Out-Null }
         $twJob = Start-Process -FilePath "npm" -ArgumentList "start" `
-            -WorkingDirectory (Join-Path $ScriptDir "theme\static_src") `
+            -WorkingDirectory (Join-Path $ProjectDir "theme\static_src") `
             -RedirectStandardOutput (Join-Path $LogDir "scd-tailwind.log") `
             -RedirectStandardError  (Join-Path $LogDir "scd-tailwind-err.log") `
             -PassThru -WindowStyle Hidden
@@ -207,9 +208,9 @@ if (-not [string]::IsNullOrEmpty($GoogleClientId) -and -not [string]::IsNullOrEm
     Write-Ok "Google OAuth enabled"
 }
 
-$serverProc = Start-Process -FilePath (Join-Path $ScriptDir ".venv\Scripts\python.exe") `
+$serverProc = Start-Process -FilePath (Join-Path $ProjectDir "venv\Scripts\python.exe") `
     -ArgumentList "manage.py runserver $Port" `
-    -WorkingDirectory $ScriptDir `
+    -WorkingDirectory $ProjectDir `
     -RedirectStandardOutput $LogFile `
     -RedirectStandardError  $LogFile `
     -PassThru -WindowStyle Hidden

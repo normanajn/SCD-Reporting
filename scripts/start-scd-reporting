@@ -42,6 +42,7 @@ header()  { printf "\n${BOLD}%s${RESET}\n%s\n" "$*" "$(printf '─%.0s' {1..60})
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PID_FILE="$SCRIPT_DIR/.scd-reporting.pid"
 TAILWIND_PID_FILE="$SCRIPT_DIR/.scd-tailwind.pid"
 LOG_DIR="$SCRIPT_DIR/logs"
@@ -100,7 +101,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-cd "$SCRIPT_DIR"
+cd "$PROJECT_DIR"
 
 header "SCD Effort Reporting — Start"
 
@@ -137,13 +138,13 @@ fi
 success "Found $("$PYTHON" --version)"
 
 # ── Virtual environment ───────────────────────────────────────────────────────
-if [[ ! -d .venv ]]; then
-  info "Creating virtual environment (.venv)..."
-  "$PYTHON" -m venv .venv
+if [[ ! -d venv ]]; then
+  info "Creating virtual environment (venv)..."
+  "$PYTHON" -m venv venv
   success "Virtual environment created"
 fi
 # shellcheck source=/dev/null
-source .venv/bin/activate
+source venv/bin/activate
 success "Virtual environment active"
 
 # ── Python packages ───────────────────────────────────────────────────────────
