@@ -1,0 +1,248 @@
+.TH START\-DOCKER 1 "2026-06-09" "SCD Reporting v1.0.0" "SCD Reporting"
+.SH NAME
+start\-docker \- build and start SCD Reporting in Docker
+.SH SYNOPSIS
+.B ./scripts/start\-docker
+[\fB\-\-quick\fR]
+[\fB\-\-build\fR]
+[\fB\-\-port\fR \fIPORT\fR]
+[\fB\-\-tail\fR]
+.SH DESCRIPTION
+.B start\-docker
+starts SCD Reporting inside Docker in one of two modes:
+.TP
+.B Full stack (default)
+Starts the full
+.B docker compose
+stack: the Django/Gunicorn web container, a PostgreSQL 16 database, and a
+Caddy HTTPS reverse proxy.
+Requires Docker Compose v2 and a populated
+.I .env
+file (see
+.BR ENVIRONMENT ).
+.TP
+.B Quick mode
+.RB ( \-\-quick )
+Starts a single Docker container using SQLite for storage and Django's
+development settings.
+Useful for smoke-testing the image without a full compose setup.
+Requires only
+.B docker
+— no compose plugin needed.
+.PP
+If the
+.I scd\-reporting\-web
+image does not yet exist it is built automatically before starting.
+Pass
+.B \-\-build
+to force a rebuild even when the image already exists.
+.PP
+The active mode is recorded in
+.I scripts/.scd\-docker.mode
+so that
+.BR stop\-docker (1)
+knows how to stop the right set of containers.
+.PP
+Environment variables are loaded from a
+.I .env
+file in the project root if one is present.
+Variables already exported in the shell take precedence.
+.SH OPTIONS
+.TP
+.B \-\-quick
+Start a single container using SQLite and development settings instead of
+the full compose stack.
+The admin account is created automatically using
+.B SCD_INITIAL_ADMIN_PASSWORD
+(default:
+.BR admin )
+and
+.B SCD_INITIAL_ADMIN_EMAIL
+(default:
+.BR scd\-admin@fnal.gov ).
+If a
+.I db.sqlite3
+file exists in the project root it is mounted into the container so
+existing data is preserved across restarts.
+.TP
+.B \-\-build
+Force a rebuild of the
+.I scd\-reporting\-web
+image before starting, even if an image already exists.
+Passes the current git commit, date, and tag as build arguments so that
+the
+.B /about/
+page shows the correct version.
+Without this flag the image is only built when it does not exist.
+.TP
+.BI \-\-port " PORT"
+Host port to bind in quick mode (default:
+.BR 8000 ).
+The container always listens on port 8000 internally; this option controls
+the host-side mapping.
+Has no effect in full stack mode (the compose file controls port mapping).
+.TP
+.B \-\-tail
+After starting, tail the container or compose service logs in the
+foreground.
+Press
+.B Ctrl\-C
+to stop tailing; the containers continue running.
+.TP
+.B \-h ", " \-\-help
+Print a usage summary and exit.
+.SH MODES
+.SS Full stack mode (default)
+Runs
+.B docker compose up \-d
+with optional
+.BR \-\-build .
+The compose file starts three services:
+.RS
+.TP
+.B db
+PostgreSQL 16 database (
+.IR postgres:16\-alpine ).
+Data is persisted in a named Docker volume.
+.TP
+.B web
+Django application served by Gunicorn.
+Runs migrations and seeds the admin account on startup via the container
+entrypoint.
+.TP
+.B caddy
+Caddy 2 reverse proxy handling HTTPS termination and static file serving.
+Obtains a certificate from Let's Encrypt automatically when
+.B SCD_HOSTNAME
+is set to a real public domain.
+.RE
+.PP
+Requires
+.BR DJANGO_SECRET_KEY ,
+.BR POSTGRES_PASSWORD ,
+and
+.B SCD_INITIAL_ADMIN_PASSWORD
+in
+.IR .env .
+.SS Quick mode
+Runs a single container named
+.B scd\-quick
+with SQLite storage and
+.B scd_reporting.settings.dev
+settings.
+Suitable for image validation and one-off testing.
+Secrets and optional feature flags are forwarded from the current environment
+into the container as individual
+.B \-e
+arguments, avoiding Docker
+.B \-\-env\-file
+quote-handling issues.
+.SH ENVIRONMENT
+The following variables are read from the shell environment or
+.IR .env .
+.SS Full stack (required)
+.TP
+.B DJANGO_SECRET_KEY
+Django cryptographic secret key.
+.TP
+.B POSTGRES_PASSWORD
+Password for the PostgreSQL
+.B scd
+user.
+.TP
+.B SCD_INITIAL_ADMIN_PASSWORD
+Password for the initial
+.B scd\-admin
+account.
+.SS Optional (both modes)
+.TP
+.B SCD_HOSTNAME
+Public hostname (no scheme).
+Sets the URL shown after startup and enables HTTPS via Caddy in full stack
+mode.
+Defaults to
+.BR localhost .
+.TP
+.B SCD_INITIAL_ADMIN_EMAIL
+Email address for the initial admin account
+(default:
+.BR scd\-admin@fnal.gov ).
+.TP
+.B ANTHROPIC_API_KEY
+Anthropic API key; enables the AI report summary feature.
+.TP
+.B GITHUB_APP_ID ", " GITHUB_APP_INSTALLATION_ID ", " GITHUB_APP_PRIVATE_KEY
+GitHub App credentials for in-app bug report submission.
+.TP
+.B OIDC_PROVIDER_URL ", " OIDC_CLIENT_ID ", " OIDC_CLIENT_SECRET
+OIDC SSO credentials; enable the Fermilab/CILogon sign-in button.
+In quick mode, if
+.B OIDC_CLIENT_SECRET_FILE
+is set and the file exists the secret is read from the file and passed as
+.BR OIDC_CLIENT_SECRET
+directly (the file path is not mounted into the container).
+.TP
+.B GOOGLE_CLIENT_ID ", " GOOGLE_CLIENT_SECRET
+Google OAuth2 credentials; enable the Google sign-in button.
+.SH FILES
+.TP
+.I .env
+Optional key=value file in the project root loaded before argument defaults.
+Copy from
+.I .env.example
+to get started.
+Shell environment takes precedence over
+.I .env
+values.
+.TP
+.I docker/web/Dockerfile
+Dockerfile used to build the
+.I scd\-reporting\-web
+image.
+.TP
+.I scripts/.scd\-docker.mode
+Records the active mode
+.RB ( compose
+or the quick container name) so that
+.BR stop\-docker (1)
+can stop the right processes.
+.TP
+.I db.sqlite3
+SQLite database in the project root.
+Mounted read-write into the quick container when it exists.
+.SH EXAMPLES
+Start the full compose stack (first run — builds the image):
+.PP
+.RS
+.EX
+./scripts/start\-docker
+.EE
+.RE
+.PP
+Force a rebuild and tail the logs:
+.PP
+.RS
+.EX
+./scripts/start\-docker \-\-build \-\-tail
+.EE
+.RE
+.PP
+Quick smoke test on port 9000:
+.PP
+.RS
+.EX
+./scripts/start\-docker \-\-quick \-\-port 9000
+.EE
+.RE
+.PP
+Quick test with AI summary enabled:
+.PP
+.RS
+.EX
+ANTHROPIC_API_KEY=sk\-ant\-... ./scripts/start\-docker \-\-quick
+.EE
+.RE
+.SH SEE ALSO
+.BR stop\-docker (1),
+.BR start\-scd\-reporting (1),
+.BR build\-docker (1)

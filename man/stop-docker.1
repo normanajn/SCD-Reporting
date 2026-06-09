@@ -1,0 +1,88 @@
+.TH STOP\-DOCKER 1 "2026-06-09" "SCD Reporting v1.0.0" "SCD Reporting"
+.SH NAME
+stop\-docker \- stop SCD Reporting Docker containers
+.SH SYNOPSIS
+.B ./scripts/stop\-docker
+[\fB\-\-volumes\fR]
+.SH DESCRIPTION
+.B stop\-docker
+stops the SCD Reporting Docker containers that were started by
+.BR start\-docker (1).
+.PP
+The script reads
+.I scripts/.scd\-docker.mode
+to determine which mode is active, then stops accordingly:
+.TP
+.B compose
+Runs
+.B docker compose down
+(or
+.B docker compose down \-v
+when
+.B \-\-volumes
+is given) to stop and remove all compose services.
+.TP
+.B scd\-quick
+Runs
+.B docker rm \-f scd\-quick
+to forcibly remove the single quick-mode container.
+.PP
+If
+.I scripts/.scd\-docker.mode
+does not exist, or if no containers matching the expected name or compose
+project are found running, the script prints a warning and exits without
+error.
+.SH OPTIONS
+.TP
+.B \-\-volumes
+Also remove Docker volumes when stopping the compose stack.
+.B This permanently deletes the PostgreSQL database and all stored data.
+Has no effect in quick mode (SQLite data is stored in
+.I db.sqlite3
+on the host, not in a volume).
+.TP
+.B \-h ", " \-\-help
+Print a usage summary and exit.
+.SH FILES
+.TP
+.I scripts/.scd\-docker.mode
+Written by
+.BR start\-docker (1)
+to record whether the compose stack or a quick container is active.
+Contains either
+.B compose
+or
+.BR scd\-quick .
+Removed after a successful stop.
+.TP
+.I db.sqlite3
+SQLite database in the project root used in quick mode.
+Not removed by this script; delete it manually to reset quick-mode data.
+.SH EXAMPLES
+Stop the full compose stack:
+.PP
+.RS
+.EX
+./scripts/stop\-docker
+.EE
+.RE
+.PP
+Stop and wipe the database volumes (destructive):
+.PP
+.RS
+.EX
+./scripts/stop\-docker \-\-volumes
+.EE
+.RE
+.PP
+Stop the quick-mode container (mode auto-detected from
+.IR scripts/.scd\-docker.mode ):
+.PP
+.RS
+.EX
+./scripts/stop\-docker
+.EE
+.RE
+.SH SEE ALSO
+.BR start\-docker (1),
+.BR stop\-scd\-reporting (1)
