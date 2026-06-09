@@ -1,0 +1,282 @@
+.TH START\-SCD\-REPORTING 1 "2026-06-09" "SCD Reporting v1.0.0" "SCD Reporting"
+.SH NAME
+start\-scd\-reporting \- install dependencies, migrate, and start the SCD Reporting development server
+.SH SYNOPSIS
+.B ./scripts/start\-scd\-reporting
+[\fB\-\-admin\-password\fR \fIPASS\fR]
+[\fB\-\-anthropic\-key\fR \fIKEY\fR]
+[\fB\-\-oidc\-provider\-url\fR \fIURL\fR]
+[\fB\-\-oidc\-client\-id\fR \fIID\fR]
+[\fB\-\-oidc\-secret\-file\fR \fIPATH\fR]
+[\fB\-\-google\-client\-id\fR \fIID\fR]
+[\fB\-\-google\-client\-secret\fR \fISECRET\fR]
+[\fB\-\-port\fR \fIPORT\fR]
+[\fB\-\-prod\fR]
+[\fB\-\-no\-update\fR]
+[\fB\-\-with\-tailwind\fR]
+[\fB\-\-tail\fR]
+.SH DESCRIPTION
+.B start\-scd\-reporting
+is the primary script for running SCD Reporting locally.
+On each invocation it:
+.IP 1. 4
+Locates Python 3.12 or newer on the system PATH.
+.IP 2. 4
+Creates (or reuses) a virtual environment at
+.I venv/
+in the project root.
+.IP 3. 4
+Installs or updates Python dependencies from
+.I requirements\-dev.txt
+(skipped with
+.BR \-\-no\-update ).
+.IP 4. 4
+Installs or updates Node dependencies for Tailwind CSS
+(skipped if
+.B npm
+is not found or
+.B \-\-no\-update
+is given).
+.IP 5. 4
+Applies any pending Django database migrations.
+.IP 6. 4
+Seeds the taxonomy with default projects and categories.
+.IP 7. 4
+Creates or resets the admin account if
+.B \-\-admin\-password
+(or
+.BR SCD_INITIAL_ADMIN_PASSWORD )
+is set.
+.IP 8. 4
+Starts the Django development server in the background and writes its PID to
+.IR scripts/.scd\-reporting.pid .
+.PP
+The script is safe to run repeatedly.
+If a server is already running it is stopped and restarted.
+To stop the server without restarting it use
+.BR stop\-scd\-reporting (1).
+.PP
+Environment variables are loaded from a
+.I .env
+file in the project root if one exists.
+Variables already exported in the shell take precedence over
+.I .env
+values, which in turn take precedence over compiled-in defaults.
+.SH OPTIONS
+.TP
+.BI \-\-admin\-password " PASS"
+Password for the initial admin account
+.RB ( scd\-admin@fnal.gov ).
+Creates the account on the first run; resets the password on subsequent runs.
+May also be supplied via the
+.B SCD_INITIAL_ADMIN_PASSWORD
+environment variable.
+.TP
+.BI \-\-anthropic\-key " KEY"
+Anthropic API key that enables the AI report summary feature.
+May also be supplied via the
+.B ANTHROPIC_API_KEY
+environment variable.
+Without this key the summary button returns an error in the UI;
+all other features work normally.
+.TP
+.BI \-\-oidc\-provider\-url " URL"
+OIDC provider discovery URL (e.g.\&
+.IR https://keycloak.example.org/realms/myrealm/.well-known/openid-configuration ).
+Setting this causes the OIDC sign-in button to appear on the login page.
+May also be supplied via
+.BR OIDC_PROVIDER_URL .
+.TP
+.BI \-\-oidc\-client\-id " ID"
+OIDC client ID registered with the identity provider.
+May also be supplied via
+.BR OIDC_CLIENT_ID .
+.TP
+.BI \-\-oidc\-secret\-file " PATH"
+Path to a file containing the OIDC client secret.
+Using a file keeps the secret out of the process environment and shell history.
+May also be supplied via
+.BR OIDC_CLIENT_SECRET_FILE .
+.TP
+.BI \-\-google\-client\-id " ID"
+Google OAuth2 client ID.
+Setting both this and
+.B \-\-google\-client\-secret
+enables the Google sign-in button.
+May also be supplied via
+.BR GOOGLE_CLIENT_ID .
+.TP
+.BI \-\-google\-client\-secret " SECRET"
+Google OAuth2 client secret.
+May also be supplied via
+.BR GOOGLE_CLIENT_SECRET .
+.TP
+.BI \-\-port " PORT"
+TCP port for the development server (default:
+.BR 8000 ).
+.TP
+.B \-\-prod
+Bind to
+.B 0.0.0.0
+(all interfaces) instead of
+.B 127.0.0.1
+and activate
+.B scd_reporting.settings.prod
+unless
+.B DJANGO_SETTINGS_MODULE
+is already set.
+Use this when running behind a reverse proxy on a VM or server.
+.TP
+.B \-\-no\-update
+Skip the
+.B pip
+and
+.B npm install
+update steps.
+Useful when network access is limited or a fast restart is needed.
+.TP
+.B \-\-with\-tailwind
+Start the Tailwind CSS watcher alongside the application server.
+The watcher rebuilds
+.I theme/static/css/dist/styles.css
+whenever source CSS or template files change, providing hot-reload
+styling during frontend development.
+Requires
+.BR npm .
+.TP
+.B \-\-tail
+After the server starts, tail the server log in the foreground.
+Press
+.B Ctrl\-C
+to stop tailing; the server continues running.
+.TP
+.B \-h ", " \-\-help
+Print a usage summary and exit.
+.SH ENVIRONMENT
+.TP
+.B SCD_INITIAL_ADMIN_PASSWORD
+Admin account password (see
+.BR \-\-admin\-password ).
+.TP
+.B ANTHROPIC_API_KEY
+Anthropic API key (see
+.BR \-\-anthropic\-key ).
+.TP
+.B ANTHROPIC_SUMMARY_MODEL
+Override the AI model used for report summaries
+(default:
+.BR claude\-sonnet\-4\-6 ).
+.TP
+.B ANTHROPIC_BASE_URL
+Custom Anthropic-compatible API base URL (e.g.\& a LiteLLM proxy).
+.TP
+.B OIDC_PROVIDER_URL
+OIDC discovery URL (see
+.BR \-\-oidc\-provider\-url ).
+.TP
+.B OIDC_CLIENT_ID
+OIDC client ID (see
+.BR \-\-oidc\-client\-id ).
+.TP
+.B OIDC_CLIENT_SECRET_FILE
+Path to OIDC client secret file (see
+.BR \-\-oidc\-secret\-file ).
+.TP
+.B GOOGLE_CLIENT_ID
+Google OAuth2 client ID (see
+.BR \-\-google\-client\-id ).
+.TP
+.B GOOGLE_CLIENT_SECRET
+Google OAuth2 client secret (see
+.BR \-\-google\-client\-secret ).
+.TP
+.B DJANGO_SETTINGS_MODULE
+Override the Django settings module.
+Defaults to
+.B scd_reporting.settings.dev
+unless
+.B \-\-prod
+is given, in which case it defaults to
+.BR scd_reporting.settings.prod .
+.SH FILES
+.TP
+.I venv/
+Python virtual environment created or reused in the project root.
+.TP
+.I requirements\-dev.txt
+Python dependencies (includes
+.I requirements.txt
+plus test tools) installed into the virtual environment.
+.TP
+.I theme/static_src/package.json
+Node dependencies installed by
+.BR npm\ install .
+.TP
+.I scripts/.scd\-reporting.pid
+PID of the running Django development server.
+.TP
+.I scripts/.scd\-tailwind.pid
+PID of the Tailwind CSS watcher (when started with
+.BR \-\-with\-tailwind ).
+.TP
+.I scripts/logs/scd\-reporting.log
+Server stdout/stderr log.
+.TP
+.I scripts/logs/scd\-tailwind.log
+Tailwind watcher log (when started with
+.BR \-\-with\-tailwind ).
+.TP
+.I .env
+Optional file in the project root; key=value pairs loaded before argument
+defaults are applied.
+Shell environment variables take precedence over
+.I .env
+values.
+.SH EXAMPLES
+First-time setup, creating the admin account:
+.PP
+.RS
+.EX
+./scripts/start\-scd\-reporting \-\-admin\-password secret
+.EE
+.RE
+.PP
+Restart quickly without updating dependencies:
+.PP
+.RS
+.EX
+./scripts/start\-scd\-reporting \-\-no\-update
+.EE
+.RE
+.PP
+Start with AI summary and OIDC SSO enabled:
+.PP
+.RS
+.EX
+./scripts/start\-scd\-reporting \\
+    \-\-anthropic\-key sk\-ant\-... \\
+    \-\-oidc\-provider\-url https://kc.example.org/realms/myrealm/.well-known/openid-configuration \\
+    \-\-oidc\-client\-id my\-client \\
+    \-\-oidc\-secret\-file /etc/scd/oidc.secret
+.EE
+.RE
+.PP
+Start on a non-default port and tail the log:
+.PP
+.RS
+.EX
+./scripts/start\-scd\-reporting \-\-port 9000 \-\-tail
+.EE
+.RE
+.PP
+Reset the admin password:
+.PP
+.RS
+.EX
+./scripts/start\-scd\-reporting \-\-admin\-password newpassword \-\-no\-update
+.EE
+.RE
+.SH SEE ALSO
+.BR stop\-scd\-reporting (1),
+.BR bootstrap (1),
+.BR build\-docker (1)

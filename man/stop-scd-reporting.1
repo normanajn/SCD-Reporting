@@ -1,0 +1,71 @@
+.TH STOP\-SCD\-REPORTING 1 "2026-06-09" "SCD Reporting v1.0.0" "SCD Reporting"
+.SH NAME
+stop\-scd\-reporting \- gracefully stop the SCD Reporting development server
+.SH SYNOPSIS
+.B ./scripts/stop\-scd\-reporting
+[\fB\-\-tail\fR]
+.SH DESCRIPTION
+.B stop\-scd\-reporting
+stops the Django development server (and Tailwind CSS watcher, if running)
+that were started by
+.BR start\-scd\-reporting (1).
+.PP
+The script reads the PID from
+.I scripts/.scd\-reporting.pid
+and sends
+.B SIGTERM
+to the process.
+If the process does not exit within five seconds it is killed with
+.BR SIGKILL .
+The PID file is removed after a successful stop.
+.PP
+If the Tailwind CSS watcher is running (PID stored in
+.IR scripts/.scd\-tailwind.pid )
+it is also stopped.
+.PP
+If no PID file is found the script warns that the server may not be running
+and exits without error.
+.SH OPTIONS
+.TP
+.B \-\-tail
+Print the last 20 lines of the server log
+.RI ( scripts/logs/scd\-reporting.log )
+before stopping the server.
+Useful for a quick post-mortem when the server has exited unexpectedly.
+.SH FILES
+.TP
+.I scripts/.scd\-reporting.pid
+PID of the running Django development server written by
+.BR start\-scd\-reporting (1).
+Removed after the process is stopped.
+.TP
+.I scripts/.scd\-tailwind.pid
+PID of the Tailwind CSS watcher written by
+.BR start\-scd\-reporting (1)
+when invoked with
+.BR \-\-with\-tailwind .
+Removed after the process is stopped.
+.TP
+.I scripts/logs/scd\-reporting.log
+Server stdout/stderr log shown when
+.B \-\-tail
+is given.
+.SH EXAMPLES
+Stop the server:
+.PP
+.RS
+.EX
+./scripts/stop\-scd\-reporting
+.EE
+.RE
+.PP
+Show the last 20 log lines, then stop:
+.PP
+.RS
+.EX
+./scripts/stop\-scd\-reporting \-\-tail
+.EE
+.RE
+.SH SEE ALSO
+.BR start\-scd\-reporting (1),
+.BR bootstrap (1)
