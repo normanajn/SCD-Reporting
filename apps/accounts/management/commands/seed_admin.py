@@ -24,7 +24,9 @@ class Command(BaseCommand):
 
         if User.objects.filter(username=username).exists():
             user = User.objects.get(username=username)
-            self.stdout.write(f'Admin user "{username}" already exists — skipping.')
+            user.set_password(password)
+            user.save(update_fields=['password'])
+            self.stdout.write(self.style.SUCCESS(f'Reset password for existing admin user "{username}".'))
         else:
             user = User.objects.create_superuser(
                 username=username,
