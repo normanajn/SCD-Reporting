@@ -176,6 +176,8 @@ All options can also be set via environment variables or a `.env` file in the pr
 
 **Stop the server:**
 
+To stop the locally running server use:
+
 ```bash
 ./scripts/stop-scd-reporting
 ```
@@ -186,9 +188,25 @@ Pass `--tail` to print the last 20 log lines before stopping:
 ./scripts/stop-scd-reporting --tail
 ```
 
+This is useful to see a "post-mortem" of what might have gone wrong if things get stuck.
+
+NOTE:
+
+When using the local "live" version of the application you can make code changes to the html or underlying
+database models and they will be instantantly reflected in the application.  This is useful if you are doing interface
+modification or changing parts of the schema since you don't have to rebuild the whole project.  It's MUCH faster than
+doing development against the docker-ized version or the deployed OKD version.
+
 ---
 
 #### Option B: Local Docker Compose (containerised)
+
+If you want to test in a more "production-like" environment, then you want to build out the 
+docker container and run that.  This is important because it builds the image and embeds 
+all the files, mounts areas etc... Basically it gets the application ready to run some
+place other than your local development environment (i.e. not on Andrew's Laptop)
+
+First you build the image using the `docker compose` syntax:
 
 ```bash
 docker compose up -d --build
@@ -215,17 +233,35 @@ You should see:
 [entrypoint] Starting gunicorn...
 ```
 
+You can also run the `start-docker` and `stop-docker` scripts to fire up
+the application from docker.  In this case it will need to bind to some ports
+on your local machine so make sure that these are free before firing it up (or map 
+the ports to a range that you aren't using). Using scripts will ensure that
+options are passed correctly.
+
+*IF* you use Docker-desktop you can also launch from there.
+
 ---
 
 #### Option C: OKD / Helm (production)
 
-See the [OKD Deployment](#okd--helm-deployment) section below.
+The final deployment option is to fully deploy to the Fermilab OKD 
+cluser.  For this you will need to be added to the project 
+on the OKD cluster.  You will also need to login etc....
+
+In general see the [OKD Deployment](#okd--helm-deployment) section below for details on
+how this all works and the helper scripts.
 
 ---
 
 ### 5. Verify
 
-Open `http://127.0.0.1:8000` (local) or `https://<SCD_HOSTNAME>` (Docker/OKD) in your browser. Sign in with:
+Once you have a running instance of the application you will want to check it.  Open up your
+web browser (firefox or chrome work well) and go to the appropriate URL:
+
+Open `http://127.0.0.1:8000` (local) or `https://scd-reporting.fnal.gov` (Docker/OKD) in your browser. Sign in with:
+
+If you don't have any other accounts created you will login as the admin.
 
 - **Username:** `scd-admin`
 - **Password:** the value you passed to `--admin-password` or `SCD_INITIAL_ADMIN_PASSWORD`
@@ -242,6 +278,17 @@ All services should show `(healthy)` or `Up`.
 
 ## Updating
 
+Now for the fun part.  You want to make some changes...how do you do it and push it out?
+First off there are a couple of different layers.
+* Web application (Django/python logic)
+* Webpage Templates (CSS w/ Tailwind)
+* Configuration parameters
+* Backend database/data store
+
+To update your code base you will do a pull from the repository and then you will
+need to rebuild the container image.  This is basically a git command followed by a 
+`docker compose`
+
 ```bash
 git pull
 docker compose up -d --build
@@ -252,20 +299,51 @@ restarts the changed services. Migrations run automatically on the next containe
 start.
 
 To force a full rebuild without the Docker layer cache (after a Python dependency
-change, for example):
+change, for example) you need to rebuild and then update:
 
 ```bash
 docker compose build --no-cache web
 docker compose up -d
 ```
 
+This is true if you are working with the web application or the webpage/templates
+
+If you are working with configuration or secrets that is done separately.
+
 ---
 
 ## Secrets management
 
+There are a lot of *secrets* which are needed for an application like 
+this and we don't want to expose them, but we do want to pass them 
+to the application and to have them active at run time.  This means that
+we have to be careful about how we work with them.
+
+Best practice is to just never have them written down anywhere 
+durable and pass them to the program on startup.  That's not practical 
+when it comes to API keys and the like this is where we have 
+managed secrets and need to be careful about what gets committed to GitHub.
+
 ### Avoid putting secrets directly in `.env` when possible
 
-For the OIDC client secret, the preferred pattern is a secret file:
+The `.env` file is a really great way to set a whole bunch of 
+environment variables that we need at runtime.  The problem is that
+if it were to get committed to the GitHub repo, that would be bad 
+since people could see the secrets that are in it.
+
+That being said....for local testing the `.env` file is great.
+There is a skeleton for this that has all the fields that I typically
+use.  Copy the example file to `.env` and fill out the fields 
+with the right values.  Then you are off to the races and can
+spin up with different services enabled that you wouldn't 
+want in production (like for example Google Sign in
+so you can test different account setups without relying on the fermi SSO, 
+or to get a couple of different accounts setup so you can do cross user
+testing)
+
+But there are better ways to do this...
+
+So for the OIDC client secret (the Fermi SSO), the preferred pattern is a secret file:
 
 ```bash
 sudo mkdir -p /etc/scd/secrets
@@ -288,14 +366,30 @@ And in `.env`:
 OIDC_CLIENT_SECRET_FILE=/run/secrets/oidc_secret
 ```
 
+Slick right?  Basically you put the reference in the `.env` file which makes 
+startup ease, and the actual value in a different place which can be read
+at run time.
+
 ### Never commit `.env`
 
 `.env` is listed in `.gitignore`. If you accidentally commit it, rotate all
 secrets immediately and rewrite the git history.
 
+This is a pain.  Just don't do commit your `.env`.  Please don't.
+
+The rest of the secrets are handled the same way.  So use this as a pattern and 
+the application will start up with the right things active.
+
 ---
 
 ## Backup and restore
+
+This whole application is designed to be mostly ephemeral.  The only parts that need
+to survive restarts are the backend database and the secrets/config.  Everything else 
+can be part of the git repo and can be tagged.  In the case of an sqlite deployment the db file
+will live in a persisted area on the OKD cluser.  For your local installs it's 
+in the top level of the project.  For a postgres deployment, the data lives in
+that server.
 
 ### Backup the database
 
@@ -333,6 +427,12 @@ docker compose logs -f web        # web only
 ```
 
 ### Run a management command
+
+There are a number of "management commands" that you are going to want
+to have access to when you are developing or debugging.  The most common
+will be reseting the admin password and clearing portions of the database.
+There is a helper script `manage.py` which handles this.  Read the 
+instructions, but for the most part it is just:
 
 ```bash
 docker compose exec web python manage.py <command>
