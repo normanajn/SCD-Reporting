@@ -1,6 +1,7 @@
 # SCD Effort Reporting
+This is a Django based web application for the Fermilab Scientific Computing Division.  It's intent is to allow employees to log and review daily/weekly/monthly effort reports. Staff memebers can entries describing work that was performed against different projects and categories and then then managers can review, filter, aggregate, summarize, preview, and export the parts of the data or full reports.
 
-A Django web application for Fermilab Scientific Computing Division employees to log and review weekly effort reports. Staff submit entries describing work performed against projects and categories; managers and auditors can filter, preview, and export the full dataset; key application events are recorded in an audit log.
+The application is designed to work in the Fermilab security environment and with the on premisses OKD cluster.  This makes it a lightweight, easily maintainable and deployable part of our portfolio.
 
 **Current release: v01.00.00**
 
