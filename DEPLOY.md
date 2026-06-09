@@ -131,9 +131,33 @@ There are three ways to run the application:
 ./scripts/start-scd-reporting
 ```
 
-The server starts at <http://127.0.0.1:8000> and logs to `scripts/logs/scd-reporting.log`.
+If for some reason you can't remember what you set the admin password to you can change
+it via the commandline for the locally running server:
+
+```
+> python manage.py changepassword scd-admin
+Changing password for user 'scd-admin@fnal.gov'
+Password: 
+Password (again): 
+Password changed successfully for user 'scd-admin@fnal.gov'
+```
+
+The server starts at <http://127.0.0.1:8000> and logs to `scripts/logs/scd-reporting.log`.  You should be able to login
+with the scd-admin account.  From the main page enter the `scd-admin@fnal.gov` email and the password you set.
+
+[Alt]
+Altneratively you can use the Django admin url to login directly to the backend.  The endpoint for this (assuming you spun it up on port 8000) is:
+```
+http://localhost:8000/admin/
+```
+Here you login as `scd-admin` and use your password that you set.
+
+Congrats you now have a working application!
 
 **Common options:**
+
+When starting up using the scripts you can pass a number of common options.  These will
+override anything that is in the config files or passed through the .env file.  (See the manpages for details)
 
 | Option | Description |
 |---|---|
