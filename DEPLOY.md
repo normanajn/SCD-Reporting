@@ -107,6 +107,65 @@ during startup of the application.
 
 ### 4. Build and start
 
+There are three ways to run the application:
+
+- **Direct / local webserver** — best for development; runs Django's dev server directly on your machine
+- **Local containerised webserver** — runs the full Docker Compose stack (web + postgres + caddy) locally
+- **OKD deployment** — production deployment via Helm on the Fermilab OKD cluster
+
+---
+
+#### Option A: Direct / local webserver (development)
+
+`scripts/start-scd-reporting` creates the virtual environment, installs/updates all dependencies, runs migrations, seeds initial data, and starts the Django development server in the background.
+
+**First run (sets the admin password):**
+
+```bash
+./scripts/start-scd-reporting --admin-password yourpassword
+```
+
+**Subsequent runs (no password needed — account already exists):**
+
+```bash
+./scripts/start-scd-reporting
+```
+
+The server starts at <http://127.0.0.1:8000> and logs to `scripts/logs/scd-reporting.log`.
+
+**Common options:**
+
+| Option | Description |
+|---|---|
+| `--admin-password <pass>` | Set/reset the initial admin password (first run) |
+| `--anthropic-key <key>` | Enable the AI Summary feature |
+| `--oidc-provider-url <url>` | OIDC discovery URL (enables SSO button) |
+| `--oidc-client-id <id>` | OIDC client ID |
+| `--oidc-secret-file <path>` | Path to a file containing the OIDC client secret |
+| `--port <port>` | Port to listen on (default: `8000`) |
+| `--prod` | Bind to `0.0.0.0`, use production settings |
+| `--no-update` | Skip pip/npm dependency update checks |
+| `--with-tailwind` | Also start the Tailwind CSS watcher (hot-reload CSS) |
+| `--tail` | Tail the server log after starting |
+
+All options can also be set via environment variables or a `.env` file in the project root — see the script header for the mapping.
+
+**Stop the server:**
+
+```bash
+./scripts/stop-scd-reporting
+```
+
+Pass `--tail` to print the last 20 log lines before stopping:
+
+```bash
+./scripts/stop-scd-reporting --tail
+```
+
+---
+
+#### Option B: Local Docker Compose (containerised)
+
 ```bash
 docker compose up -d --build
 ```
@@ -132,20 +191,28 @@ You should see:
 [entrypoint] Starting gunicorn...
 ```
 
+---
+
+#### Option C: OKD / Helm (production)
+
+See the [OKD Deployment](#okd--helm-deployment) section below.
+
+---
+
 ### 5. Verify
 
-Open `https://<SCD_HOSTNAME>` in your browser. Sign in with:
+Open `http://127.0.0.1:8000` (local) or `https://<SCD_HOSTNAME>` (Docker/OKD) in your browser. Sign in with:
 
 - **Username:** `scd-admin`
-- **Password:** the value of `SCD_INITIAL_ADMIN_PASSWORD` from your `.env`
+- **Password:** the value you passed to `--admin-password` or `SCD_INITIAL_ADMIN_PASSWORD`
 
-Check that all three containers are healthy:
+For Docker Compose, check that all services are healthy:
 
 ```bash
 docker compose ps
 ```
 
-All three services should show `(healthy)` or `Up`.
+All services should show `(healthy)` or `Up`.
 
 ---
 
