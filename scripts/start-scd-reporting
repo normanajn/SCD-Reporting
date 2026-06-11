@@ -50,7 +50,7 @@ LOG_FILE="$LOG_DIR/scd-reporting.log"
 
 # ── Load .env ─────────────────────────────────────────────────────────────────
 # Variables already exported in the shell take precedence over .env values.
-if [[ -f "$SCRIPT_DIR/.env" ]]; then
+if [[ -f "$PROJECT_DIR/.env" ]]; then
   while IFS= read -r _line; do
     [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
     _key="${_line%%=*}"; _key="${_key// /}"
@@ -63,7 +63,7 @@ if [[ -f "$SCRIPT_DIR/.env" ]]; then
       _val="${_val:1:${#_val}-2}"
     fi
     export "$_key=$_val"
-  done < "$SCRIPT_DIR/.env"
+  done < "$PROJECT_DIR/.env"
   unset _line _key _val
 fi
 
