@@ -63,7 +63,7 @@ class ReportIndexView(AuditorOrAdminRequiredMixin, View):
         return render(request, 'reports/index.html', {
             'filter': f,
             'formats': exporters.available(),
-            'prompt_form': AIPromptConfigForm(instance=AIPromptConfig.get_solo()),
+            'prompt_form': AIPromptConfigForm(instance=AIPromptConfig.for_user(request.user)),
             'group_scope': _get_group_scope(request.user),
             'project_scope': _get_project_scope(request.user),
         })
@@ -166,10 +166,11 @@ class AIPromptConfigView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
         from django.contrib import messages
         from django.shortcuts import redirect
-        if not request.user.is_scd_admin:
-            from django.http import HttpResponseForbidden
-            return HttpResponseForbidden()
-        form = AIPromptConfigForm(request.POST, instance=AIPromptConfig.get_solo())
+        if request.user.is_scd_admin:
+            instance = AIPromptConfig.get_solo()
+        else:
+            instance = AIPromptConfig.get_or_create_for_user(request.user)
+        form = AIPromptConfigForm(request.POST, instance=instance)
         if form.is_valid():
             form.save()
             messages.success(request, 'AI prompt configuration saved.')
