@@ -7,9 +7,8 @@
   <div>
     <h1 class="text-2xl font-bold text-slate-900">API &amp; Routes</h1>
     <p class="mt-1 text-sm text-slate-500">
-      All routes served by SCD Activity Reporting. HTML routes use standard Django session
-      authentication. The REST API uses Bearer token authentication — generate your token at
-      <a href="{% url 'profile' %}" class="text-scd-primary hover:underline">Profile</a>.
+      These are the main routes and API endpoints for SCD Reporting. All routes require authentication unless marked <span class="badge badge-public">Public</span>. For API routes, send <code class="font-mono bg-slate-100 px-1 rounded">Authorization: Bearer &lt;token&gt;</code> header with your API token. Generate or rotate your token at
+      <a href="{% url 'profile' %}" class="text-scd-primary hover:underline">Profile</a>.  For more information on using the API, see the documentation and scripts in the project GitHub repository.
     </p>
   </div>
 
