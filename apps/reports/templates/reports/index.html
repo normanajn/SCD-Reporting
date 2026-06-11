@@ -307,7 +307,7 @@
       <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
         <button type="button" id="preview-btn"
                 hx-post="{% url 'reports:preview' %}"
-                hx-include="#report-form"
+                hx-include="#report-form, #report-preview"
                 hx-target="#report-preview"
                 hx-swap="innerHTML"
                 hx-indicator="#preview-spinner"
@@ -317,7 +317,7 @@
 
         <button type="button"
                 hx-post="{% url 'reports:summary' %}"
-                hx-include="#report-form"
+                hx-include="#report-form, #report-preview"
                 hx-target="#summary-pane"
                 hx-swap="innerHTML"
                 hx-indicator="#summary-spinner"
@@ -332,8 +332,8 @@
         {# Download buttons #}
         <div class="flex flex-wrap gap-2 ml-auto">
           {% for fmt in formats %}
-          <button type="submit"
-                  formaction="{% url 'reports:download' fmt %}"
+          <button type="button"
+                  onclick="submitDownload('{% url 'reports:download' fmt %}')"
                   class="text-xs font-medium px-3 py-1.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors uppercase tracking-wide">
             ↓ {{ fmt }}
           </button>
@@ -343,16 +343,10 @@
 
     </div>{# /card #}
 
-    {# Preview pane – populated by HTMX; lives inside form so checkboxes are submitted #}
-    <div id="report-preview" class="mt-6"></div>
-
     {# Carries the selected prompt template pk into the AI Summary POST #}
     <input type="hidden" name="selected_template_pk" id="selected-template-pk" value="">
 
   </form>
-
-  {# AI Summary pane – outside form, populated by HTMX #}
-  <div id="summary-pane"></div>
 
   {# AI Prompt configuration – all non-user roles #}
   <details class="group mt-4" id="prompt-config-details">
@@ -427,6 +421,12 @@
     </div>
   </details>
 
+  {# AI Summary pane – populated by HTMX #}
+  <div id="summary-pane"></div>
+
+  {# Preview pane – populated by HTMX #}
+  <div id="report-preview" class="mt-2"></div>
+
 </div>
 
 <script>
@@ -475,6 +475,36 @@
     });
   })();
 })();
+
+// ── Download helper ───────────────────────────────────────────────────────────
+// Collects fields from #report-form plus any checked rows in #report-preview,
+// then submits a temporary form to trigger a file download.
+function submitDownload(url) {
+  var tmp = document.createElement('form');
+  tmp.method = 'POST';
+  tmp.action = url;
+  tmp.style.display = 'none';
+
+  new FormData(document.getElementById('report-form')).forEach(function (val, key) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = key;
+    inp.value = val;
+    tmp.appendChild(inp);
+  });
+
+  document.querySelectorAll('#report-preview input[name="selected_ids"]:checked').forEach(function (cb) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = 'selected_ids';
+    inp.value = cb.value;
+    tmp.appendChild(inp);
+  });
+
+  document.body.appendChild(tmp);
+  tmp.submit();
+  document.body.removeChild(tmp);
+}
 
 // ── AI Summary spinner label ──────────────────────────────────────────────────
 function updateSummarySpinner() {
