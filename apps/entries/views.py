@@ -44,9 +44,7 @@ class EntryListView(LoginRequiredMixin, ListView):
 # ── Create ────────────────────────────────────────────────────────────────────
 
 def _user_entry_templates(user):
-    import json
-    rows = list(EntryTemplate.objects.filter(user=user).values('pk', 'name', 'body'))
-    return rows, json.dumps(rows)
+    return list(EntryTemplate.objects.filter(user=user).values('pk', 'name', 'body'))
 
 
 class EntryCreateView(LoginRequiredMixin, CreateView):
@@ -56,9 +54,7 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        rows, json_data = _user_entry_templates(self.request.user)
-        ctx['entry_templates'] = rows
-        ctx['entry_templates_json'] = json_data
+        ctx['entry_templates'] = _user_entry_templates(self.request.user)
         return ctx
 
     def get_initial(self):
@@ -119,9 +115,7 @@ class EntryUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        rows, json_data = _user_entry_templates(self.request.user)
-        ctx['entry_templates'] = rows
-        ctx['entry_templates_json'] = json_data
+        ctx['entry_templates'] = _user_entry_templates(self.request.user)
         return ctx
 
     def get_queryset(self):

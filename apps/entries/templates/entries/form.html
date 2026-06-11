@@ -226,7 +226,7 @@
         </div>
 
         {# Save As panel #}
-        <div id="desc-save-as-panel" class="hidden mb-3 flex items-center gap-2">
+        <div id="desc-save-as-panel" class="hidden mb-3 items-center gap-2">
           <input type="text" id="desc-save-as-input" placeholder="Template name…" maxlength="100"
                  class="rounded-md border border-slate-300 px-2.5 py-1 text-sm shadow-sm w-48
                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
@@ -333,6 +333,7 @@
   </form>
 </div>
 
+{{ entry_templates|default:"[]"|json_script:"entry-templates-data" }}
 <script>
   // ── Period kind chip selection ───────────────────────────────────────────────
   // Track the active kind so we only prefill dates when the kind actually changes.
@@ -448,7 +449,7 @@
   // ── Description templates ─────────────────────────────────────────────────
   var _descTemplateSaveUrl   = '{% url "entries:template-save" %}';
   var _descTemplateDeleteUrl = '{% url "entries:template-delete" %}';
-  var _descTemplateData = {{ entry_templates_json|default:"[]"|safe }};
+  var _descTemplateData = JSON.parse(document.getElementById('entry-templates-data').textContent);
 
   function descSelectTemplate(pk) {
     var saveBtn   = document.getElementById('desc-save-btn');
@@ -493,12 +494,16 @@
   }
 
   function descShowSaveAs() {
-    document.getElementById('desc-save-as-panel').classList.remove('hidden');
+    var panel = document.getElementById('desc-save-as-panel');
+    panel.classList.remove('hidden');
+    panel.classList.add('flex');
     document.getElementById('desc-save-as-input').focus();
   }
 
   function descCancelSaveAs() {
-    document.getElementById('desc-save-as-panel').classList.add('hidden');
+    var panel = document.getElementById('desc-save-as-panel');
+    panel.classList.remove('flex');
+    panel.classList.add('hidden');
     document.getElementById('desc-save-as-input').value = '';
   }
 
