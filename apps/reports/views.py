@@ -195,7 +195,6 @@ class AIPromptConfigView(AuditorOrAdminRequiredMixin, View):
         if save_as_name:
             # Save As: create a new named template owned by this user.
             obj = NamedPromptTemplate(user=request.user)
-            form = NamedPromptTemplateForm(request.POST, instance=obj)
             # Override name from the dedicated save_as_name field.
             data = request.POST.copy()
             data['name'] = save_as_name
