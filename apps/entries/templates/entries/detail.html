@@ -44,6 +44,10 @@
   <div class="bg-white rounded-lg border border-slate-200 shadow-sm divide-y divide-slate-100">
     <div class="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
       <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Author</dt>
+        <dd class="mt-0.5 font-medium text-slate-800">{{ object.author.display_name|default:object.author.email }}</dd>
+      </div>
+      <div>
         <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Project</dt>
         <dd class="mt-0.5 font-medium text-slate-800">{{ object.project.name }}</dd>
       </div>

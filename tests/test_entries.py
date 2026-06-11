@@ -159,6 +159,22 @@ class TestEntryDetail:
         resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
         assert resp.status_code == 200
 
+    def test_shows_author_display_name(self, client, user, entry):
+        user.display_name = 'Alice Tester'
+        user.save(update_fields=['display_name'])
+        client.force_login(user)
+        resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
+        assert resp.status_code == 200
+        assert b'Alice Tester' in resp.content
+
+    def test_shows_author_email_when_no_display_name(self, client, user, entry):
+        user.display_name = ''
+        user.save(update_fields=['display_name'])
+        client.force_login(user)
+        resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
+        assert resp.status_code == 200
+        assert b'tester@example.com' in resp.content
+
 
 # ── Edit ──────────────────────────────────────────────────────────────────────
 
@@ -178,6 +194,13 @@ class TestEntryEdit:
         assert resp.status_code == 302
         entry.refresh_from_db()
         assert entry.title == 'Updated title'
+
+    def test_edit_form_shows_existing_dates(self, client, user, entry):
+        client.force_login(user)
+        resp = client.get(reverse('entries:edit', kwargs={'pk': entry.pk}))
+        assert resp.status_code == 200
+        assert entry.period_start.isoformat().encode() in resp.content
+        assert entry.period_end.isoformat().encode() in resp.content
 
     def test_cannot_edit_other_users_entry(self, db, client, entry):
         other = User.objects.create_user(username='other3', email='other3@example.com', password='pass')

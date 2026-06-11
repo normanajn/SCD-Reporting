@@ -273,7 +273,7 @@ class TestGroupScopeFiltering:
 
 class TestReportSummary:
     def test_ai_summary_markdown_is_sanitized(self, client, admin_user, entry, monkeypatch):
-        def fake_generate(qs):
+        def fake_generate(qs, **kwargs):
             return '# Summary\n\n<img src=x onerror=alert(1)> **safe** [bad](javascript:alert(1))'
 
         monkeypatch.setattr('apps.reports.views.ai_summary.generate', fake_generate)

@@ -52,7 +52,7 @@ $LogFile        = Join-Path $LogDir 'scd-reporting.log'
 
 # ── Load .env ─────────────────────────────────────────────────────────────────
 # Variables already set in the session take precedence over .env values.
-$envFile = Join-Path $ScriptDir '.env'
+$envFile = Join-Path $ProjectDir '.env'
 if (Test-Path $envFile) {
     foreach ($line in Get-Content $envFile) {
         if ($line -match '^\s*#' -or $line -match '^\s*$') { continue }
