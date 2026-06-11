@@ -19,6 +19,14 @@
           ↓ TXT
         </button>
       </form>
+      <form method="post" action="{% url 'reports:summary-download-md' %}">
+        {% csrf_token %}
+        <textarea name="summary_text" class="hidden">{{ summary_text }}</textarea>
+        <button type="submit"
+                class="text-xs font-medium px-3 py-1.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors uppercase tracking-wide">
+          ↓ MD
+        </button>
+      </form>
       <form method="post" action="{% url 'reports:summary-download-pdf' %}">
         {% csrf_token %}
         <textarea name="summary_text" class="hidden">{{ summary_text }}</textarea>

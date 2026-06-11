@@ -161,6 +161,15 @@ class SummaryDownloadTxtView(AuditorOrAdminRequiredMixin, View):
         return resp
 
 
+class SummaryDownloadMdView(AuditorOrAdminRequiredMixin, View):
+    def post(self, request):
+        text = request.POST.get('summary_text', '')
+        ts = timezone.now().strftime('%Y%m%d_%H%M')
+        resp = HttpResponse(text, content_type='text/markdown; charset=utf-8')
+        resp['Content-Disposition'] = f'attachment; filename="scd_summary_{ts}.md"'
+        return resp
+
+
 class SummaryDownloadPdfView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
         from ._pdf import md_to_pdf

@@ -10,6 +10,7 @@ urlpatterns = [
     path('download/<str:fmt>/',   views.ReportDownloadView.as_view(),       name='download'),
     path('summary/',              views.ReportSummaryView.as_view(),        name='summary'),
     path('summary/download/txt/', views.SummaryDownloadTxtView.as_view(),   name='summary-download-txt'),
+    path('summary/download/md/',  views.SummaryDownloadMdView.as_view(),    name='summary-download-md'),
     path('summary/download/pdf/', views.SummaryDownloadPdfView.as_view(),   name='summary-download-pdf'),
     path('prompt-config/',                  views.AIPromptConfigView.as_view(),     name='prompt-config'),
     path('prompt-template/<int:pk>/load/', views.PromptTemplateLoadView.as_view(), name='prompt-template-load'),
