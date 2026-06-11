@@ -284,3 +284,62 @@ class TestMarkdownPreview:
         client.force_login(user)
         resp = client.post(reverse('entries:markdown-preview'), {'description': ''})
         assert resp.status_code == 200
+
+
+# ── Entry description templates ───────────────────────────────────────────────
+
+class TestEntryTemplates:
+    def test_create_form_includes_templates_in_context(self, client, user):
+        from apps.entries.models import EntryTemplate
+        EntryTemplate.objects.create(user=user, name='Weekly', body='## Weekly\n')
+        client.force_login(user)
+        resp = client.get(reverse('entries:create'))
+        assert resp.status_code == 200
+        assert b'Weekly' in resp.content
+
+    def test_save_as_creates_new_template(self, client, user):
+        client.force_login(user)
+        resp = client.post(reverse('entries:template-save'), {
+            'name': 'My Snippet', 'body': 'Hello world',
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['ok'] is True
+        assert data['name'] == 'My Snippet'
+        from apps.entries.models import EntryTemplate
+        assert EntryTemplate.objects.filter(user=user, name='My Snippet').exists()
+
+    def test_save_updates_existing_template(self, client, user):
+        from apps.entries.models import EntryTemplate
+        tpl = EntryTemplate.objects.create(user=user, name='Old', body='old body')
+        client.force_login(user)
+        resp = client.post(reverse('entries:template-save'), {
+            'pk': tpl.pk, 'body': 'new body',
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['ok'] is True
+        tpl.refresh_from_db()
+        assert tpl.body == 'new body'
+
+    def test_save_wrong_user_returns_400(self, client, user, db):
+        other = User.objects.create_user(username='other9', email='other9@example.com', password='pass')
+        from apps.entries.models import EntryTemplate
+        tpl = EntryTemplate.objects.create(user=other, name='Theirs', body='x')
+        client.force_login(user)
+        resp = client.post(reverse('entries:template-save'), {
+            'pk': tpl.pk, 'body': 'hijack',
+        })
+        assert resp.status_code == 400
+
+    def test_save_as_idempotent_on_same_name(self, client, user):
+        from apps.entries.models import EntryTemplate
+        tpl = EntryTemplate.objects.create(user=user, name='Dup', body='v1')
+        client.force_login(user)
+        resp = client.post(reverse('entries:template-save'), {
+            'name': 'Dup', 'body': 'v2',
+        })
+        assert resp.status_code == 200
+        tpl.refresh_from_db()
+        assert tpl.body == 'v2'
+        assert EntryTemplate.objects.filter(user=user, name='Dup').count() == 1

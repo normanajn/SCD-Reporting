@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:pk>/delete/', views.EntryDeleteView.as_view(), name='delete'),
     path('period-prefill/',    views.PeriodPrefillView.as_view(),    name='period-prefill'),
     path('markdown-preview/',  views.MarkdownPreviewView.as_view(),  name='markdown-preview'),
+    path('template-save/',     views.EntryTemplateSaveView.as_view(), name='template-save'),
     path('manage/',                       views.EntryManageView.as_view(),       name='manage'),
     path('<int:pk>/reassign/',            views.EntryReassignView.as_view(),     name='reassign'),
     path('<int:pk>/archive/',             views.EntryArchiveView.as_view(),      name='archive'),

@@ -78,3 +78,21 @@ class WorkItem(models.Model):
 
     def __str__(self):
         return f'{self.title} ({self.author})'
+
+
+class EntryTemplate(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='entry_templates',
+    )
+    name = models.CharField(max_length=100)
+    body = models.TextField()
+
+    class Meta:
+        unique_together = [('user', 'name')]
+        ordering = ['name']
+        verbose_name = 'Entry Template'
+
+    def __str__(self):
+        return f'{self.name} ({self.user})'

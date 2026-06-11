@@ -13,7 +13,7 @@ from apps.core.markdown import render_markdown
 from apps.taxonomy.models import Project, Tag
 
 from .forms import WorkItemForm
-from .models import WorkItem
+from .models import EntryTemplate, WorkItem
 
 
 # ── List ──────────────────────────────────────────────────────────────────────
@@ -43,10 +43,19 @@ class EntryListView(LoginRequiredMixin, ListView):
 
 # ── Create ────────────────────────────────────────────────────────────────────
 
+def _user_entry_templates(user):
+    return list(EntryTemplate.objects.filter(user=user).values('pk', 'name', 'body'))
+
+
 class EntryCreateView(LoginRequiredMixin, CreateView):
     model = WorkItem
     form_class = WorkItemForm
     template_name = 'entries/form.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['entry_templates'] = _user_entry_templates(self.request.user)
+        return ctx
 
     def get_initial(self):
         today = date.today()
@@ -103,6 +112,11 @@ class EntryUpdateView(LoginRequiredMixin, UpdateView):
     model = WorkItem
     form_class = WorkItemForm
     template_name = 'entries/form.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['entry_templates'] = _user_entry_templates(self.request.user)
+        return ctx
 
     def get_queryset(self):
         return WorkItem.objects.filter(author=self.request.user)
@@ -257,3 +271,49 @@ class EntryManagerDeleteView(EntryManagerRequiredMixin, View):
             Tag.objects.filter(id__in=tag_ids).update(use_count=F('use_count') - 1)
         messages.success(request, f'Entry "{title}" permanently deleted.')
         return redirect(request.POST.get('next', reverse('entries:manage')))
+
+
+# ── HTMX: entry description templates ────────────────────────────────────────
+
+class EntryTemplateSaveView(LoginRequiredMixin, View):
+    """JSON endpoint: save or save-as a named description template for the current user."""
+
+    def post(self, request):
+        import json as _json
+        body = request.POST.get('body', '').strip()
+        name = request.POST.get('name', '').strip()
+        pk   = request.POST.get('pk', '').strip()
+
+        if name:
+            # Save As: create new (or update if name already exists for this user)
+            if not name:
+                return self._err('Template name is required.')
+            obj, created = EntryTemplate.objects.get_or_create(
+                user=request.user, name=name,
+                defaults={'body': body},
+            )
+            if not created:
+                obj.body = body
+                obj.save(update_fields=['body'])
+            return self._ok({'pk': obj.pk, 'name': obj.name, 'created': created})
+        elif pk:
+            # Save: update existing template owned by this user
+            try:
+                obj = EntryTemplate.objects.get(pk=pk, user=request.user)
+            except EntryTemplate.DoesNotExist:
+                return self._err('Template not found.')
+            obj.body = body
+            obj.save(update_fields=['body'])
+            return self._ok({'pk': obj.pk, 'name': obj.name, 'created': False})
+        else:
+            return self._err('No template selected and no name provided.')
+
+    @staticmethod
+    def _ok(data):
+        from django.http import JsonResponse
+        return JsonResponse({'ok': True, **data})
+
+    @staticmethod
+    def _err(msg):
+        from django.http import JsonResponse
+        return JsonResponse({'ok': False, 'error': msg}, status=400)

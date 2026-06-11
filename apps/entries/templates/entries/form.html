@@ -195,6 +195,47 @@
             Preview markdown
           </button>
         </div>
+
+        {# ── Description templates ──────────────────────────────────────────── #}
+        <div class="mb-3 flex items-center gap-2 flex-wrap">
+          <label class="text-xs font-semibold text-slate-500 shrink-0">Template</label>
+          <select id="entry-template-select"
+                  onchange="descSelectTemplate(this.value)"
+                  class="rounded-md border border-slate-300 px-2 py-1 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">— None —</option>
+            {% for t in entry_templates %}
+            <option value="{{ t.pk }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" id="desc-save-btn"
+                  onclick="descSave()"
+                  class="hidden text-xs font-medium px-2.5 py-1 rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors">
+            Save
+          </button>
+          <button type="button"
+                  onclick="descShowSaveAs()"
+                  class="text-xs font-medium px-2.5 py-1 rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors">
+            Save As…
+          </button>
+        </div>
+
+        {# Save As panel #}
+        <div id="desc-save-as-panel" class="hidden mb-3 flex items-center gap-2">
+          <input type="text" id="desc-save-as-input" placeholder="Template name…" maxlength="100"
+                 class="rounded-md border border-slate-300 px-2.5 py-1 text-sm shadow-sm w-48
+                        focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+          <button type="button" onclick="descConfirmSaveAs()"
+                  class="text-xs font-medium px-2.5 py-1 rounded bg-scd-primary text-white hover:bg-scd-primary-hover transition-colors">
+            Save
+          </button>
+          <button type="button" onclick="descCancelSaveAs()"
+                  class="text-xs text-slate-400 hover:text-slate-600">Cancel</button>
+        </div>
+
+        {# Status message #}
+        <p id="desc-template-status" class="hidden mb-2 text-xs"></p>
+
         <textarea name="description" id="{{ form.description.id_for_label }}"
                   rows="8"
                   class="w-full rounded-md border {% if form.description.errors %}border-red-400{% else %}border-slate-300{% endif %} px-3 py-2 text-sm font-mono shadow-sm
@@ -398,5 +439,99 @@
     setStars(initial);
     onHighlightChange();
   })();
+
+  // ── Description templates ─────────────────────────────────────────────────
+  var _descTemplateSaveUrl = '{% url "entries:template-save" %}';
+  var _descTemplateData = {{ entry_templates|default:"[]"|safe }};
+
+  function descSelectTemplate(pk) {
+    var saveBtn = document.getElementById('desc-save-btn');
+    if (pk) {
+      var tpl = _descTemplateData.find(function(t) { return String(t.pk) === String(pk); });
+      if (tpl) {
+        document.getElementById('{{ form.description.id_for_label }}').value = tpl.body;
+      }
+      saveBtn.classList.remove('hidden');
+    } else {
+      saveBtn.classList.add('hidden');
+    }
+  }
+
+  function descShowSaveAs() {
+    document.getElementById('desc-save-as-panel').classList.remove('hidden');
+    document.getElementById('desc-save-as-input').focus();
+  }
+
+  function descCancelSaveAs() {
+    document.getElementById('desc-save-as-panel').classList.add('hidden');
+    document.getElementById('desc-save-as-input').value = '';
+  }
+
+  function descShowStatus(msg, isError) {
+    var el = document.getElementById('desc-template-status');
+    el.textContent = msg;
+    el.className = 'mb-2 text-xs ' + (isError ? 'text-red-600' : 'text-green-600');
+    clearTimeout(el._timer);
+    el._timer = setTimeout(function() { el.className = 'hidden mb-2 text-xs'; }, 3000);
+  }
+
+  function _descPost(payload) {
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    Object.keys(payload).forEach(function(k) { fd.append(k, payload[k]); });
+    return fetch(_descTemplateSaveUrl, {method: 'POST', body: fd})
+      .then(function(r) { return r.json(); });
+  }
+
+  function descSave() {
+    var pk = document.getElementById('entry-template-select').value;
+    if (!pk) return;
+    var body = document.getElementById('{{ form.description.id_for_label }}').value;
+    _descPost({pk: pk, body: body}).then(function(data) {
+      if (data.ok) {
+        // Update local cache
+        var tpl = _descTemplateData.find(function(t) { return String(t.pk) === String(data.pk); });
+        if (tpl) tpl.body = body;
+        descShowStatus('Template "' + data.name + '" saved.', false);
+      } else {
+        descShowStatus(data.error || 'Save failed.', true);
+      }
+    });
+  }
+
+  function descConfirmSaveAs() {
+    var name = document.getElementById('desc-save-as-input').value.trim();
+    if (!name) { document.getElementById('desc-save-as-input').focus(); return; }
+    var body = document.getElementById('{{ form.description.id_for_label }}').value;
+    _descPost({name: name, body: body}).then(function(data) {
+      if (data.ok) {
+        descCancelSaveAs();
+        // Add to dropdown and local cache if new
+        var sel = document.getElementById('entry-template-select');
+        if (!sel.querySelector('option[value="' + data.pk + '"]')) {
+          var opt = document.createElement('option');
+          opt.value = data.pk;
+          opt.text = data.name;
+          sel.add(opt);
+          _descTemplateData.push({pk: data.pk, name: data.name, body: body});
+        } else {
+          // Updated existing — refresh cache
+          var tpl = _descTemplateData.find(function(t) { return String(t.pk) === String(data.pk); });
+          if (tpl) tpl.body = body;
+        }
+        sel.value = data.pk;
+        document.getElementById('desc-save-btn').classList.remove('hidden');
+        descShowStatus((data.created ? 'Created' : 'Updated') + ' template "' + data.name + '".', false);
+      } else {
+        descShowStatus(data.error || 'Save failed.', true);
+      }
+    });
+  }
+
+  // Allow Enter in the Save As input to confirm
+  document.getElementById('desc-save-as-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); descConfirmSaveAs(); }
+    if (e.key === 'Escape') { descCancelSaveAs(); }
+  });
 </script>
 {% endblock %}
