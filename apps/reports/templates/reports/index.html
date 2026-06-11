@@ -356,22 +356,18 @@
     </summary>
 
     <div class="mt-3 bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-      <div class=”px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-start justify-between”>
+      <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-start justify-between">
         <div>
-          <p class=”text-sm font-semibold text-slate-700”>AI Prompt Configuration</p>
-          {% if user.is_scd_admin %}
-          <p class=”text-xs text-slate-400 mt-0.5”>Saving without a selected template updates the <strong>global default</strong>. Named templates apply to your requests only.</p>
-          {% else %}
-          <p class=”text-xs text-slate-400 mt-0.5”>Named templates apply to <strong>your</strong> AI Summary requests only. Saving with “Default” selected updates your personal default prompt (initially copied from the site-wide prompt).</p>
-          {% endif %}
+          <p class="text-sm font-semibold text-slate-700">AI Prompt Configuration</p>
+          <p class="text-xs text-slate-400 mt-0.5">Your personal prompt templates — changes apply to your AI Summary requests only.</p>
         </div>
         {% if user.is_scd_admin %}
-        <a href=”{% url 'reports:prompt-templates-admin' %}”
-           class=”text-xs text-scd-primary hover:underline shrink-0 mt-0.5”>Manage all templates</a>
+        <a href="{% url 'reports:prompt-templates-admin' %}"
+           class="text-xs text-scd-primary hover:underline shrink-0 mt-0.5">Manage all templates</a>
         {% endif %}
       </div>
 
-      <form method="post" action="{% url 'reports:prompt-config' %}" id="prompt-config-form" class="px-6 py-5 space-y-4">
+      <form method="post" action="{% url 'reports:prompt-config' %}" id="prompt-config-form" class="px-6 py-5 space-y-5">
         {% csrf_token %}
         <input type="hidden" name="template_pk"   id="prompt-template-pk"   value="">
         <input type="hidden" name="save_as_name"  id="prompt-save-as-name"  value="">
@@ -391,12 +387,12 @@
         </div>
 
         {# ── Prompt fields (swapped by HTMX on template select) ─────────── #}
-        <div id="prompt-fields" class="space-y-4">
-          {% include "reports/partials/_prompt_fields.html" with system_prompt=prompt_form.system_prompt.value user_template=prompt_form.user_template.value template_name="" %}
+        <div id="prompt-fields" class="space-y-5">
+          {% include "reports/partials/_prompt_fields.html" with system_prompt=prompt_form.system_prompt.value user_template=prompt_form.user_template.value template_name='' %}
         </div>
 
         {# ── Save As panel (hidden until button clicked) ─────────────────── #}
-        <div id="save-as-panel" class="hidden flex items-center gap-2 pt-1">
+        <div id="save-as-panel" class="hidden items-center gap-2 pt-1">
           <input type="text" id="save-as-input" placeholder="New template name…" maxlength="100"
                  class="rounded-md border border-slate-300 px-3 py-1.5 text-sm shadow-sm w-56
                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
@@ -412,7 +408,7 @@
         <div class="flex items-center gap-3 pt-1 border-t border-slate-100">
           <button type="submit"
                   class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
-            Save
+            Save prompts
           </button>
           <button type="button" onclick="promptShowSaveAs()"
                   class="border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-4 py-2 rounded-md transition-colors">
@@ -425,7 +421,7 @@
           </button>
           <button type="reset"
                   class="text-sm text-slate-400 hover:text-slate-600">
-            Reset
+            Reset changes
           </button>
         </div>
       </form>
@@ -557,12 +553,16 @@ function promptDeleteTemplate() {
 }
 
 function promptShowSaveAs() {
-  document.getElementById('save-as-panel').classList.remove('hidden');
+  var panel = document.getElementById('save-as-panel');
+  panel.classList.remove('hidden');
+  panel.classList.add('flex');
   document.getElementById('save-as-input').focus();
 }
 
 function promptCancelSaveAs() {
-  document.getElementById('save-as-panel').classList.add('hidden');
+  var panel = document.getElementById('save-as-panel');
+  panel.classList.remove('flex');
+  panel.classList.add('hidden');
   document.getElementById('save-as-input').value = '';
   document.getElementById('prompt-save-as-name').value = '';
 }
