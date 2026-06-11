@@ -159,6 +159,22 @@ class TestEntryDetail:
         resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
         assert resp.status_code == 200
 
+    def test_shows_author_display_name(self, client, user, entry):
+        user.display_name = 'Alice Tester'
+        user.save(update_fields=['display_name'])
+        client.force_login(user)
+        resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
+        assert resp.status_code == 200
+        assert b'Alice Tester' in resp.content
+
+    def test_shows_author_email_when_no_display_name(self, client, user, entry):
+        user.display_name = ''
+        user.save(update_fields=['display_name'])
+        client.force_login(user)
+        resp = client.get(reverse('entries:detail', kwargs={'pk': entry.pk}))
+        assert resp.status_code == 200
+        assert b'tester@example.com' in resp.content
+
 
 # ── Edit ──────────────────────────────────────────────────────────────────────
 
