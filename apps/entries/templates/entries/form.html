@@ -442,7 +442,7 @@
 
   // ── Description templates ─────────────────────────────────────────────────
   var _descTemplateSaveUrl = '{% url "entries:template-save" %}';
-  var _descTemplateData = {{ entry_templates|default:"[]"|safe }};
+  var _descTemplateData = {{ entry_templates_json|default:"[]"|safe }};
 
   function descSelectTemplate(pk) {
     var saveBtn = document.getElementById('desc-save-btn');
