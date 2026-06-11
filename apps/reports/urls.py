@@ -13,5 +13,8 @@ urlpatterns = [
     path('summary/download/md/',  views.SummaryDownloadMdView.as_view(),    name='summary-download-md'),
     path('summary/download/pdf/', views.SummaryDownloadPdfView.as_view(),   name='summary-download-pdf'),
     path('prompt-config/',                  views.AIPromptConfigView.as_view(),     name='prompt-config'),
-    path('prompt-template/<int:pk>/load/', views.PromptTemplateLoadView.as_view(), name='prompt-template-load'),
+    path('prompt-template/<int:pk>/load/',         views.PromptTemplateLoadView.as_view(),        name='prompt-template-load'),
+    path('prompt-template/<int:pk>/delete/',       views.PromptTemplateDeleteView.as_view(),      name='prompt-template-delete'),
+    path('prompt-templates/admin/',                views.PromptTemplateAdminView.as_view(),        name='prompt-templates-admin'),
+    path('prompt-template/<int:pk>/admin-delete/', views.PromptTemplateAdminDeleteView.as_view(), name='prompt-template-admin-delete'),
 ]

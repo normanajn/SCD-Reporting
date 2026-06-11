@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
 
-from apps.accounts.permissions import AuditorOrAdminRequiredMixin
+from apps.accounts.permissions import AdminRequiredMixin, AuditorOrAdminRequiredMixin
 from apps.core.markdown import render_markdown
 from apps.entries.models import WorkItem
 
@@ -258,3 +258,38 @@ class PromptTemplateLoadView(AuditorOrAdminRequiredMixin, View):
             'user_template': user_template,
             'template_name': template_name,
         })
+
+
+class PromptTemplateDeleteView(AuditorOrAdminRequiredMixin, View):
+    """Delete the requesting user's named prompt template."""
+
+    def post(self, request, pk):
+        tpl = get_object_or_404(NamedPromptTemplate, pk=pk, user=request.user)
+        name = tpl.name
+        tpl.delete()
+        messages.success(request, f'Template "{name}" deleted.')
+        return redirect('reports:index')
+
+
+class PromptTemplateAdminView(AdminRequiredMixin, View):
+    """Admin page: list all users' named prompt templates with delete controls."""
+
+    def get(self, request):
+        templates = (
+            NamedPromptTemplate.objects
+            .select_related('user')
+            .order_by('user__email', 'name')
+        )
+        return render(request, 'reports/prompt_admin.html', {'templates': templates})
+
+
+class PromptTemplateAdminDeleteView(AdminRequiredMixin, View):
+    """Admin: delete any user's named prompt template."""
+
+    def post(self, request, pk):
+        tpl = get_object_or_404(NamedPromptTemplate, pk=pk)
+        name = tpl.name
+        owner = tpl.user.email
+        tpl.delete()
+        messages.success(request, f'Deleted template "{name}" (owned by {owner}).')
+        return redirect('reports:prompt-templates-admin')

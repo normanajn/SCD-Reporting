@@ -271,6 +271,50 @@ class TestGroupScopeFiltering:
         assert entry.title.encode() in resp.content
 
 
+class TestNamedTemplateDelete:
+    def _make_template(self, user):
+        from apps.reports.models import NamedPromptTemplate
+        return NamedPromptTemplate.objects.create(
+            user=user, name='My Template',
+            system_prompt='sys', user_template='tmpl {entries}',
+        )
+
+    def test_user_can_delete_own_template(self, client, auditor_user):
+        tpl = self._make_template(auditor_user)
+        client.force_login(auditor_user)
+        resp = client.post(reverse('reports:prompt-template-delete', kwargs={'pk': tpl.pk}))
+        assert resp.status_code == 302
+        from apps.reports.models import NamedPromptTemplate
+        assert not NamedPromptTemplate.objects.filter(pk=tpl.pk).exists()
+
+    def test_user_cannot_delete_others_template(self, client, auditor_user, admin_user):
+        tpl = self._make_template(admin_user)
+        client.force_login(auditor_user)
+        resp = client.post(reverse('reports:prompt-template-delete', kwargs={'pk': tpl.pk}))
+        assert resp.status_code == 404
+
+    def test_admin_page_lists_templates(self, client, admin_user, auditor_user):
+        self._make_template(auditor_user)
+        client.force_login(admin_user)
+        resp = client.get(reverse('reports:prompt-templates-admin'))
+        assert resp.status_code == 200
+        assert b'My Template' in resp.content
+        assert b'auditor@example.com' in resp.content
+
+    def test_admin_can_delete_any_template(self, client, admin_user, auditor_user):
+        tpl = self._make_template(auditor_user)
+        client.force_login(admin_user)
+        resp = client.post(reverse('reports:prompt-template-admin-delete', kwargs={'pk': tpl.pk}))
+        assert resp.status_code == 302
+        from apps.reports.models import NamedPromptTemplate
+        assert not NamedPromptTemplate.objects.filter(pk=tpl.pk).exists()
+
+    def test_non_admin_cannot_access_admin_page(self, client, auditor_user):
+        client.force_login(auditor_user)
+        resp = client.get(reverse('reports:prompt-templates-admin'))
+        assert resp.status_code == 403
+
+
 class TestReportSummary:
     def test_ai_summary_markdown_is_sanitized(self, client, admin_user, entry, monkeypatch):
         def fake_generate(qs, **kwargs):

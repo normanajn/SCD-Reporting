@@ -356,12 +356,18 @@
     </summary>
 
     <div class="mt-3 bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-      <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
-        <p class="text-sm font-semibold text-slate-700">AI Prompt Configuration</p>
+      <div class=”px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-start justify-between”>
+        <div>
+          <p class=”text-sm font-semibold text-slate-700”>AI Prompt Configuration</p>
+          {% if user.is_scd_admin %}
+          <p class=”text-xs text-slate-400 mt-0.5”>Saving without a selected template updates the <strong>global default</strong>. Named templates apply to your requests only.</p>
+          {% else %}
+          <p class=”text-xs text-slate-400 mt-0.5”>Named templates apply to <strong>your</strong> AI Summary requests only. Saving with “Default” selected updates your personal default prompt (initially copied from the site-wide prompt).</p>
+          {% endif %}
+        </div>
         {% if user.is_scd_admin %}
-        <p class="text-xs text-slate-400 mt-0.5">Saving without a selected template updates the <strong>global default</strong>. Named templates apply to your requests only.</p>
-        {% else %}
-        <p class="text-xs text-slate-400 mt-0.5">Named templates apply to <strong>your</strong> AI Summary requests only. Saving with “Default” selected updates your personal default prompt (initially copied from the site-wide prompt).</p>
+        <a href=”{% url 'reports:prompt-templates-admin' %}”
+           class=”text-xs text-scd-primary hover:underline shrink-0 mt-0.5”>Manage all templates</a>
         {% endif %}
       </div>
 
@@ -412,11 +418,21 @@
                   class="border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-4 py-2 rounded-md transition-colors">
             Save As…
           </button>
+          <button type="button" id="prompt-delete-btn"
+                  onclick="promptDeleteTemplate()"
+                  class="hidden text-sm font-medium px-4 py-2 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+            Delete
+          </button>
           <button type="reset"
                   class="text-sm text-slate-400 hover:text-slate-600">
             Reset
           </button>
         </div>
+      </form>
+
+      {# Hidden form for template deletion (separate POST to delete URL) #}
+      <form id="prompt-delete-form" method="post" action="" class="hidden">
+        {% csrf_token %}
       </form>
     </div>
   </details>
@@ -516,11 +532,28 @@ function updateSummarySpinner() {
 // ── AI Prompt template selector ───────────────────────────────────────────────
 var _promptLoadUrl = '{% url "reports:prompt-template-load" 0 %}';
 
+var _promptDeleteBaseUrl = '{% url "reports:prompt-template-delete" 0 %}';
+
 function promptSelectTemplate(pk) {
   document.getElementById('prompt-template-pk').value = pk;
   document.getElementById('selected-template-pk').value = pk;
   var url = pk ? _promptLoadUrl.replace('/0/', '/' + pk + '/') : _promptLoadUrl;
   htmx.ajax('GET', url, {target: '#prompt-fields', swap: 'innerHTML'});
+  // Show Delete button only when a named (non-default) template is selected.
+  var delBtn = document.getElementById('prompt-delete-btn');
+  if (delBtn) {
+    if (pk) { delBtn.classList.remove('hidden'); } else { delBtn.classList.add('hidden'); }
+  }
+}
+
+function promptDeleteTemplate() {
+  var pk = document.getElementById('prompt-template-pk').value;
+  if (!pk) return;
+  var name = document.getElementById('prompt-template-select').selectedOptions[0].text;
+  if (!confirm('Delete template "' + name + '"? This cannot be undone.')) return;
+  var form = document.getElementById('prompt-delete-form');
+  form.action = _promptDeleteBaseUrl.replace('/0/', '/' + pk + '/');
+  form.submit();
 }
 
 function promptShowSaveAs() {
