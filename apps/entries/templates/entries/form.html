@@ -130,9 +130,6 @@
           <button type="button"
                   data-kind="{{ value }}"
                   onclick="selectPeriodKind('{{ value }}')"
-                  hx-get="{% url 'entries:period-prefill' %}?kind={{ value }}"
-                  hx-target="#period-dates"
-                  hx-swap="innerHTML"
                   class="period-chip px-3 py-1.5 rounded-full border text-sm font-medium transition-colors
                          {% if form.period_kind.value == value %}
                            bg-scd-primary text-white border-scd-primary
@@ -144,9 +141,9 @@
           {% endfor %}
         </div>
 
-        {# Date inputs – swapped by HTMX or rendered fresh #}
-        <div id="period-dates">
-          {% include "entries/partials/_period_inputs.html" with period_start=form.period_start.value period_end=form.period_end.value %}
+        {# Date inputs – swapped by HTMX when period kind changes #}
+        <div id="period-dates" data-prefill-url="{% url 'entries:period-prefill' %}">
+          {% include "entries/partials/_period_inputs.html" with period_start=form.period_start.value|date:"Y-m-d" period_end=form.period_end.value|date:"Y-m-d" %}
         </div>
 
         {% for error in form.period_start.errors %}
@@ -292,7 +289,13 @@
 
 <script>
   // ── Period kind chip selection ───────────────────────────────────────────────
+  // Track the active kind so we only prefill dates when the kind actually changes.
+  // This prevents the HTMX request from wiping out existing dates in edit mode.
+  let _activePeriodKind = document.getElementById('id_period_kind').value;
+
   function selectPeriodKind(kind) {
+    const changed = kind !== _activePeriodKind;
+    _activePeriodKind = kind;
     document.getElementById('id_period_kind').value = kind;
     document.querySelectorAll('.period-chip').forEach(function(btn) {
       const active = btn.dataset.kind === kind;
@@ -303,6 +306,10 @@
       btn.classList.toggle('text-slate-600',   !active);
       btn.classList.toggle('border-slate-300', !active);
     });
+    if (changed) {
+      const url = document.getElementById('period-dates').dataset.prefillUrl + '?kind=' + kind;
+      htmx.ajax('GET', url, {target: '#period-dates', swap: 'innerHTML'});
+    }
   }
 
   // ── Tag chip UX ─────────────────────────────────────────────────────────────
