@@ -332,6 +332,24 @@ class TestEntryTemplates:
         })
         assert resp.status_code == 400
 
+    def test_delete_own_template(self, client, user):
+        from apps.entries.models import EntryTemplate
+        tpl = EntryTemplate.objects.create(user=user, name='ToDelete', body='x')
+        client.force_login(user)
+        resp = client.post(reverse('entries:template-delete'), {'pk': tpl.pk})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data['ok'] is True
+        assert not EntryTemplate.objects.filter(pk=tpl.pk).exists()
+
+    def test_delete_wrong_user_returns_404(self, client, user, db):
+        other = User.objects.create_user(username='other10', email='other10@example.com', password='pass')
+        from apps.entries.models import EntryTemplate
+        tpl = EntryTemplate.objects.create(user=other, name='Theirs', body='x')
+        client.force_login(user)
+        resp = client.post(reverse('entries:template-delete'), {'pk': tpl.pk})
+        assert resp.status_code == 404
+
     def test_save_as_idempotent_on_same_name(self, client, user):
         from apps.entries.models import EntryTemplate
         tpl = EntryTemplate.objects.create(user=user, name='Dup', body='v1')

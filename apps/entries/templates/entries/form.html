@@ -218,6 +218,11 @@
                   class="text-xs font-medium px-2.5 py-1 rounded border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors">
             Save As…
           </button>
+          <button type="button" id="desc-delete-btn"
+                  onclick="descDelete()"
+                  class="hidden text-xs font-medium px-2.5 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+            Delete
+          </button>
         </div>
 
         {# Save As panel #}
@@ -441,20 +446,50 @@
   })();
 
   // ── Description templates ─────────────────────────────────────────────────
-  var _descTemplateSaveUrl = '{% url "entries:template-save" %}';
+  var _descTemplateSaveUrl   = '{% url "entries:template-save" %}';
+  var _descTemplateDeleteUrl = '{% url "entries:template-delete" %}';
   var _descTemplateData = {{ entry_templates_json|default:"[]"|safe }};
 
   function descSelectTemplate(pk) {
-    var saveBtn = document.getElementById('desc-save-btn');
+    var saveBtn   = document.getElementById('desc-save-btn');
+    var deleteBtn = document.getElementById('desc-delete-btn');
     if (pk) {
       var tpl = _descTemplateData.find(function(t) { return String(t.pk) === String(pk); });
       if (tpl) {
         document.getElementById('{{ form.description.id_for_label }}').value = tpl.body;
       }
       saveBtn.classList.remove('hidden');
+      deleteBtn.classList.remove('hidden');
     } else {
       saveBtn.classList.add('hidden');
+      deleteBtn.classList.add('hidden');
     }
+  }
+
+  function descDelete() {
+    var pk = document.getElementById('entry-template-select').value;
+    if (!pk) return;
+    var name = document.getElementById('entry-template-select').selectedOptions[0].text;
+    if (!confirm('Delete template "' + name + '"? This cannot be undone.')) return;
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    fd.append('pk', pk);
+    fetch(_descTemplateDeleteUrl, {method: 'POST', body: fd})
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          var sel = document.getElementById('entry-template-select');
+          var opt = sel.querySelector('option[value="' + pk + '"]');
+          if (opt) opt.remove();
+          _descTemplateData = _descTemplateData.filter(function(t) { return String(t.pk) !== String(pk); });
+          sel.value = '';
+          document.getElementById('desc-save-btn').classList.add('hidden');
+          document.getElementById('desc-delete-btn').classList.add('hidden');
+          descShowStatus('Template "' + data.name + '" deleted.', false);
+        } else {
+          descShowStatus(data.error || 'Delete failed.', true);
+        }
+      });
   }
 
   function descShowSaveAs() {

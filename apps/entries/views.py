@@ -281,6 +281,23 @@ class EntryManagerDeleteView(EntryManagerRequiredMixin, View):
 
 # ── HTMX: entry description templates ────────────────────────────────────────
 
+class EntryTemplateDeleteView(LoginRequiredMixin, View):
+    """JSON endpoint: delete a named description template owned by the current user."""
+
+    def post(self, request):
+        from django.http import JsonResponse
+        pk = request.POST.get('pk', '').strip()
+        if not pk:
+            return JsonResponse({'ok': False, 'error': 'No template specified.'}, status=400)
+        try:
+            tpl = EntryTemplate.objects.get(pk=pk, user=request.user)
+        except EntryTemplate.DoesNotExist:
+            return JsonResponse({'ok': False, 'error': 'Template not found.'}, status=404)
+        name = tpl.name
+        tpl.delete()
+        return JsonResponse({'ok': True, 'pk': int(pk), 'name': name})
+
+
 class EntryTemplateSaveView(LoginRequiredMixin, View):
     """JSON endpoint: save or save-as a named description template for the current user."""
 
