@@ -199,13 +199,15 @@ class AIPromptConfigView(AuditorOrAdminRequiredMixin, View):
                     for e in errs:
                         messages.error(request, f'{field}: {e}')
         elif template_pk:
-            # Save: update an existing named template.
+            # Save: update an existing named template (name is preserved, not re-submitted).
             try:
                 obj = NamedPromptTemplate.objects.get(pk=template_pk, user=request.user)
             except NamedPromptTemplate.DoesNotExist:
                 messages.error(request, 'Template not found.')
                 return redirect('reports:index')
-            form = NamedPromptTemplateForm(request.POST, instance=obj)
+            data = request.POST.copy()
+            data['name'] = obj.name
+            form = NamedPromptTemplateForm(data, instance=obj)
             if form.is_valid():
                 form.save()
                 messages.success(request, f'Template "{obj.name}" updated.')
