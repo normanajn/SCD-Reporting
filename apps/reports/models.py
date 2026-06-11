@@ -64,3 +64,23 @@ class AIPromptConfig(models.Model):
             },
         )
         return obj
+
+
+class NamedPromptTemplate(models.Model):
+    """A user-owned, named AI prompt template. Users may have many."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='prompt_templates',
+    )
+    name = models.CharField(max_length=100)
+    system_prompt = models.TextField(default=DEFAULT_SYSTEM)
+    user_template = models.TextField(default=DEFAULT_USER_TMPL)
+
+    class Meta:
+        unique_together = [('user', 'name')]
+        ordering = ['name']
+        verbose_name = 'Named Prompt Template'
+
+    def __str__(self):
+        return self.name

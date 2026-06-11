@@ -31,8 +31,11 @@ def _format_entries(qs) -> str:
     return '\n'.join(parts) if parts else '(no entries)'
 
 
-def generate(qs, user=None) -> str:
-    """Call the Anthropic API and return the summary as a Markdown string."""
+def generate(qs, user=None, template=None) -> str:
+    """Call the Anthropic API and return the summary as a Markdown string.
+
+    template: a NamedPromptTemplate instance; overrides the user's default config when provided.
+    """
     import anthropic
     from .models import AIPromptConfig
 
@@ -43,14 +46,21 @@ def generate(qs, user=None) -> str:
             'Set it as an environment variable or in Django settings.'
         )
 
-    config = AIPromptConfig.for_user(user) if user is not None else AIPromptConfig.get_solo()
+    if template is not None:
+        system_prompt = template.system_prompt
+        user_template = template.user_template
+    else:
+        config = AIPromptConfig.for_user(user) if user is not None else AIPromptConfig.get_solo()
+        system_prompt = config.system_prompt
+        user_template = config.user_template
+
     model = getattr(settings, 'ANTHROPIC_SUMMARY_MODEL', 'claude-sonnet-4-6')
     base_url = getattr(settings, 'ANTHROPIC_BASE_URL', '') or None
     client = anthropic.Anthropic(api_key=api_key, **({"base_url": base_url} if base_url else {}))
     message = client.messages.create(
         model=model,
         max_tokens=2048,
-        system=config.system_prompt,
-        messages=[{'role': 'user', 'content': config.user_template.format(entries=_format_entries(qs))}],
+        system=system_prompt,
+        messages=[{'role': 'user', 'content': user_template.format(entries=_format_entries(qs))}],
     )
     return message.content[0].text

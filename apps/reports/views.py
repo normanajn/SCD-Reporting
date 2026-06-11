@@ -1,6 +1,7 @@
+from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
 
@@ -10,8 +11,8 @@ from apps.entries.models import WorkItem
 
 from . import ai_summary, exporters
 from .filters import WorkItemFilter
-from .forms import AIPromptConfigForm
-from .models import AIPromptConfig
+from .forms import AIPromptConfigForm, NamedPromptTemplateForm
+from .models import AIPromptConfig, NamedPromptTemplate
 
 PREVIEW_LIMIT = 50
 
@@ -57,6 +58,10 @@ def _filtered_qs(data, group_scope=None, project_scope=None, user=None):
     return f, f.qs.order_by('-period_end', 'author__email')
 
 
+def _user_templates(user):
+    return NamedPromptTemplate.objects.filter(user=user)
+
+
 class ReportIndexView(AuditorOrAdminRequiredMixin, View):
     def get(self, request):
         f = WorkItemFilter(queryset=WorkItem.objects.none())
@@ -64,6 +69,7 @@ class ReportIndexView(AuditorOrAdminRequiredMixin, View):
             'filter': f,
             'formats': exporters.available(),
             'prompt_form': AIPromptConfigForm(instance=AIPromptConfig.for_user(request.user)),
+            'user_templates': _user_templates(request.user),
             'group_scope': _get_group_scope(request.user),
             'project_scope': _get_project_scope(request.user),
         })
@@ -118,8 +124,18 @@ class ReportSummaryView(AuditorOrAdminRequiredMixin, View):
             return render(request, 'reports/partials/_summary.html', {
                 'error': 'No entries matched. Adjust filters or select rows in the preview first.',
             })
+
+        # Use named template if one was selected in the prompt config panel.
+        named_template = None
         try:
-            text = ai_summary.generate(qs)
+            pk = int(request.POST.get('selected_template_pk', '') or 0)
+            if pk:
+                named_template = NamedPromptTemplate.objects.get(pk=pk, user=request.user)
+        except (ValueError, NamedPromptTemplate.DoesNotExist):
+            pass
+
+        try:
+            text = ai_summary.generate(qs, user=request.user, template=named_template)
         except Exception as exc:
             return render(request, 'reports/partials/_summary.html', {'error': str(exc)})
         from apps.audit.service import log_event
@@ -164,16 +180,71 @@ class SummaryDownloadPdfView(AuditorOrAdminRequiredMixin, View):
 
 class AIPromptConfigView(AuditorOrAdminRequiredMixin, View):
     def post(self, request):
-        from django.contrib import messages
-        from django.shortcuts import redirect
-        if request.user.is_scd_admin:
-            instance = AIPromptConfig.get_solo()
+        save_as_name = request.POST.get('save_as_name', '').strip()
+        template_pk  = request.POST.get('template_pk', '').strip()
+
+        if save_as_name:
+            # Save As: create a new named template owned by this user.
+            obj = NamedPromptTemplate(user=request.user)
+            form = NamedPromptTemplateForm(request.POST, instance=obj)
+            # Override name from the dedicated save_as_name field.
+            data = request.POST.copy()
+            data['name'] = save_as_name
+            form = NamedPromptTemplateForm(data, instance=obj)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f'Saved new template "{save_as_name}".')
+            else:
+                for field, errs in form.errors.items():
+                    for e in errs:
+                        messages.error(request, f'{field}: {e}')
+        elif template_pk:
+            # Save: update an existing named template.
+            try:
+                obj = NamedPromptTemplate.objects.get(pk=template_pk, user=request.user)
+            except NamedPromptTemplate.DoesNotExist:
+                messages.error(request, 'Template not found.')
+                return redirect('reports:index')
+            form = NamedPromptTemplateForm(request.POST, instance=obj)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f'Template "{obj.name}" updated.')
+            else:
+                for field, errs in form.errors.items():
+                    for e in errs:
+                        messages.error(request, f'{field}: {e}')
         else:
-            instance = AIPromptConfig.get_or_create_for_user(request.user)
-        form = AIPromptConfigForm(request.POST, instance=instance)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'AI prompt configuration saved.')
-        else:
-            messages.error(request, 'Could not save — check the form for errors.')
+            # Save the user's default config (or global for admins).
+            if request.user.is_scd_admin:
+                instance = AIPromptConfig.get_solo()
+            else:
+                instance = AIPromptConfig.get_or_create_for_user(request.user)
+            form = AIPromptConfigForm(request.POST, instance=instance)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Default AI prompt configuration saved.')
+            else:
+                messages.error(request, 'Could not save — check the form for errors.')
+
         return redirect('reports:index')
+
+
+class PromptTemplateLoadView(AuditorOrAdminRequiredMixin, View):
+    """Return the prompt fields partial for HTMX swap when the user selects a template."""
+
+    def get(self, request, pk):
+        if pk == 0:
+            config = AIPromptConfig.for_user(request.user)
+            system_prompt = config.system_prompt
+            user_template = config.user_template
+            template_name = ''
+        else:
+            tpl = get_object_or_404(NamedPromptTemplate, pk=pk, user=request.user)
+            system_prompt = tpl.system_prompt
+            user_template = tpl.user_template
+            template_name = tpl.name
+        return render(request, 'reports/partials/_prompt_fields.html', {
+            'system_prompt': system_prompt,
+            'user_template': user_template,
+            'template_name': template_name,
+        })
