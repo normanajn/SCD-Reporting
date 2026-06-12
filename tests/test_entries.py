@@ -361,3 +361,321 @@ class TestEntryTemplates:
         tpl.refresh_from_db()
         assert tpl.body == 'v2'
         assert EntryTemplate.objects.filter(user=user, name='Dup').count() == 1
+
+
+# ── Entry management (admin / division head / group leader) ───────────────────
+
+class TestEntryManagement:
+    """
+    Covers EntryManageView, EntryReassignView, EntryArchiveView, and
+    EntryManagerDeleteView (Issue #12 — missing test coverage).
+
+    Fixtures:
+        author      — a regular user who owns the entry
+        entry       — a WorkItem belonging to author
+        group_leader — a GROUP_LEADER
+        div_head    — a DIVISION_HEAD
+        admin       — an ADMIN
+    """
+
+    # ── shared fixtures ───────────────────────────────────────────────────────
+
+    @pytest.fixture
+    def author(self, db):
+        return User.objects.create_user(
+            username='author_mgmt', email='author_mgmt@example.com', password='pass',
+        )
+
+    @pytest.fixture
+    def managed_entry(self, db, author, project, category):
+        today = date.today()
+        start = today - timedelta(days=today.weekday())
+        return WorkItem.objects.create(
+            author=author,
+            title='Manager target entry',
+            project=project,
+            category=category,
+            period_kind='week',
+            period_start=start,
+            period_end=start + timedelta(days=6),
+            description='manageable',
+        )
+
+    @pytest.fixture
+    def group_leader(self, db):
+        return User.objects.create_user(
+            username='gl_mgmt', email='gl_mgmt@example.com', password='pass',
+            role=User.Role.GROUP_LEADER,
+        )
+
+    @pytest.fixture
+    def div_head(self, db):
+        return User.objects.create_user(
+            username='dh_mgmt', email='dh_mgmt@example.com', password='pass',
+            role=User.Role.DIVISION_HEAD,
+        )
+
+    @pytest.fixture
+    def admin(self, db):
+        return User.objects.create_user(
+            username='admin_mgmt', email='admin_mgmt@example.com', password='pass',
+            role=User.Role.ADMIN,
+        )
+
+    # ── EntryManageView (/entries/manage/) ────────────────────────────────────
+
+    def test_manage_anonymous_redirects(self, client):
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 302
+        assert '/accounts/login/' in resp['Location']
+
+    def test_manage_regular_user_forbidden(self, client, user):
+        client.force_login(user)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 403
+
+    def test_manage_group_leader_allowed(self, client, group_leader):
+        client.force_login(group_leader)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 200
+
+    def test_manage_division_head_allowed(self, client, div_head):
+        client.force_login(div_head)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 200
+
+    def test_manage_admin_allowed(self, client, admin):
+        client.force_login(admin)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 200
+
+    def test_manage_lists_entries(self, client, admin, managed_entry):
+        client.force_login(admin)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 200
+        assert managed_entry.title.encode() in resp.content
+
+    def test_manage_shows_archived_when_requested(self, client, admin, managed_entry):
+        managed_entry.is_archived = True
+        managed_entry.save(update_fields=['is_archived', 'updated_at'])
+        client.force_login(admin)
+        resp = client.get(reverse('entries:manage') + '?archived=1')
+        assert resp.status_code == 200
+        assert managed_entry.title.encode() in resp.content
+
+    def test_manage_hides_archived_by_default(self, client, admin, managed_entry):
+        managed_entry.is_archived = True
+        managed_entry.save(update_fields=['is_archived', 'updated_at'])
+        client.force_login(admin)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 200
+        assert managed_entry.title.encode() not in resp.content
+
+    def test_manage_hides_division_head_only_from_group_leader(
+        self, client, group_leader, managed_entry
+    ):
+        managed_entry.is_division_head_only = True
+        managed_entry.save(update_fields=['is_division_head_only', 'updated_at'])
+        client.force_login(group_leader)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 200
+        assert managed_entry.title.encode() not in resp.content
+
+    def test_manage_shows_division_head_only_to_admin(self, client, admin, managed_entry):
+        managed_entry.is_division_head_only = True
+        managed_entry.save(update_fields=['is_division_head_only', 'updated_at'])
+        client.force_login(admin)
+        resp = client.get(reverse('entries:manage'))
+        assert resp.status_code == 200
+        assert managed_entry.title.encode() in resp.content
+
+    def test_manage_title_search_filter(self, client, admin, managed_entry, project, category, author):
+        today = date.today()
+        start = today - timedelta(days=today.weekday())
+        other = WorkItem.objects.create(
+            author=author, title='Completely different', project=project,
+            category=category, period_kind='week',
+            period_start=start, period_end=start + timedelta(days=6),
+            description='',
+        )
+        client.force_login(admin)
+        resp = client.get(reverse('entries:manage') + '?q=Manager+target')
+        assert resp.status_code == 200
+        assert managed_entry.title.encode() in resp.content
+        assert other.title.encode() not in resp.content
+
+    # ── EntryArchiveView (/entries/<pk>/archive/) ─────────────────────────────
+
+    def test_archive_anonymous_redirects(self, client, managed_entry):
+        resp = client.post(reverse('entries:archive', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 302
+        assert '/accounts/login/' in resp['Location']
+
+    def test_archive_regular_user_forbidden(self, client, user, managed_entry):
+        client.force_login(user)
+        resp = client.post(reverse('entries:archive', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 403
+
+    def test_archive_sets_is_archived_true(self, client, admin, managed_entry):
+        client.force_login(admin)
+        resp = client.post(reverse('entries:archive', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        assert managed_entry.is_archived is True
+
+    def test_unarchive_sets_is_archived_false(self, client, admin, managed_entry):
+        managed_entry.is_archived = True
+        managed_entry.save(update_fields=['is_archived', 'updated_at'])
+        client.force_login(admin)
+        resp = client.post(reverse('entries:archive', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        assert managed_entry.is_archived is False
+
+    def test_archive_group_leader_can_archive(self, client, group_leader, managed_entry):
+        client.force_login(group_leader)
+        resp = client.post(reverse('entries:archive', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        assert managed_entry.is_archived is True
+
+    def test_archive_division_head_can_archive(self, client, div_head, managed_entry):
+        client.force_login(div_head)
+        resp = client.post(reverse('entries:archive', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        assert managed_entry.is_archived is True
+
+    def test_archive_creates_audit_log(self, client, admin, managed_entry):
+        from apps.audit.models import AuditLogEntry
+        AuditLogEntry.objects.all().delete()
+        client.force_login(admin)
+        client.post(reverse('entries:archive', kwargs={'pk': managed_entry.pk}))
+        entry = AuditLogEntry.objects.filter(action='update', object_id=managed_entry.pk).first()
+        assert entry is not None
+        assert 'is_archived' in entry.changes
+
+    # ── EntryReassignView (/entries/<pk>/reassign/) ───────────────────────────
+
+    def test_reassign_anonymous_redirects(self, client, managed_entry, user):
+        resp = client.post(
+            reverse('entries:reassign', kwargs={'pk': managed_entry.pk}),
+            {'author_id': user.pk},
+        )
+        assert resp.status_code == 302
+        assert '/accounts/login/' in resp['Location']
+
+    def test_reassign_regular_user_forbidden(self, client, user, managed_entry):
+        client.force_login(user)
+        resp = client.post(
+            reverse('entries:reassign', kwargs={'pk': managed_entry.pk}),
+            {'author_id': user.pk},
+        )
+        assert resp.status_code == 403
+
+    def test_reassign_changes_author(self, client, admin, managed_entry, user):
+        client.force_login(admin)
+        resp = client.post(
+            reverse('entries:reassign', kwargs={'pk': managed_entry.pk}),
+            {'author_id': user.pk},
+        )
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        assert managed_entry.author == user
+
+    def test_reassign_group_leader_can_reassign(self, client, group_leader, managed_entry, user):
+        client.force_login(group_leader)
+        resp = client.post(
+            reverse('entries:reassign', kwargs={'pk': managed_entry.pk}),
+            {'author_id': user.pk},
+        )
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        assert managed_entry.author == user
+
+    def test_reassign_division_head_can_reassign(self, client, div_head, managed_entry, user):
+        client.force_login(div_head)
+        resp = client.post(
+            reverse('entries:reassign', kwargs={'pk': managed_entry.pk}),
+            {'author_id': user.pk},
+        )
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        assert managed_entry.author == user
+
+    def test_reassign_invalid_author_id_redirects(self, client, admin, managed_entry):
+        client.force_login(admin)
+        resp = client.post(
+            reverse('entries:reassign', kwargs={'pk': managed_entry.pk}),
+            {'author_id': 999999},
+        )
+        assert resp.status_code == 302
+        managed_entry.refresh_from_db()
+        # author should be unchanged
+        assert managed_entry.author.email == 'author_mgmt@example.com'
+
+    def test_reassign_creates_audit_log(self, client, admin, managed_entry, user):
+        from apps.audit.models import AuditLogEntry
+        AuditLogEntry.objects.all().delete()
+        client.force_login(admin)
+        client.post(
+            reverse('entries:reassign', kwargs={'pk': managed_entry.pk}),
+            {'author_id': user.pk},
+        )
+        entry = AuditLogEntry.objects.filter(action='update', object_id=managed_entry.pk).first()
+        assert entry is not None
+        assert 'author_id' in entry.changes
+
+    # ── EntryManagerDeleteView (/entries/<pk>/manager-delete/) ────────────────
+
+    def test_manager_delete_anonymous_redirects(self, client, managed_entry):
+        resp = client.post(reverse('entries:manager-delete', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 302
+        assert '/accounts/login/' in resp['Location']
+
+    def test_manager_delete_regular_user_forbidden(self, client, user, managed_entry):
+        client.force_login(user)
+        resp = client.post(reverse('entries:manager-delete', kwargs={'pk': managed_entry.pk}))
+        assert resp.status_code == 403
+        assert WorkItem.objects.filter(pk=managed_entry.pk).exists()
+
+    def test_manager_delete_admin_removes_entry(self, client, admin, managed_entry):
+        pk = managed_entry.pk
+        client.force_login(admin)
+        resp = client.post(reverse('entries:manager-delete', kwargs={'pk': pk}))
+        assert resp.status_code == 302
+        assert not WorkItem.objects.filter(pk=pk).exists()
+
+    def test_manager_delete_group_leader_removes_entry(self, client, group_leader, managed_entry):
+        pk = managed_entry.pk
+        client.force_login(group_leader)
+        resp = client.post(reverse('entries:manager-delete', kwargs={'pk': pk}))
+        assert resp.status_code == 302
+        assert not WorkItem.objects.filter(pk=pk).exists()
+
+    def test_manager_delete_division_head_removes_entry(self, client, div_head, managed_entry):
+        pk = managed_entry.pk
+        client.force_login(div_head)
+        resp = client.post(reverse('entries:manager-delete', kwargs={'pk': pk}))
+        assert resp.status_code == 302
+        assert not WorkItem.objects.filter(pk=pk).exists()
+
+    def test_manager_delete_decrements_tag_use_count(self, client, admin, managed_entry):
+        tag = Tag.objects.create(name='mgr_delete_tag', use_count=2)
+        managed_entry.tags.add(tag)
+        pk = managed_entry.pk
+        client.force_login(admin)
+        client.post(reverse('entries:manager-delete', kwargs={'pk': pk}))
+        tag.refresh_from_db()
+        assert tag.use_count == 1
+        assert not WorkItem.objects.filter(pk=pk).exists()
+
+    def test_manager_delete_creates_audit_log(self, client, admin, managed_entry):
+        from apps.audit.models import AuditLogEntry
+        AuditLogEntry.objects.all().delete()
+        pk = managed_entry.pk
+        client.force_login(admin)
+        client.post(reverse('entries:manager-delete', kwargs={'pk': pk}))
+        # post_delete signal fires → audit 'delete' entry is recorded
+        entry = AuditLogEntry.objects.filter(action='delete', object_id=pk).first()
+        assert entry is not None
