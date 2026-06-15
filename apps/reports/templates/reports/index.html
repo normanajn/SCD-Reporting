@@ -311,11 +311,12 @@
                 hx-target="#report-preview"
                 hx-swap="innerHTML"
                 hx-indicator="#preview-spinner"
+                onclick="document.getElementById('summary-pane').innerHTML = '';"
                 class="bg-scd-primary hover:bg-scd-primary-hover text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
           Preview
         </button>
 
-        <button type="button"
+        <button type="button" id="summary-btn"
                 hx-post="{% url 'reports:summary' %}"
                 hx-include="#report-form, #report-preview"
                 hx-target="#summary-pane"
@@ -522,8 +523,34 @@ function submitDownload(url) {
 function updateSummarySpinner() {
   var sel = document.getElementById('prompt-template-select');
   var label = sel && sel.value ? sel.options[sel.selectedIndex].text : 'Default';
-  document.getElementById('summary-spinner').textContent = 'Generating summary… [' + label + ']';
+  var spinner = document.getElementById('summary-spinner');
+  // Clear any error styling left over from a previous failed request so the
+  // normal htmx-indicator behavior (auto show/hide, slate text) resumes.
+  spinner.style.opacity = '';
+  spinner.style.color = '';
+  spinner.textContent = 'Generating summary… [' + label + ']';
 }
+
+// Show a red, persistent error in place of the spinner when the AI Summary
+// request fails — a timeout (HAProxy/gunicorn), a server error, or a dropped
+// connection. The htmx-indicator would otherwise just vanish on failure.
+function showSummaryError() {
+  var spinner = document.getElementById('summary-spinner');
+  spinner.textContent = 'ERROR Generating Summary';
+  spinner.style.color = '#dc2626';  // red-600
+  spinner.style.opacity = '1';      // override the indicator auto-hide
+}
+
+(function () {
+  var btn = document.getElementById('summary-btn');
+  if (!btn) return;
+  // htmx:responseError → non-2xx (500 worker abort, 502/504 router timeout)
+  // htmx:sendError     → connection dropped (e.g. router closed the socket)
+  // htmx:timeout       → htmx request timeout, if one is configured
+  ['htmx:responseError', 'htmx:sendError', 'htmx:timeout'].forEach(function (evt) {
+    btn.addEventListener(evt, showSummaryError);
+  });
+})();
 
 // ── AI Prompt template selector ───────────────────────────────────────────────
 var _promptLoadUrl = '{% url "reports:prompt-template-load" 0 %}';

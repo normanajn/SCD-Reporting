@@ -18,6 +18,7 @@ data:
   SCD_INITIAL_ADMIN_EMAIL: {{ .Values.django.initialAdminEmail | quote }}
   DATABASE_URL: {{ .Values.database.url | quote }}
   GUNICORN_WORKERS: {{ .Values.gunicorn.workers | quote }}
+  GUNICORN_TIMEOUT: {{ .Values.gunicorn.timeout | quote }}
   GUNICORN_LOG_LEVEL: {{ .Values.gunicorn.logLevel | quote }}
   ANTHROPIC_SUMMARY_MODEL: {{ .Values.anthropic.summaryModel | quote }}
   ANTHROPIC_BASE_URL: {{ .Values.anthropic.baseUrl | quote }}

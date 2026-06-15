@@ -63,6 +63,9 @@ django:
 gunicorn:
   workers: 3
   logLevel: info
+  # Worker request timeout (seconds). Must exceed the slowest AI-summary
+  # generation; the default gunicorn timeout of 30s kills the worker mid-call.
+  timeout: 300
 
 # ── AI summaries ───────────────────────────────────────────────────────────────
 anthropic:

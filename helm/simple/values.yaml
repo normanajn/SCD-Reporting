@@ -17,6 +17,10 @@ route:
   # Set to the public hostname to create an OKD Route with TLS edge termination.
   # Leave empty to skip Route creation.
   hostname: ""
+  # HAProxy router request timeout. The cluster default is 30s, which cuts off
+  # long AI-summary requests before gunicorn (GUNICORN_TIMEOUT) returns. Keep
+  # this >= gunicorn.timeout.
+  timeout: 300s
 
 # ── cert-manager ───────────────────────────────────────────────────────────────
 certManager:
@@ -55,6 +59,9 @@ database:
 gunicorn:
   workers: 3
   logLevel: info
+  # Worker request timeout (seconds). Must exceed the slowest AI-summary
+  # generation; the default gunicorn timeout of 30s kills the worker mid-call.
+  timeout: 300
 
 # ── AI summaries ───────────────────────────────────────────────────────────────
 anthropic:

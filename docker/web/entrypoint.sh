@@ -17,6 +17,7 @@ echo "[entrypoint] Starting gunicorn..."
 exec gunicorn scd_reporting.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers "${GUNICORN_WORKERS:-3}" \
+    --timeout "${GUNICORN_TIMEOUT:-300}" \
     --worker-tmp-dir /dev/shm \
     --log-level "${GUNICORN_LOG_LEVEL:-info}" \
     --access-logfile -
