@@ -58,6 +58,68 @@ class TestEntryList:
         resp = client.get(reverse('entries:list'))
         assert entry.title not in resp.content.decode()
 
+    def _make_entry(self, user, project, category, **kwargs):
+        today = date.today()
+        defaults = dict(
+            author=user, project=project, category=category, period_kind='week',
+            period_start=today, period_end=today, description='',
+        )
+        defaults.update(kwargs)
+        return WorkItem.objects.create(**defaults)
+
+    def test_search_filters_by_title(self, db, client, user, project, category):
+        self._make_entry(user, project, category, title='Quarterly budget review')
+        self._make_entry(user, project, category, title='Server migration')
+        client.force_login(user)
+        resp = client.get(reverse('entries:list'), {'q': 'budget'})
+        body = resp.content.decode()
+        assert 'Quarterly budget review' in body
+        assert 'Server migration' not in body
+
+    def test_search_filters_by_description(self, db, client, user, project, category):
+        self._make_entry(user, project, category, title='Alpha', description='notes about kubernetes')
+        self._make_entry(user, project, category, title='Beta', description='unrelated text')
+        client.force_login(user)
+        resp = client.get(reverse('entries:list'), {'q': 'kubernetes'})
+        body = resp.content.decode()
+        assert 'Alpha' in body
+        assert 'Beta' not in body
+
+    def test_search_filters_by_tag(self, db, client, user, project, category):
+        tagged = self._make_entry(user, project, category, title='Tagged item')
+        tagged.tags.add(Tag.objects.create(name='networking'))
+        self._make_entry(user, project, category, title='Untagged item')
+        client.force_login(user)
+        resp = client.get(reverse('entries:list'), {'q': 'network'})
+        body = resp.content.decode()
+        assert 'Tagged item' in body
+        assert 'Untagged item' not in body
+
+    def test_search_only_returns_own_entries(self, db, client, user, project, category):
+        other = User.objects.create_user(username='other2', email='other2@example.com', password='pass')
+        self._make_entry(other, project, category, title='Shared keyword here')
+        mine = self._make_entry(user, project, category, title='Shared keyword mine')
+        client.force_login(user)
+        resp = client.get(reverse('entries:list'), {'q': 'Shared keyword'})
+        body = resp.content.decode()
+        assert 'Shared keyword mine' in body
+        assert 'Shared keyword here' not in body
+
+    def test_search_no_match_shows_empty_state(self, db, client, user, project, category):
+        self._make_entry(user, project, category, title='Real entry')
+        client.force_login(user)
+        resp = client.get(reverse('entries:list'), {'q': 'zzz-no-match'})
+        assert 'No entries match your search.' in resp.content.decode()
+
+    def test_search_does_not_duplicate_multi_tag_matches(self, db, client, user, project, category):
+        item = self._make_entry(user, project, category, title='Multi tag entry')
+        item.tags.add(Tag.objects.create(name='netops'))
+        item.tags.add(Tag.objects.create(name='network-core'))
+        client.force_login(user)
+        resp = client.get(reverse('entries:list'), {'q': 'net'})
+        # Title should appear once in the table despite matching two tags.
+        assert resp.content.decode().count('>Multi tag entry<') == 1
+
 
 # ── Create ────────────────────────────────────────────────────────────────────
 
