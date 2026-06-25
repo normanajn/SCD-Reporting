@@ -1,0 +1,65 @@
+{% comment %}
+Markdown quick-reference shown beside the entry form.
+Keep rows in sync with apps/core/markdown.py (render_markdown):
+fenced_code + tables, headings h1-h3, no images.
+{% endcomment %}
+<div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+
+  <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
+    <h2 class="text-sm font-semibold text-slate-700">Markdown cheat sheet</h2>
+    <p class="mt-0.5 text-xs text-slate-400">Formatting you can use in the description.</p>
+  </div>
+
+  <dl class="divide-y divide-slate-100">
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Bold</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">**text**</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Italic</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">*text*</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Headings</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5"># H1 · ## H2 · ### H3</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Link</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">[text](https://…)</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Bullet list</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">- item</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Numbered list</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">1. item</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Quote</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">&gt; quoted text</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Inline code</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">`code`</dd>
+    </div>
+    <div class="px-4 py-2 flex items-start justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Code block</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5 whitespace-pre leading-tight">```
+code
+```</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Table</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">| a | b |</dd>
+    </div>
+    <div class="px-4 py-2 flex items-center justify-between gap-3">
+      <dt class="text-xs text-slate-500 shrink-0">Divider</dt>
+      <dd class="font-mono text-xs text-slate-700 bg-slate-50 rounded px-1.5 py-0.5">---</dd>
+    </div>
+  </dl>
+
+  <div class="px-4 py-2.5 border-t border-slate-100 bg-slate-50 text-xs text-slate-400">
+    Click <span class="font-medium text-slate-500">Preview markdown</span> to check formatting.
+  </div>
+</div>

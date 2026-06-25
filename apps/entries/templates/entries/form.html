@@ -2,7 +2,8 @@
 {% block title %}{% if object %}Edit Entry{% else %}New Entry{% endif %} — SCD Reporting{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl">
+<div class="lg:flex lg:gap-8 lg:items-start">
+ <div class="max-w-2xl w-full min-w-0">
 
   <div class="mb-4">
     <a href="{% if object %}{% url 'entries:detail' object.pk %}{% else %}{% url 'entries:list' %}{% endif %}"
@@ -331,7 +332,14 @@
     </div>
 
   </form>
-</div>
+ </div>{# end left column #}
+
+  {# ── Markdown cheat sheet (right side panel) ──────────────────────────────── #}
+  <aside class="hidden lg:block w-72 shrink-0 lg:sticky lg:top-8">
+    {% include "entries/partials/_markdown_cheatsheet.html" %}
+  </aside>
+
+</div>{# end two-column wrapper #}
 
 {{ entry_templates|default:"[]"|json_script:"entry-templates-data" }}
 <script>
