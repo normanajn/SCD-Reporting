@@ -55,6 +55,12 @@
         <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Category</dt>
         <dd class="mt-0.5 text-slate-700">{{ object.category.name }}</dd>
       </div>
+      {% if object.entry_type %}
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Entry Type</dt>
+        <dd class="mt-0.5 text-slate-700">{{ object.entry_type.name }}</dd>
+      </div>
+      {% endif %}
       {% if object.group %}
       <div>
         <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Group</dt>

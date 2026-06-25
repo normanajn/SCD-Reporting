@@ -32,6 +32,12 @@ class Category(TaxonomyBase):
         verbose_name_plural = 'categories'
 
 
+class EntryType(TaxonomyBase):
+    class Meta(TaxonomyBase.Meta):
+        verbose_name = 'Entry Type'
+        verbose_name_plural = 'Entry Types'
+
+
 class WorkGroup(TaxonomyBase):
     class Meta(TaxonomyBase.Meta):
         verbose_name = 'Group'

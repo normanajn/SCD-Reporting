@@ -11,8 +11,8 @@ from django.views.generic import UpdateView
 
 from apps.accounts.permissions import TaxonomyEditorRequiredMixin as AdminRequiredMixin
 
-from .forms import CategoryForm, LabPriorityForm, ProjectForm, WorkGroupForm
-from .models import Category, LabPriority, Project, Tag, WorkGroup
+from .forms import CategoryForm, EntryTypeForm, LabPriorityForm, ProjectForm, WorkGroupForm
+from .models import Category, EntryType, LabPriority, Project, Tag, WorkGroup
 
 
 class ProjectManageView(AdminRequiredMixin, View):
@@ -76,6 +76,38 @@ class CategoryEditView(AdminRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         messages.success(self.request, f'Category "{form.instance.name}" saved.')
+        return super().form_valid(form)
+
+
+class EntryTypeManageView(AdminRequiredMixin, View):
+    template_name = 'taxonomy/entry_types.html'
+
+    def _ctx(self, form=None):
+        return {
+            'entry_types': EntryType.objects.order_by('sort_order', 'name'),
+            'form': form or EntryTypeForm(),
+        }
+
+    def get(self, request):
+        return render(request, self.template_name, self._ctx())
+
+    def post(self, request):
+        form = EntryTypeForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            messages.success(request, f'Entry Type "{obj.name}" added.')
+            return redirect('taxonomy:entry-types')
+        return render(request, self.template_name, self._ctx(form))
+
+
+class EntryTypeEditView(AdminRequiredMixin, UpdateView):
+    model = EntryType
+    form_class = EntryTypeForm
+    template_name = 'taxonomy/entry_type_form.html'
+    success_url = reverse_lazy('taxonomy:entry-types')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'Entry Type "{form.instance.name}" saved.')
         return super().form_valid(form)
 
 
@@ -161,6 +193,7 @@ class TaxonomyExportView(AdminRequiredMixin, View):
             'exported_at':   datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'projects':      rows(Project.objects.order_by('sort_order', 'name')),
             'categories':    rows(Category.objects.order_by('sort_order', 'name')),
+            'entry_types':   rows(EntryType.objects.order_by('sort_order', 'name')),
             'groups':        rows(WorkGroup.objects.order_by('sort_order', 'name')),
             'lab_priorities': rows(LabPriority.objects.order_by('sort_order', 'name')),
         }
@@ -177,6 +210,7 @@ class TaxonomyImportView(AdminRequiredMixin, View):
     TABLES = {
         'projects':       Project,
         'categories':     Category,
+        'entry_types':    EntryType,
         'groups':         WorkGroup,
         'lab_priorities': LabPriority,
     }

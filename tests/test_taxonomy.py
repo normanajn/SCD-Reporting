@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.taxonomy.models import Category, Project, Tag
+from apps.taxonomy.models import Category, EntryType, Project, Tag
 
 User = get_user_model()
 
@@ -92,6 +92,27 @@ def test_create_project_via_post(client, admin_user):
 
 
 @pytest.mark.django_db
+def test_entry_types_page_requires_admin(client, regular_user):
+    client.force_login(regular_user)
+    assert client.get('/taxonomy/entry-types/').status_code == 403
+
+
+@pytest.mark.django_db
+def test_entry_types_page_accessible_to_admin(client, admin_user):
+    client.force_login(admin_user)
+    assert client.get('/taxonomy/entry-types/').status_code == 200
+
+
+@pytest.mark.django_db
+def test_create_entry_type_via_post(client, admin_user):
+    client.force_login(admin_user)
+    resp = client.post('/taxonomy/entry-types/', {'name': 'Milestone', 'short_code': 'MS',
+                                                  'is_active': True, 'sort_order': 5})
+    assert resp.status_code == 302
+    assert EntryType.objects.filter(name='Milestone').exists()
+
+
+@pytest.mark.django_db
 def test_edit_project(client, admin_user):
     p = Project.objects.create(name='OldName')
     client.force_login(admin_user)
@@ -119,8 +140,10 @@ def test_seed_taxonomy_creates_expected_data():
     call_command('seed_taxonomy', verbosity=0)
     assert Project.objects.count() == 5
     assert Category.objects.count() == 4
+    assert EntryType.objects.count() == 3
     assert Project.objects.filter(name='MicroBooNE').exists()
     assert Category.objects.filter(name='Outreach').exists()
+    assert EntryType.objects.filter(name='Weekly Report').exists()
 
 
 # ── Tag autocomplete content ──────────────────────────────────────────────────

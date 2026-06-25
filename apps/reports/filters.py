@@ -4,7 +4,7 @@ import django_filters
 from django.db.models import Q
 
 from apps.entries.models import WorkItem
-from apps.taxonomy.models import Category, LabPriority, Project, WorkGroup
+from apps.taxonomy.models import Category, EntryType, LabPriority, Project, WorkGroup
 
 
 class WorkItemFilter(django_filters.FilterSet):
@@ -37,6 +37,11 @@ class WorkItemFilter(django_filters.FilterSet):
         queryset=Category.objects.filter(is_active=True).order_by('sort_order', 'name'),
         label='Category',
         empty_label='All categories',
+    )
+    entry_type = django_filters.ModelChoiceFilter(
+        queryset=EntryType.objects.filter(is_active=True).order_by('sort_order', 'name'),
+        label='Entry Type',
+        empty_label='All entry types',
     )
     lab_priority = django_filters.ModelChoiceFilter(
         queryset=LabPriority.objects.filter(is_active=True).order_by('sort_order', 'name'),

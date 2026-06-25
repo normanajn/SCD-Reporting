@@ -5,9 +5,9 @@ from .models import WorkItem
 
 @admin.register(WorkItem)
 class WorkItemAdmin(admin.ModelAdmin):
-    list_display = ('title', 'author', 'project', 'category',
+    list_display = ('title', 'author', 'project', 'category', 'entry_type',
                     'period_start', 'period_end', 'is_private', 'created_at')
-    list_filter = ('project', 'category', 'is_private')
+    list_filter = ('project', 'category', 'entry_type', 'is_private')
     search_fields = ('title', 'description', 'author__email', 'author__display_name')
     raw_id_fields = ('author',)
     filter_horizontal = ('tags',)

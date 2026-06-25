@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from apps.taxonomy.models import Category, LabPriority, Project
+from apps.taxonomy.models import Category, EntryType, LabPriority, Project
 
 PROJECTS = [
     {'name': 'DUNE',       'short_code': 'DUNE',   'sort_order': 10},
@@ -15,6 +15,12 @@ CATEGORIES = [
     {'name': 'Operations', 'short_code': 'OPS', 'sort_order': 20},
     {'name': 'Outreach',   'short_code': 'OUT', 'sort_order': 30},
     {'name': 'Training',   'short_code': 'TRN', 'sort_order': 40},
+]
+
+ENTRY_TYPES = [
+    {'name': 'Weekly Report', 'short_code': 'WEEKLY',    'sort_order': 10},
+    {'name': 'Milestone',     'short_code': 'MILESTONE', 'sort_order': 20},
+    {'name': 'Activity',      'short_code': 'ACTIVITY',  'sort_order': 30},
 ]
 
 LAB_PRIORITIES = [
@@ -43,6 +49,14 @@ class Command(BaseCommand):
             name = data['name']
             defaults = {k: v for k, v in data.items() if k != 'name'}
             _, created = Category.objects.get_or_create(name=name, defaults=defaults)
+            status = 'created' if created else 'exists '
+            self.stdout.write(f'  [{status}] {name}')
+
+        self.stdout.write('Seeding entry types…')
+        for data in ENTRY_TYPES:
+            name = data['name']
+            defaults = {k: v for k, v in data.items() if k != 'name'}
+            _, created = EntryType.objects.get_or_create(name=name, defaults=defaults)
             status = 'created' if created else 'exists '
             self.stdout.write(f'  [{status}] {name}')
 
