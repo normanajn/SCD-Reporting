@@ -54,7 +54,7 @@
             <a href="{% url 'entries:detail' entry.pk %}"
                class="text-sm font-medium text-slate-800 hover:text-scd-primary truncate block">{{ entry.title }}</a>
             <p class="text-xs text-slate-400 mt-0.5">
-              {{ entry.project.name }} · {{ entry.category.name }} ·
+              {% for p in entry.projects.all %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %} · {% for c in entry.categories.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %} ·
               {{ entry.period_start|date:"M j" }}–{{ entry.period_end|date:"M j, Y" }}
             </p>
           </div>

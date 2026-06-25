@@ -41,12 +41,12 @@ def _get_project_scope(user):
 
 
 def _filtered_qs(data, group_scope=None, project_scope=None, user=None):
-    qs = WorkItem.objects.select_related('author', 'project', 'category').prefetch_related('tags')
+    qs = WorkItem.objects.select_related('author').prefetch_related('projects', 'categories', 'tags')
     if group_scope is not None:
         # Prefer explicit WorkItem.group; fall back to author.group only when entry has no group set.
         qs = qs.filter(Q(group__in=group_scope) | Q(group__isnull=True, author__group__in=group_scope))
     if project_scope is not None:
-        qs = qs.filter(project__in=project_scope)
+        qs = qs.filter(projects__in=project_scope).distinct()
     if user is not None and not (user.is_scd_admin or user.is_division_head):
         qs = qs.filter(is_division_head_only=False)
     show_archived = data.get('show_archived') == '1'

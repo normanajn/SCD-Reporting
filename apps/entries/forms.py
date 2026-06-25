@@ -12,7 +12,7 @@ class WorkItemForm(forms.ModelForm):
     class Meta:
         model = WorkItem
         fields = [
-            'title', 'project', 'category', 'entry_type', 'group', 'lab_priority',
+            'title', 'projects', 'categories', 'lab_priorities', 'entry_type', 'group',
             'period_kind', 'period_start', 'period_end',
             'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
             'is_division_head_only',
@@ -27,15 +27,23 @@ class WorkItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['project'].queryset  = Project.objects.filter(is_active=True).order_by('sort_order', 'name')
-        self.fields['category'].queryset = Category.objects.filter(is_active=True).order_by('sort_order', 'name')
-        self.fields['entry_type'].queryset   = EntryType.objects.filter(is_active=True).order_by('sort_order', 'name')
-        self.fields['entry_type'].required   = False
-        self.fields['group'].queryset        = WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
-        self.fields['group'].required        = False
-        self.fields['lab_priority'].queryset = LabPriority.objects.filter(is_active=True).order_by('sort_order', 'name')
-        self.fields['lab_priority'].required = False
+        self.fields['projects'].queryset   = Project.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['categories'].queryset = Category.objects.filter(is_active=True).order_by('sort_order', 'name')
+        # At least one project and one category remain required (ModelMultipleChoiceField
+        # is required by default — an empty multi-select fails validation).
+        self.fields['lab_priorities'].queryset = LabPriority.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['lab_priorities'].required = False
+        self.fields['entry_type'].queryset = EntryType.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['entry_type'].required = False
+        self.fields['group'].queryset      = WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['group'].required      = False
         self.fields['highlight_stars'].required = False
+
+        # Style the multi-select widgets to match the rest of the form.
+        _multi_cls = ('w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm '
+                      'focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none')
+        for _name in ('projects', 'categories', 'lab_priorities'):
+            self.fields[_name].widget.attrs.update({'class': _multi_cls, 'size': 5})
         if self.instance.pk:
             self.fields['tags_input'].initial = ','.join(
                 self.instance.tags.values_list('name', flat=True)

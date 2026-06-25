@@ -48,13 +48,19 @@
         <dd class="mt-0.5 font-medium text-slate-800">{{ object.author.display_name|default:object.author.email }}</dd>
       </div>
       <div>
-        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Project</dt>
-        <dd class="mt-0.5 font-medium text-slate-800">{{ object.project.name }}</dd>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Projects</dt>
+        <dd class="mt-0.5 font-medium text-slate-800">{% for p in object.projects.all %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
       </div>
       <div>
-        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Category</dt>
-        <dd class="mt-0.5 text-slate-700">{{ object.category.name }}</dd>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Categories</dt>
+        <dd class="mt-0.5 text-slate-700">{% for c in object.categories.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
       </div>
+      {% if object.lab_priorities.all %}
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Lab Priorities</dt>
+        <dd class="mt-0.5 text-slate-700">{% for lp in object.lab_priorities.all %}{{ lp.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+      </div>
+      {% endif %}
       {% if object.entry_type %}
       <div>
         <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Entry Type</dt>

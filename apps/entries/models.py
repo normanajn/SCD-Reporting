@@ -17,14 +17,12 @@ class WorkItem(models.Model):
         related_name='work_items',
     )
     title     = models.CharField(max_length=200)
-    project   = models.ForeignKey(
+    projects  = models.ManyToManyField(
         'taxonomy.Project',
-        on_delete=models.PROTECT,
         related_name='work_items',
     )
-    category  = models.ForeignKey(
+    categories = models.ManyToManyField(
         'taxonomy.Category',
-        on_delete=models.PROTECT,
         related_name='work_items',
     )
     entry_type = models.ForeignKey(
@@ -39,10 +37,9 @@ class WorkItem(models.Model):
         on_delete=models.PROTECT,
         related_name='work_items',
     )
-    lab_priority = models.ForeignKey(
+    lab_priorities = models.ManyToManyField(
         'taxonomy.LabPriority',
-        null=True, blank=True,
-        on_delete=models.PROTECT,
+        blank=True,
         related_name='work_items',
     )
     tags      = models.ManyToManyField('taxonomy.Tag', blank=True)
@@ -70,8 +67,6 @@ class WorkItem(models.Model):
         ordering = ['-period_end', '-created_at']
         indexes = [
             models.Index(fields=['author', '-period_end']),
-            models.Index(fields=['project', '-period_end']),
-            models.Index(fields=['category', '-period_end']),
             models.Index(fields=['entry_type', '-period_end']),
             models.Index(fields=['period_start', 'period_end']),
             models.Index(fields=['is_private', '-period_end']),

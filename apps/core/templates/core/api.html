@@ -59,13 +59,13 @@
                 <pre class="bg-slate-50 border border-slate-200 rounded p-3 text-slate-700 overflow-x-auto leading-relaxed">{
   "title":        "string (required)",
   "description":  "string (required)",
-  "project":      "slug or id (required)",
-  "category":     "slug or id (required)",
+  "projects":     ["slug or id", …]  (required; accepts a single value too),
+  "categories":   ["slug or id", …]  (required; accepts a single value too),
   "period_kind":  "today|week|fortnight|month|custom",
   "period_start": "YYYY-MM-DD (required)",
   "period_end":   "YYYY-MM-DD (required)",
   "group":        "slug or id (optional)",
-  "lab_priority": "slug or id (optional)",
+  "lab_priorities": ["slug or id", …]  (optional),
   "tags":         ["tag1", "tag2"],
   "is_private":           false,
   "is_critical":          false,
@@ -79,8 +79,10 @@
                 <pre class="bg-slate-50 border border-slate-200 rounded p-3 text-slate-700 overflow-x-auto leading-relaxed">{
   "id":           42,
   "title":        "Weekly status",
-  "project":      "project-slug",
-  "category":     "category-slug",
+  "projects":     ["project-slug"],
+  "categories":   ["category-slug"],
+  "project":      "project-slug",   (legacy: first selected)
+  "category":     "category-slug",  (legacy: first selected)
   "period_kind":  "week",
   "period_start": "2026-05-26",
   "period_end":   "2026-06-01",

@@ -27,18 +27,19 @@ class EntryListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         qs = (WorkItem.objects
               .filter(author=self.request.user, is_archived=False)
-              .select_related('project', 'category')
-              .prefetch_related('tags'))
+              .prefetch_related('projects', 'categories', 'tags'))
         project_id = self.request.GET.get('project')
         if project_id:
-            qs = qs.filter(project_id=project_id)
+            qs = qs.filter(projects__id=project_id)
         q = self.request.GET.get('q', '').strip()
         if q:
             qs = qs.filter(
                 Q(title__icontains=q)
                 | Q(description__icontains=q)
                 | Q(tags__name__icontains=q)
-            ).distinct()
+            )
+        if project_id or q:
+            qs = qs.distinct()
         return qs
 
     def get_context_data(self, **kwargs):
@@ -98,7 +99,7 @@ class EntryDetailView(LoginRequiredMixin, DetailView):
     template_name = 'entries/detail.html'
 
     def get_queryset(self):
-        qs = WorkItem.objects.prefetch_related('tags')
+        qs = WorkItem.objects.prefetch_related('projects', 'categories', 'lab_priorities', 'tags')
         user = self.request.user
         if user.is_scd_admin or user.is_division_head:
             pass  # full access including division-head-only entries
@@ -212,8 +213,8 @@ class EntryManageView(EntryManagerRequiredMixin, ListView):
     def get_queryset(self):
         from apps.accounts.models import User
         qs = (WorkItem.objects
-              .select_related('author', 'project', 'category')
-              .prefetch_related('tags'))
+              .select_related('author')
+              .prefetch_related('projects', 'categories', 'tags'))
         user = self.request.user
         if not (user.is_scd_admin or user.is_division_head):
             qs = qs.filter(is_division_head_only=False)
@@ -225,7 +226,7 @@ class EntryManageView(EntryManagerRequiredMixin, ListView):
             qs = qs.filter(author__email__icontains=author)
         project = self.request.GET.get('project', '').strip()
         if project:
-            qs = qs.filter(project_id=project)
+            qs = qs.filter(projects__id=project).distinct()
         show_archived = self.request.GET.get('archived') == '1'
         if show_archived:
             qs = qs.filter(is_archived=True)

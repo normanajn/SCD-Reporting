@@ -13,6 +13,18 @@ from apps.entries.models import WorkItem
 from apps.taxonomy.models import Category, Project, Tag
 
 
+def _new_entry(project=None, category=None, lab_priority=None, **kwargs):
+    """Create a WorkItem and set its project/category/lab_priority M2M relations."""
+    item = WorkItem.objects.create(**kwargs)
+    if project is not None:
+        item.projects.set(project if isinstance(project, (list, tuple)) else [project])
+    if category is not None:
+        item.categories.set(category if isinstance(category, (list, tuple)) else [category])
+    if lab_priority is not None:
+        item.lab_priorities.set(lab_priority if isinstance(lab_priority, (list, tuple)) else [lab_priority])
+    return item
+
+
 @pytest.fixture
 def admin_user(db):
     return User.objects.create_user(
@@ -41,7 +53,7 @@ def category(db):
 def _make_entry(user, project, category):
     today = date.today()
     start = today - timedelta(days=today.weekday())
-    return WorkItem.objects.create(
+    return _new_entry(
         author=user,
         title='Signal test entry',
         project=project,

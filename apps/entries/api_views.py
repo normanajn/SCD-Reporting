@@ -51,6 +51,33 @@ def _resolve_fk(model, value, allow_blank=False):
         return None, f'{model.__name__} "{value}" not found or inactive.'
 
 
+def _resolve_fk_list(model, value, required=True):
+    """Resolve a slug/PK or list of them to a list of instances.
+
+    Accepts a single value (backward-compatible) or a list. Returns
+    (list_of_instances, error_str).
+    """
+    if value in (None, '', []):
+        if required:
+            return None, f'{model.__name__} is required.'
+        return [], None
+    values = value if isinstance(value, list) else [value]
+    instances = []
+    for v in values:
+        inst, err = _resolve_fk(model, v)
+        if err:
+            return None, err
+        instances.append(inst)
+    return instances, None
+
+
+def _get_multi(data, plural_key, singular_key):
+    """Read a list field, preferring the plural key but accepting the legacy singular one."""
+    if plural_key in data:
+        return data[plural_key]
+    return data.get(singular_key)
+
+
 def _coerce_bool(val, default=False):
     if isinstance(val, bool):
         return val
@@ -120,21 +147,23 @@ class EntryCreateAPIView(View):
         if parsed_start and parsed_end and parsed_end < parsed_start:
             errors['period_end'] = 'period_end must be on or after period_start.'
 
-        project, err = _resolve_fk(Project, data.get('project'))
+        projects, err = _resolve_fk_list(Project, _get_multi(data, 'projects', 'project'))
         if err:
-            errors['project'] = err
+            errors['projects'] = err
 
-        category, err = _resolve_fk(Category, data.get('category'))
+        categories, err = _resolve_fk_list(Category, _get_multi(data, 'categories', 'category'))
         if err:
-            errors['category'] = err
+            errors['categories'] = err
 
         group, err = _resolve_fk(WorkGroup, data.get('group'), allow_blank=True)
         if err:
             errors['group'] = err
 
-        lab_priority, err = _resolve_fk(LabPriority, data.get('lab_priority'), allow_blank=True)
+        lab_priorities, err = _resolve_fk_list(
+            LabPriority, _get_multi(data, 'lab_priorities', 'lab_priority'), required=False,
+        )
         if err:
-            errors['lab_priority'] = err
+            errors['lab_priorities'] = err
 
         if errors:
             return JsonResponse({'errors': errors}, status=400)
@@ -144,10 +173,7 @@ class EntryCreateAPIView(View):
                 author=user,
                 title=title,
                 description=description,
-                project=project,
-                category=category,
                 group=group,
-                lab_priority=lab_priority,
                 period_kind=period_kind,
                 period_start=parsed_start,
                 period_end=parsed_end,
@@ -157,6 +183,9 @@ class EntryCreateAPIView(View):
                 highlight_stars=_coerce_int(data.get('highlight_stars')),
                 is_division_head_only=_coerce_bool(data.get('is_division_head_only')),
             )
+            entry.projects.set(projects)
+            entry.categories.set(categories)
+            entry.lab_priorities.set(lab_priorities)
 
             tag_names = data.get('tags', [])
             if isinstance(tag_names, list):
@@ -171,11 +200,16 @@ class EntryCreateAPIView(View):
                     entry.tags.set(tags)
 
         from django.urls import reverse
+        project_slugs = [p.slug for p in projects]
+        category_slugs = [c.slug for c in categories]
         return JsonResponse({
             'id': entry.pk,
             'title': entry.title,
-            'project': entry.project.slug,
-            'category': entry.category.slug,
+            'projects': project_slugs,
+            'categories': category_slugs,
+            # Legacy single-value keys (first selected) for backward compatibility.
+            'project': project_slugs[0] if project_slugs else None,
+            'category': category_slugs[0] if category_slugs else None,
             'period_kind': entry.period_kind,
             'period_start': entry.period_start.isoformat(),
             'period_end': entry.period_end.isoformat(),
