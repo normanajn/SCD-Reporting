@@ -28,25 +28,28 @@ class WorkItemFilter(django_filters.FilterSet):
         label='Activity Group',
         empty_label='All groups',
     )
-    project = django_filters.ModelChoiceFilter(
+    projects = django_filters.ModelMultipleChoiceFilter(
+        field_name='projects',
         queryset=Project.objects.filter(is_active=True).order_by('sort_order', 'name'),
         label='Project',
-        empty_label='All projects',
+        conjoined=False,  # match ANY of the selected projects
     )
-    category = django_filters.ModelChoiceFilter(
+    categories = django_filters.ModelMultipleChoiceFilter(
+        field_name='categories',
         queryset=Category.objects.filter(is_active=True).order_by('sort_order', 'name'),
         label='Category',
-        empty_label='All categories',
+        conjoined=False,
     )
     entry_type = django_filters.ModelChoiceFilter(
         queryset=EntryType.objects.filter(is_active=True).order_by('sort_order', 'name'),
         label='Entry Type',
         empty_label='All entry types',
     )
-    lab_priority = django_filters.ModelChoiceFilter(
+    lab_priorities = django_filters.ModelMultipleChoiceFilter(
+        field_name='lab_priorities',
         queryset=LabPriority.objects.filter(is_active=True).order_by('sort_order', 'name'),
         label='Lab Priority',
-        empty_label='All lab priorities',
+        conjoined=False,
     )
     period_after = django_filters.DateFilter(
         field_name='period_start',

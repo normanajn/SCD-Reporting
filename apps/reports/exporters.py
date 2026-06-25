@@ -32,7 +32,9 @@ def _filename(fmt: str) -> str:
 
 
 def _base_qs(qs):
-    return qs.select_related('author', 'project', 'category').prefetch_related('tags')
+    return qs.select_related('author').prefetch_related(
+        'projects', 'categories', 'tags',
+    )
 
 
 def _rows(qs):
@@ -41,8 +43,8 @@ def _rows(qs):
             'id':             item.pk,
             'author':         item.author.email,
             'title':          item.title,
-            'project':        item.project.name,
-            'category':       item.category.name,
+            'project':        ', '.join(p.name for p in item.projects.all()),
+            'category':       ', '.join(c.name for c in item.categories.all()),
             'group':          item.group.name if item.group else '',
             'period_kind':    item.get_period_kind_display(),
             'period_start':   item.period_start.isoformat(),

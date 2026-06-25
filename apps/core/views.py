@@ -51,8 +51,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx['recent_entries'] = (
             WorkItem.objects
             .filter(author=self.request.user)
-            .select_related('project', 'category')
-            .prefetch_related('tags')
+            .prefetch_related('projects', 'categories', 'tags')
             .order_by('-period_end', '-created_at')[:20]
         )
         ctx['prompt_form'] = AIPromptConfigForm(instance=AIPromptConfig.for_user(self.request.user))
@@ -71,8 +70,8 @@ class DashboardSummaryView(LoginRequiredMixin, View):
             })
         qs = (WorkItem.objects
               .filter(author=request.user, pk__in=selected_ids)
-              .select_related('author', 'project', 'category')
-              .prefetch_related('tags'))
+              .select_related('author')
+              .prefetch_related('projects', 'categories', 'tags'))
         count = qs.count()
         if count == 0:
             return render(request, 'core/partials/_dashboard_summary.html', {

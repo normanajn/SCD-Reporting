@@ -173,57 +173,57 @@
           {% endif %}
         </div>
 
-        {# Project #}
+        {# Projects (multi-select; none selected = all) #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Project</label>
+          {% with selp=filter.form.projects.value|default_if_none:'' %}
           {% if user.is_functional_lead %}
           {% with first_project=project_scope.first %}
           {% if project_scope.count == 1 %}
           {# Locked to the single managed project #}
-          <input type="hidden" name="project" value="{{ first_project.pk }}">
+          <input type="hidden" name="projects" value="{{ first_project.pk }}">
           <div class="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
             {{ first_project.name }}
           </div>
           {% else %}
-          {# Dropdown limited to managed projects #}
-          <select name="project"
+          {# Multi-select limited to managed projects #}
+          <select name="projects" multiple size="4"
                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
-            <option value="">All my projects</option>
             {% for p in project_scope %}
-            <option value="{{ p.pk }}" {% if filter.form.project.value|stringformat:"s" == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+            <option value="{{ p.pk }}" {% if p.pk|stringformat:"s" in selp %}selected{% endif %}>{{ p.name }}</option>
             {% endfor %}
           </select>
+          <p class="mt-1 text-xs text-slate-400">Select one or more (none = all).</p>
           {% endif %}
           {% endwith %}
           {% else %}
-          {# Full dropdown for auditors/admins/division heads/group leaders #}
-          <select name="project"
+          {# Full multi-select for auditors/admins/division heads/group leaders #}
+          <select name="projects" multiple size="4"
                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
-            <option value="">All projects</option>
-            {% for pk, label in filter.filters.project.field.choices %}
-            {% if pk %}
-            <option value="{{ pk }}" {% if filter.form.project.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-            {% endif %}
+            {% for pk, label in filter.filters.projects.field.choices %}
+            <option value="{{ pk }}" {% if pk|stringformat:"s" in selp %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
+          <p class="mt-1 text-xs text-slate-400">Select one or more (none = all).</p>
           {% endif %}
+          {% endwith %}
         </div>
 
-        {# Category #}
+        {# Categories (multi-select; none selected = all) #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Category</label>
-          <select name="category"
+          {% with selc=filter.form.categories.value|default_if_none:'' %}
+          <select name="categories" multiple size="4"
                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
-            <option value="">All categories</option>
-            {% for pk, label in filter.filters.category.field.choices %}
-            {% if pk %}
-            <option value="{{ pk }}" {% if filter.form.category.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-            {% endif %}
+            {% for pk, label in filter.filters.categories.field.choices %}
+            <option value="{{ pk }}" {% if pk|stringformat:"s" in selc %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
+          <p class="mt-1 text-xs text-slate-400">Select one or more (none = all).</p>
+          {% endwith %}
         </div>
 
         {# Entry Type #}
@@ -241,19 +241,19 @@
           </select>
         </div>
 
-        {# Lab Priority #}
+        {# Lab Priorities (multi-select; none selected = all) #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Lab Priority</label>
-          <select name="lab_priority"
+          {% with sell=filter.form.lab_priorities.value|default_if_none:'' %}
+          <select name="lab_priorities" multiple size="4"
                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
                          focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
-            <option value="">All lab priorities</option>
-            {% for pk, label in filter.filters.lab_priority.field.choices %}
-            {% if pk %}
-            <option value="{{ pk }}" {% if filter.form.lab_priority.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-            {% endif %}
+            {% for pk, label in filter.filters.lab_priorities.field.choices %}
+            <option value="{{ pk }}" {% if pk|stringformat:"s" in sell %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
+          <p class="mt-1 text-xs text-slate-400">Select one or more (none = all).</p>
+          {% endwith %}
         </div>
 
         {# Period quick-select + date range #}

@@ -14,6 +14,18 @@ from apps.entries.models import WorkItem
 from apps.taxonomy.models import Category, EntryType, Project, WorkGroup
 
 
+def _new_entry(project=None, category=None, lab_priority=None, **kwargs):
+    """Create a WorkItem and set its project/category/lab_priority M2M relations."""
+    item = WorkItem.objects.create(**kwargs)
+    if project is not None:
+        item.projects.set(project if isinstance(project, (list, tuple)) else [project])
+    if category is not None:
+        item.categories.set(category if isinstance(category, (list, tuple)) else [category])
+    if lab_priority is not None:
+        item.lab_priorities.set(lab_priority if isinstance(lab_priority, (list, tuple)) else [lab_priority])
+    return item
+
+
 @pytest.fixture
 def admin_user(db):
     return User.objects.create_user(
@@ -51,7 +63,7 @@ def category(db):
 def entry(db, regular_user, project, category):
     today = date.today()
     start = today - timedelta(days=today.weekday())
-    return WorkItem.objects.create(
+    return _new_entry(
         author=regular_user,
         title='Test entry',
         project=project,
@@ -94,8 +106,29 @@ class TestReportPreview:
     def test_project_filter(self, client, admin_user, entry, project, category, db):
         other = Project.objects.create(name='CMS', slug='cms')
         client.force_login(admin_user)
-        resp = client.post(reverse('reports:preview'), {'project': other.pk})
+        resp = client.post(reverse('reports:preview'), {'projects': [other.pk]})
         assert b'Test entry' not in resp.content
+
+    def test_projects_filter_matches_any(self, client, admin_user, entry, project, category, db):
+        p2 = Project.objects.create(name='CMS', slug='cms')
+        today = date.today()
+        start = today - timedelta(days=today.weekday())
+        _new_entry(
+            project=p2, category=category, author=entry.author, title='Second entry',
+            period_kind='week', period_start=start, period_end=start + timedelta(days=6),
+            description='x',
+        )
+        client.force_login(admin_user)
+        # Selecting both projects returns entries matching EITHER (OR semantics).
+        resp = client.post(reverse('reports:preview'), {'projects': [project.pk, p2.pk]})
+        body = resp.content.decode()
+        assert 'Test entry' in body
+        assert 'Second entry' in body
+        # Selecting only the second project excludes the first entry.
+        resp = client.post(reverse('reports:preview'), {'projects': [p2.pk]})
+        body = resp.content.decode()
+        assert 'Test entry' not in body
+        assert 'Second entry' in body
 
     def test_author_email_filter(self, client, admin_user, entry):
         client.force_login(admin_user)
@@ -224,7 +257,7 @@ class TestGroupScopeFiltering:
     def _make_entry(self, author, project, category, group=None):
         today = date.today()
         start = today - timedelta(days=today.weekday())
-        return WorkItem.objects.create(
+        return _new_entry(
             author=author,
             title=f'Entry by {author.email}',
             project=project,

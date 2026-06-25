@@ -78,9 +78,9 @@
             </div>
           </td>
           <td class="px-4 py-3 hidden sm:table-cell">
-            <span class="text-slate-700">{{ entry.project.name }}</span>
+            <span class="text-slate-700">{% for p in entry.projects.all %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
             <span class="text-slate-400 mx-1">·</span>
-            <span class="text-slate-500">{{ entry.category.name }}</span>
+            <span class="text-slate-500">{% for c in entry.categories.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
           </td>
           <td class="px-4 py-3 text-right whitespace-nowrap">
             <a href="{% url 'entries:edit' entry.pk %}"

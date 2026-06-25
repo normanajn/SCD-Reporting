@@ -8,7 +8,7 @@ from apps.entries.models import WorkItem
 from .service import log_event
 
 _TRACKED_FIELDS = (
-    'title', 'project_id', 'category_id', 'entry_type_id', 'group_id',
+    'title', 'entry_type_id', 'group_id',
     'period_kind', 'period_start', 'period_end',
     'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
     'is_division_head_only', 'author_id', 'is_archived',
@@ -90,6 +90,43 @@ def _workitem_tags_changed(sender, instance, action, pk_set, **kwargs):
             log_event(action='update', obj=instance, changes={'tags_removed': names})
     elif action == 'post_clear':
         log_event(action='update', obj=instance, changes={'tags_cleared': True})
+
+
+# ── WorkItem taxonomy m2m changes (projects / categories / lab priorities) ────
+
+def _log_taxonomy_m2m(instance, action, pk_set, model, label):
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+    if not isinstance(instance, WorkItem):
+        return  # guard: m2m_changed fires for both sides of the relation
+    if action == 'post_add' and pk_set:
+        names = sorted(model.objects.filter(pk__in=pk_set).values_list('name', flat=True))
+        if names:
+            log_event(action='update', obj=instance, changes={f'{label}_added': names})
+    elif action == 'post_remove' and pk_set:
+        names = sorted(model.objects.filter(pk__in=pk_set).values_list('name', flat=True))
+        if names:
+            log_event(action='update', obj=instance, changes={f'{label}_removed': names})
+    elif action == 'post_clear':
+        log_event(action='update', obj=instance, changes={f'{label}_cleared': True})
+
+
+@receiver(m2m_changed, sender=WorkItem.projects.through)
+def _workitem_projects_changed(sender, instance, action, pk_set, **kwargs):
+    from apps.taxonomy.models import Project
+    _log_taxonomy_m2m(instance, action, pk_set, Project, 'projects')
+
+
+@receiver(m2m_changed, sender=WorkItem.categories.through)
+def _workitem_categories_changed(sender, instance, action, pk_set, **kwargs):
+    from apps.taxonomy.models import Category
+    _log_taxonomy_m2m(instance, action, pk_set, Category, 'categories')
+
+
+@receiver(m2m_changed, sender=WorkItem.lab_priorities.through)
+def _workitem_lab_priorities_changed(sender, instance, action, pk_set, **kwargs):
+    from apps.taxonomy.models import LabPriority
+    _log_taxonomy_m2m(instance, action, pk_set, LabPriority, 'lab_priorities')
 
 
 # ── Auth events ───────────────────────────────────────────────────────────────

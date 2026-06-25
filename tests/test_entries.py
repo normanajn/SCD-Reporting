@@ -9,6 +9,18 @@ from apps.entries.models import WorkItem
 from apps.taxonomy.models import Category, Project, Tag
 
 
+def _new_entry(project=None, category=None, lab_priority=None, **kwargs):
+    """Create a WorkItem and set its project/category/lab_priority M2M relations."""
+    item = WorkItem.objects.create(**kwargs)
+    if project is not None:
+        item.projects.set(project if isinstance(project, (list, tuple)) else [project])
+    if category is not None:
+        item.categories.set(category if isinstance(category, (list, tuple)) else [category])
+    if lab_priority is not None:
+        item.lab_priorities.set(lab_priority if isinstance(lab_priority, (list, tuple)) else [lab_priority])
+    return item
+
+
 @pytest.fixture
 def user(db):
     return User.objects.create_user(username='tester', email='tester@example.com', password='pass')
@@ -27,7 +39,7 @@ def category(db):
 @pytest.fixture
 def entry(db, user, project, category):
     today = date.today()
-    return WorkItem.objects.create(
+    return _new_entry(
         author=user,
         title='My entry',
         project=project,
@@ -65,7 +77,7 @@ class TestEntryList:
             period_start=today, period_end=today, description='',
         )
         defaults.update(kwargs)
-        return WorkItem.objects.create(**defaults)
+        return _new_entry(**defaults)
 
     def test_search_filters_by_title(self, db, client, user, project, category):
         self._make_entry(user, project, category, title='Quarterly budget review')
@@ -135,8 +147,8 @@ class TestEntryCreate:
         today = date.today()
         resp = client.post(reverse('entries:create'), {
             'title': 'New entry',
-            'project': project.pk,
-            'category': category.pk,
+            'projects': [project.pk],
+            'categories': [category.pk],
             'period_kind': 'week',
             'period_start': (today - timedelta(days=today.weekday())).isoformat(),
             'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
@@ -146,13 +158,47 @@ class TestEntryCreate:
         assert resp.status_code == 302
         assert WorkItem.objects.filter(title='New entry', author=user).exists()
 
+    def test_post_creates_entry_with_multiple_projects(self, client, user, project, category):
+        p2 = Project.objects.create(name='Second', slug='second')
+        c2 = Category.objects.create(name='SecondCat', slug='secondcat')
+        client.force_login(user)
+        today = date.today()
+        client.post(reverse('entries:create'), {
+            'title': 'Multi entry',
+            'projects': [project.pk, p2.pk],
+            'categories': [category.pk, c2.pk],
+            'period_kind': 'week',
+            'period_start': (today - timedelta(days=today.weekday())).isoformat(),
+            'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
+            'description': 'desc',
+            'tags_input': '',
+        })
+        entry = WorkItem.objects.get(title='Multi entry')
+        assert set(entry.projects.values_list('pk', flat=True)) == {project.pk, p2.pk}
+        assert set(entry.categories.values_list('pk', flat=True)) == {category.pk, c2.pk}
+
+    def test_post_requires_at_least_one_project(self, client, user, project, category):
+        client.force_login(user)
+        today = date.today()
+        resp = client.post(reverse('entries:create'), {
+            'title': 'No project',
+            'categories': [category.pk],
+            'period_kind': 'week',
+            'period_start': (today - timedelta(days=today.weekday())).isoformat(),
+            'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
+            'description': 'desc',
+            'tags_input': '',
+        })
+        assert resp.status_code == 200  # form re-rendered with validation errors
+        assert not WorkItem.objects.filter(title='No project').exists()
+
     def test_sets_author_to_current_user(self, client, user, project, category):
         client.force_login(user)
         today = date.today()
         client.post(reverse('entries:create'), {
             'title': 'Authored',
-            'project': project.pk,
-            'category': category.pk,
+            'projects': [project.pk],
+            'categories': [category.pk],
             'period_kind': 'week',
             'period_start': (today - timedelta(days=today.weekday())).isoformat(),
             'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
@@ -168,8 +214,8 @@ class TestEntryCreate:
         today = date.today()
         client.post(reverse('entries:create'), {
             'title': 'Typed entry',
-            'project': project.pk,
-            'category': category.pk,
+            'projects': [project.pk],
+            'categories': [category.pk],
             'entry_type': et.pk,
             'period_kind': 'week',
             'period_start': (today - timedelta(days=today.weekday())).isoformat(),
@@ -184,8 +230,8 @@ class TestEntryCreate:
         today = date.today()
         resp = client.post(reverse('entries:create'), {
             'title': 'No type',
-            'project': project.pk,
-            'category': category.pk,
+            'projects': [project.pk],
+            'categories': [category.pk],
             'period_kind': 'week',
             'period_start': (today - timedelta(days=today.weekday())).isoformat(),
             'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
@@ -201,8 +247,8 @@ class TestEntryCreate:
         today = date.today()
         client.post(reverse('entries:create'), {
             'title': 'Tagged',
-            'project': project.pk,
-            'category': category.pk,
+            'projects': [project.pk],
+            'categories': [category.pk],
             'period_kind': 'week',
             'period_start': (today - timedelta(days=today.weekday())).isoformat(),
             'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
@@ -279,8 +325,8 @@ class TestEntryEdit:
         client.force_login(user)
         resp = client.post(reverse('entries:edit', kwargs={'pk': entry.pk}), {
             'title': 'Updated title',
-            'project': entry.project.pk,
-            'category': entry.category.pk,
+            'projects': list(entry.projects.values_list('pk', flat=True)),
+            'categories': list(entry.categories.values_list('pk', flat=True)),
             'period_kind': entry.period_kind,
             'period_start': entry.period_start.isoformat(),
             'period_end':   entry.period_end.isoformat(),
@@ -303,8 +349,8 @@ class TestEntryEdit:
         client.force_login(other)
         resp = client.post(reverse('entries:edit', kwargs={'pk': entry.pk}), {
             'title': 'Hijacked',
-            'project': entry.project.pk,
-            'category': entry.category.pk,
+            'projects': list(entry.projects.values_list('pk', flat=True)),
+            'categories': list(entry.categories.values_list('pk', flat=True)),
             'period_kind': entry.period_kind,
             'period_start': entry.period_start.isoformat(),
             'period_end':   entry.period_end.isoformat(),
@@ -322,7 +368,7 @@ class TestEntryDelete:
     def test_delete_decrements_tag_use_count(self, client, user, project, category):
         tag = Tag.objects.create(name='deletetag', use_count=1)
         today = date.today()
-        item = WorkItem.objects.create(
+        item = _new_entry(
             author=user, title='To delete', project=project, category=category,
             period_kind='week',
             period_start=today - timedelta(days=today.weekday()),
@@ -486,7 +532,7 @@ class TestEntryManagement:
     def managed_entry(self, db, author, project, category):
         today = date.today()
         start = today - timedelta(days=today.weekday())
-        return WorkItem.objects.create(
+        return _new_entry(
             author=author,
             title='Manager target entry',
             project=project,
@@ -588,7 +634,7 @@ class TestEntryManagement:
     def test_manage_title_search_filter(self, client, admin, managed_entry, project, category, author):
         today = date.today()
         start = today - timedelta(days=today.weekday())
-        other = WorkItem.objects.create(
+        other = _new_entry(
             author=author, title='Completely different', project=project,
             category=category, period_kind='week',
             period_start=start, period_end=start + timedelta(days=6),

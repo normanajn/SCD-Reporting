@@ -151,13 +151,15 @@ def test_delete_user_with_entries_is_blocked(client, make_user, db):
     project  = Project.objects.create(name='P1', slug='p1')
     category = Category.objects.create(name='C1', slug='c1')
     today = date.today()
-    WorkItem.objects.create(
-        author=target, title='entry', project=project, category=category,
+    item = WorkItem.objects.create(
+        author=target, title='entry',
         period_kind='week',
         period_start=today - timedelta(days=today.weekday()),
         period_end=today - timedelta(days=today.weekday()) + timedelta(days=6),
         description='desc',
     )
+    item.projects.set([project])
+    item.categories.set([category])
     client.force_login(admin)
     resp = client.post(f'/admin-users/{target.pk}/delete/')
     assert resp.status_code == 302
