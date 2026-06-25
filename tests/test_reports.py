@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.entries.models import WorkItem
-from apps.taxonomy.models import Category, Project, WorkGroup
+from apps.taxonomy.models import Category, EntryType, Project, WorkGroup
 
 
 @pytest.fixture
@@ -100,6 +100,19 @@ class TestReportPreview:
     def test_author_email_filter(self, client, admin_user, entry):
         client.force_login(admin_user)
         resp = client.post(reverse('reports:preview'), {'author_email': 'nomatch@x.com'})
+        assert b'Test entry' not in resp.content
+
+    def test_entry_type_filter(self, client, admin_user, entry, db):
+        weekly = EntryType.objects.create(name='Weekly Report', slug='weekly-report')
+        milestone = EntryType.objects.create(name='Milestone', slug='milestone')
+        entry.entry_type = weekly
+        entry.save(update_fields=['entry_type'])
+        client.force_login(admin_user)
+        # Matching type shows the entry…
+        resp = client.post(reverse('reports:preview'), {'entry_type': weekly.pk})
+        assert b'Test entry' in resp.content
+        # …a different type filters it out.
+        resp = client.post(reverse('reports:preview'), {'entry_type': milestone.pk})
         assert b'Test entry' not in resp.content
 
     def test_no_match_shows_empty_message(self, client, admin_user):

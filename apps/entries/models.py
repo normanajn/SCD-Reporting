@@ -27,6 +27,12 @@ class WorkItem(models.Model):
         on_delete=models.PROTECT,
         related_name='work_items',
     )
+    entry_type = models.ForeignKey(
+        'taxonomy.EntryType',
+        null=True, blank=True,
+        on_delete=models.PROTECT,
+        related_name='work_items',
+    )
     group     = models.ForeignKey(
         'taxonomy.WorkGroup',
         null=True, blank=True,
@@ -66,6 +72,7 @@ class WorkItem(models.Model):
             models.Index(fields=['author', '-period_end']),
             models.Index(fields=['project', '-period_end']),
             models.Index(fields=['category', '-period_end']),
+            models.Index(fields=['entry_type', '-period_end']),
             models.Index(fields=['period_start', 'period_end']),
             models.Index(fields=['is_private', '-period_end']),
         ]

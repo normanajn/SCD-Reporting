@@ -8,7 +8,7 @@ from apps.entries.models import WorkItem
 from .service import log_event
 
 _TRACKED_FIELDS = (
-    'title', 'project_id', 'category_id', 'group_id',
+    'title', 'project_id', 'category_id', 'entry_type_id', 'group_id',
     'period_kind', 'period_start', 'period_end',
     'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
     'is_division_head_only', 'author_id', 'is_archived',

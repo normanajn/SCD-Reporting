@@ -226,6 +226,21 @@
           </select>
         </div>
 
+        {# Entry Type #}
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Entry Type</label>
+          <select name="entry_type"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm
+                         focus:border-scd-primary focus:ring-1 focus:ring-scd-primary focus:outline-none">
+            <option value="">All entry types</option>
+            {% for pk, label in filter.filters.entry_type.field.choices %}
+            {% if pk %}
+            <option value="{{ pk }}" {% if filter.form.entry_type.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
         {# Lab Priority #}
         <div>
           <label class="block text-xs font-medium text-slate-500 mb-1">Lab Priority</label>

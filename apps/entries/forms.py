@@ -1,7 +1,7 @@
 from django import forms
 from django.db.models import F
 
-from apps.taxonomy.models import Category, LabPriority, Project, Tag, WorkGroup
+from apps.taxonomy.models import Category, EntryType, LabPriority, Project, Tag, WorkGroup
 
 from .models import WorkItem
 
@@ -12,7 +12,7 @@ class WorkItemForm(forms.ModelForm):
     class Meta:
         model = WorkItem
         fields = [
-            'title', 'project', 'category', 'group', 'lab_priority',
+            'title', 'project', 'category', 'entry_type', 'group', 'lab_priority',
             'period_kind', 'period_start', 'period_end',
             'description', 'is_private', 'is_critical', 'is_highlight', 'highlight_stars',
             'is_division_head_only',
@@ -29,6 +29,8 @@ class WorkItemForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['project'].queryset  = Project.objects.filter(is_active=True).order_by('sort_order', 'name')
         self.fields['category'].queryset = Category.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['entry_type'].queryset   = EntryType.objects.filter(is_active=True).order_by('sort_order', 'name')
+        self.fields['entry_type'].required   = False
         self.fields['group'].queryset        = WorkGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
         self.fields['group'].required        = False
         self.fields['lab_priority'].queryset = LabPriority.objects.filter(is_active=True).order_by('sort_order', 'name')

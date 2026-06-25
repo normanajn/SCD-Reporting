@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Category, LabPriority, Project, WorkGroup
+from .models import Category, EntryType, LabPriority, Project, WorkGroup
 
 
 class ProjectForm(forms.ModelForm):
@@ -15,6 +15,15 @@ class ProjectForm(forms.ModelForm):
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
+        fields = ['name', 'short_code', 'is_active', 'sort_order']
+        widgets = {
+            'sort_order': forms.NumberInput(attrs={'min': 0}),
+        }
+
+
+class EntryTypeForm(forms.ModelForm):
+    class Meta:
+        model = EntryType
         fields = ['name', 'short_code', 'is_active', 'sort_order']
         widgets = {
             'sort_order': forms.NumberInput(attrs={'min': 0}),

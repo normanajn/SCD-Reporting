@@ -244,6 +244,10 @@ curl -s -X POST https://scd-reporting.fnal.gov/api/entries/ \
       {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/categories/"                  badge="manager" desc="Create a new category" %}
       {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/categories/&lt;id&gt;/edit/"  badge="manager" desc="Edit category form" %}
       {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/categories/&lt;id&gt;/edit/"  badge="manager" desc="Save category changes" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/entry-types/"                 badge="manager" desc="Manage entry types — list and add" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/entry-types/"                 badge="manager" desc="Create a new entry type" %}
+      {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/entry-types/&lt;id&gt;/edit/" badge="manager" desc="Edit entry type form" %}
+      {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/entry-types/&lt;id&gt;/edit/" badge="manager" desc="Save entry type changes" %}
       {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/groups/"                      badge="manager" desc="Manage work groups — list and add" %}
       {% include "core/partials/_route_row.html" with method="POST" path="/taxonomy/groups/"                      badge="manager" desc="Create a new work group" %}
       {% include "core/partials/_route_row.html" with method="GET"  path="/taxonomy/groups/&lt;id&gt;/edit/"      badge="manager" desc="Edit work group form" %}

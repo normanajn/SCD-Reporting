@@ -161,6 +161,40 @@ class TestEntryCreate:
         })
         assert WorkItem.objects.get(title='Authored').author == user
 
+    def test_post_with_entry_type_sets_it(self, client, user, project, category):
+        from apps.taxonomy.models import EntryType
+        et = EntryType.objects.create(name='Weekly Report', slug='weekly-report')
+        client.force_login(user)
+        today = date.today()
+        client.post(reverse('entries:create'), {
+            'title': 'Typed entry',
+            'project': project.pk,
+            'category': category.pk,
+            'entry_type': et.pk,
+            'period_kind': 'week',
+            'period_start': (today - timedelta(days=today.weekday())).isoformat(),
+            'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
+            'description': 'desc',
+            'tags_input': '',
+        })
+        assert WorkItem.objects.get(title='Typed entry').entry_type == et
+
+    def test_entry_type_is_optional(self, client, user, project, category):
+        client.force_login(user)
+        today = date.today()
+        resp = client.post(reverse('entries:create'), {
+            'title': 'No type',
+            'project': project.pk,
+            'category': category.pk,
+            'period_kind': 'week',
+            'period_start': (today - timedelta(days=today.weekday())).isoformat(),
+            'period_end':   (today - timedelta(days=today.weekday()) + timedelta(days=6)).isoformat(),
+            'description': 'desc',
+            'tags_input': '',
+        })
+        assert resp.status_code == 302
+        assert WorkItem.objects.get(title='No type').entry_type is None
+
     def test_post_with_tags_increments_use_count(self, client, user, project, category):
         tag = Tag.objects.create(name='mytag')
         client.force_login(user)
