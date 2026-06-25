@@ -32,12 +32,20 @@ class EntryListView(LoginRequiredMixin, ListView):
         project_id = self.request.GET.get('project')
         if project_id:
             qs = qs.filter(project_id=project_id)
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(title__icontains=q)
+                | Q(description__icontains=q)
+                | Q(tags__name__icontains=q)
+            ).distinct()
         return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['projects'] = Project.objects.filter(is_active=True).order_by('sort_order', 'name')
         ctx['selected_project'] = self.request.GET.get('project', '')
+        ctx['search_query'] = self.request.GET.get('q', '').strip()
         return ctx
 
 
